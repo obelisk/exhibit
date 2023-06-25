@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{ws, Client, Clients, EmojiMessage, Result};
+use crate::{ws, Client, Clients, ConfigurationMessage, EmojiMessage, Result};
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use uuid::Uuid;
 use warp::{http::StatusCode, reply::json, ws::Message, Reply};
 
@@ -14,18 +14,38 @@ pub struct RegisterResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Event {
     message: String,
+    slide: u64,
     emojis: Vec<String>,
 }
 
-pub async fn publish_handler(event: Event, clients: Clients) -> Result<impl Reply> {
-    let event = serde_json::to_string(&event).unwrap();
-    clients.read().await.iter().for_each(|(_, connected_user)| {
-        for (_, client) in connected_user {
-            if let Some(sender) = &client.sender {
-                let _ = sender.send(Ok(Message::text(&event)));
-            }
+pub async fn update_handler(
+    update: ConfigurationMessage,
+    clients: Clients,
+    configuration_sender: UnboundedSender<ConfigurationMessage>,
+) -> Result<impl Reply> {
+    let _ = configuration_sender.send(update.clone());
+
+    match update {
+        // A new slide is bring displayed
+        ConfigurationMessage::NewSlide {
+            slide,
+            slide_settings,
+        } => {
+            let event = Event {
+                message: slide_settings.message,
+                slide,
+                emojis: slide_settings.emojis,
+            };
+            let event = serde_json::to_string(&event).unwrap();
+            clients.read().await.iter().for_each(|(_, connected_user)| {
+                for (_, client) in connected_user {
+                    if let Some(sender) = &client.sender {
+                        let _ = sender.send(Ok(Message::text(&event)));
+                    }
+                }
+            });
         }
-    });
+    }
 
     Ok(StatusCode::OK)
 }

@@ -1,4 +1,4 @@
-use crate::{Client, Clients, EmojiMessage};
+use crate::{Client, Clients, EmojiMessage, UserMessage};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
@@ -74,8 +74,22 @@ pub async fn client_connection(
 
 async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<EmojiMessage>) {
     info!("received message from {}: {:?}", identity, msg);
-    let _ = sender.send(EmojiMessage {
-        identity: identity.to_string(),
-        emoji: "Temp".to_string(),
-    });
+
+    let msg = match msg.to_str().map(|x| serde_json::from_str::<UserMessage>(x)) {
+        Ok(Ok(m)) => m,
+        _ => {
+            error!("{identity} sent an invalid message");
+            return;
+        }
+    };
+
+    match msg {
+        UserMessage::Emoji { slide, emoji } => {
+            let _ = sender.send(EmojiMessage {
+                identity: identity.to_string(),
+                slide,
+                emoji,
+            });
+        }
+    }
 }

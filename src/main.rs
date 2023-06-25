@@ -1,32 +1,12 @@
 #[macro_use]
 extern crate log;
 
+use exhibit::{handler, Clients, ConfigurationMessage, EmojiMessage, SlideSettings};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
-use warp::{ws::Message, Filter, Rejection};
-
-mod handler;
-mod ws;
-
-type Result<T> = std::result::Result<T, Rejection>;
-
-// A user can be connected on multiple devices so we have a hashmap
-// linking their identity to another hashmap of their connected
-// devices
-type Clients = Arc<RwLock<HashMap<String, HashMap<String, Client>>>>;
-
-#[derive(Debug, Clone)]
-pub struct Client {
-    pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
-    pub emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
-}
-
-pub struct EmojiMessage {
-    pub identity: String,
-    pub emoji: String,
-}
+use warp::Filter;
 
 #[tokio::main]
 async fn main() {
@@ -36,19 +16,22 @@ async fn main() {
     let health_route = warp::path!("health").and_then(handler::health_handler);
 
     let (emoji_sender, mut emoji_receiver) = mpsc::unbounded_channel::<EmojiMessage>();
+    let (configuration_sender, mut configuration_receiver) =
+        mpsc::unbounded_channel::<ConfigurationMessage>();
 
     let register = warp::path("register");
     let register_routes = register
         .and(warp::get())
         .and(warp::header::headers_cloned())
         .and(with_clients(clients.clone()))
-        .and(with_emoji_sender(emoji_sender.clone()))
+        .and(with_sender(emoji_sender.clone()))
         .and_then(handler::register_handler);
 
-    let publish = warp::path!("publish")
+    let update = warp::path!("update")
         .and(warp::body::json())
         .and(with_clients(clients.clone()))
-        .and_then(handler::publish_handler);
+        .and(with_sender(configuration_sender.clone()))
+        .and_then(handler::update_handler);
 
     let ws_route = warp::path("ws")
         .and(warp::header::headers_cloned())
@@ -57,32 +40,60 @@ async fn main() {
         .and(with_clients(clients.clone()))
         .and_then(handler::ws_handler);
 
-    let routes = health_route
-        .or(register_routes)
-        .or(ws_route)
-        .or(publish)
-        .with(warp::cors().allow_any_origin());
+    let routes = health_route.or(register_routes).or(ws_route);
+
+    let admin_routes = update;
 
     tokio::task::spawn(async move {
-        while let Some(emoji_message) = emoji_receiver.recv().await {
-            println!("{} sent {}", emoji_message.identity, emoji_message.emoji);
+        let mut all_slide_settings: HashMap<u64, SlideSettings> = HashMap::new();
+        loop {
+            tokio::select! {
+                msg = emoji_receiver.recv() => {
+                    let msg = match msg {
+                        Some(m) => m,
+                        None => break,
+                    };
+
+                    if let Some(settings) = all_slide_settings.get(&msg.slide) {
+                        if settings.emojis.contains(&msg.emoji) {
+                            println!("{} sent {}", msg.identity, msg.emoji);
+                        } else {
+                            error!("{} sent invalid {} for slide {}", msg.identity, msg.emoji, msg.slide);
+                        }
+                    } else {
+                        error!("{} sent {} for unknown slide {}", msg.identity, msg.emoji, msg.slide);
+                    }
+                }
+                config = configuration_receiver.recv() => {
+                    match config {
+                        Some(ConfigurationMessage::NewSlide { slide, slide_settings }) => {
+                            info!("New slide: {slide}, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
+                            all_slide_settings.insert(slide, slide_settings);
+                        },
+                        None => break,
+                    }
+                }
+            };
         }
 
-        error!("Emoji receiver channel closed!");
+        error!("A receiver was dropped?");
     });
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    tokio::join!(
+        warp::serve(routes).run(([127, 0, 0, 1], 8000)),
+        warp::serve(admin_routes).run(([127, 0, 0, 1], 8001))
+    );
 }
 
 fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = Infallible> + Clone {
     warp::any().map(move || clients.clone())
 }
 
-fn with_emoji_sender<T>(
-    emoji_sender: mpsc::UnboundedSender<T>,
+fn with_sender<T>(
+    sender: mpsc::UnboundedSender<T>,
 ) -> impl Filter<Extract = (mpsc::UnboundedSender<T>,), Error = Infallible> + Clone
 where
     T: Send + Sync,
 {
-    warp::any().map(move || emoji_sender.clone())
+    warp::any().map(move || sender.clone())
 }
