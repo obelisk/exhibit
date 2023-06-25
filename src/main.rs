@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use exhibit::{handler, Clients, ConfigurationMessage, EmojiMessage, SlideSettings};
+use exhibit::{handler, processor, Clients, ConfigurationMessage, EmojiMessage, SlideSettings};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -46,51 +46,7 @@ async fn main() {
     let admin_routes = update;
 
     tokio::task::spawn(async move {
-        let mut all_slide_settings: HashMap<u64, SlideSettings> = HashMap::new();
-        let mut rate_limiter: HashMap<String, u64> = HashMap::new();
-        loop {
-            let time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-
-            tokio::select! {
-                msg = emoji_receiver.recv() => {
-                    let msg = match msg {
-                        Some(m) => m,
-                        None => break,
-                    };
-
-                    if let Some(settings) = all_slide_settings.get(&msg.slide) {
-                        if settings.emojis.contains(&msg.emoji) {
-                            let last_time = rate_limiter.insert(msg.identity.clone(), time);
-
-                            if let Some(last_time) = last_time {
-                                if time - last_time < 15 {
-                                    error!("{} sent too many emojis", msg.identity);
-                                    continue;
-                                }
-                            }
-
-                            println!("{} sent {}", msg.identity, msg.emoji);
-                        } else {
-                            error!("{} sent invalid {} for slide {}", msg.identity, msg.emoji, msg.slide);
-                        }
-                    } else {
-                        error!("{} sent {} for unknown slide {}", msg.identity, msg.emoji, msg.slide);
-                    }
-                }
-                config = configuration_receiver.recv() => {
-                    match config {
-                        Some(ConfigurationMessage::NewSlide { slide, slide_settings }) => {
-                            info!("New slide: {slide}, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-                            all_slide_settings.insert(slide, slide_settings);
-                        },
-                        None => break,
-                    }
-                }
-            };
-        }
+        processor::handle_sent_emojis(emoji_receiver, configuration_receiver).await;
 
         error!("A receiver was dropped?");
     });
