@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ws, Client, Clients, ConfigurationMessage, EmojiMessage, Result};
+use crate::{ws, Client, Clients, ConfigurationMessage, EmojiMessage, Presenters, Result};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use uuid::Uuid;
@@ -101,7 +101,7 @@ async fn register_client(
     }
 }
 
-pub async fn ws_handler(
+pub async fn client_ws_handler(
     headers: warp::http::HeaderMap,
     ws: warp::ws::Ws,
     guid: String,
@@ -128,6 +128,16 @@ pub async fn ws_handler(
         .clone();
 
     Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, identity, guid, clients, client)))
+}
+
+pub async fn presenter_ws_handler(
+    ws: warp::ws::Ws,
+    guid: String,
+    presenters: Presenters,
+) -> Result<impl Reply> {
+    info!("New websocket for emoji stream");
+
+    Ok(ws.on_upgrade(move |socket| ws::presenter_connection(socket, guid, presenters)))
 }
 
 pub async fn health_handler() -> Result<impl Reply> {

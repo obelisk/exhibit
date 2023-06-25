@@ -7,7 +7,7 @@ pub mod ws;
 
 use std::{collections::HashMap, sync::Arc};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, RwLock};
 use warp::{ws::Message, Rejection};
 
@@ -15,6 +15,7 @@ use warp::{ws::Message, Rejection};
 // linking their identity to another hashmap of their connected
 // devices
 pub type Clients = Arc<RwLock<HashMap<String, HashMap<String, Client>>>>;
+pub type Presenters = Arc<RwLock<HashMap<String, Presenter>>>;
 pub type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,12 @@ pub struct Client {
     pub emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Presenter {
+    pub sender: mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct EmojiMessage {
     pub identity: String,
     pub slide: u64,

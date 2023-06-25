@@ -1,7 +1,5 @@
-use crate::{Client, Clients, EmojiMessage, UserMessage};
+use crate::{Client, Clients, EmojiMessage, Presenter, Presenters, UserMessage};
 use futures::{FutureExt, StreamExt};
-use serde::Deserialize;
-use serde_json::from_str;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
@@ -91,5 +89,32 @@ async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<EmojiM
                 emoji,
             });
         }
+    }
+}
+
+pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {
+    let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
+    let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
+
+    presenters.write().await.insert(
+        guid.clone(),
+        Presenter {
+            sender: presenter_sender,
+        },
+    );
+
+    let presenter_rcv = UnboundedReceiverStream::new(presenter_rcv);
+    tokio::task::spawn(presenter_rcv.forward(presenter_ws_sender).map(|result| {
+        if let Err(e) = result {
+            error!("error sending websocket msg: {}", e);
+        }
+    }));
+
+    while let Some(_) = presenter_ws_rcv.next().await {}
+
+    if let Some(_) = presenters.write().await.remove(&guid) {
+        info!("Presenter {guid} - disconnected");
+    } else {
+        error!("Presenter {guid} - was already disconnected")
     }
 }
