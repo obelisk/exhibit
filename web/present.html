@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Exhibit</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"
+        integrity="sha256-tG5mcZUtJsZvyKAxYLVXrmjKBVLd6VpVccqz/r4ypFE=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
+        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
+        crossorigin="anonymous"></script>
+
+    <style>
+        .moving-emoji {
+            position: absolute;
+            width: 100px;
+            z-index: auto;
+            left: 0%;
+            animation: moveEmoji 9s ease-in-out forwards;
+        }
+
+        @keyframes moveEmoji {
+            0% {
+                left: 0%;
+            }
+
+            100% {
+                left: 110%;
+            }
+        }
+    </style>
+</head>
+<script>
+    let emoji_stream = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/emoji_stream/" + Math.floor(Math.random() * 1000000000));
+    emoji_stream.addEventListener("message", (event) => {
+        console.log(event.data);
+        let new_reaction_data = JSON.parse(event.data);
+        //var reactions = document.getElementById("reactions");
+
+        var reaction = document.createElement('h1');
+        reaction.innerHTML = new_reaction_data["emoji"];
+        reaction.className = "moving-emoji";
+        setTimeout(() => { reaction.remove() }, 10000)
+
+        document.body.appendChild(reaction);
+    });
+
+    function checkKey(e) {
+
+        e = e || window.event;
+
+        if (e.keyCode == '38') {
+            // up arrow
+        }
+        else if (e.keyCode == '40') {
+            // down arrow
+        }
+        else if (e.keyCode == '37') {
+            document.slide_index = document.slide_index - 1;
+            showSlide(document.files, document.slide_index);
+        }
+        else if (e.keyCode == '39') {
+            document.slide_index = document.slide_index + 1;
+            showSlide(document.files, document.slide_index);
+        }
+
+    }
+
+    document.onkeydown = checkKey;
+</script>
+
+<script>
+    function showSlide(files, index) {
+        // 0 is slide_data
+        if (index == 0) {
+            index = 1;
+        }
+        console.log(document.files[index]);
+        /**
+         * Get the image path.
+         */
+        const imageSrc = URL.createObjectURL(document.files[index]);
+        /**
+         * Select the image preview element.
+         */
+        const slideView = document.getElementById('slide-view');
+        /**
+         * Assign the path to the image preview element.
+         */
+        slideView.src = imageSrc;
+        /**
+         * Show the element by changing the display value to "block".
+         */
+        //slideView.style.display = "block";
+        console.log("Showing slide " + index);
+        var slide_settings = document.slide_data[index - 1];
+
+        if (slide_settings == null) {
+            slide_settings = {
+                "message": "No Reactions For This Slide",
+                emojis: []
+            }
+        }
+
+        let set_slide_msg = {
+            "NewSlide": {
+                "slide": document.slide_index,
+                "slide_settings": slide_settings
+            }
+        };
+        const response = fetch("/update", {
+            method: "POST", // or 'PUT'
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(set_slide_msg),
+        });
+    }
+
+    function onFileLoad(elementId, event) {
+        let slide_data = JSON.parse(event.target.result);
+
+        document.slide_data = slide_data;
+
+        if (slide_data.length != document.files.length - 1) {
+            alert("Slide data count doesn't match slide image count!: " + slide_data.length + " vs " + (document.files.length - 1));
+        }
+
+        document.slide_index = 1;
+        showSlide(document.files, document.slide_index);
+    }
+
+    function onChooseFiles(event, onLoadFileHandler) {
+        let files = document.getElementById('slide_data').files;
+        document.getElementById('slide_data').style.display = "none";
+        var slide_data = null;
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].name.endsWith(".json")) {
+                slide_data = files[i];
+                break;
+            }
+        }
+
+        if (slide_data == null) {
+            alert("No Slide Configuration Data Found!");
+            return;
+        }
+
+        document.files = files;
+
+        var reader = new FileReader();
+        reader.onload = onLoadFileHandler;
+        reader.readAsText(slide_data);
+    }
+</script>
+
+<body>
+    <input type="file" id="slide_data" accept=".json, .png" multiple="multiple"
+        onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
+    <div class="h-100">
+        <div class="text-center h-75" id="slide-container">
+            <img id="slide-view" class="img-fluid" style="width: 93%;" />
+        </div>
+        <div id="reactions" style="position: absolute;">
+            <h2 style="color: lightgray">Reactions</h2>
+        </div>
+    </div>
+</body>
+
+</html>

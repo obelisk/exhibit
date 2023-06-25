@@ -35,7 +35,7 @@ async fn main() {
         .and(with(clients.clone()))
         .and_then(handler::client_ws_handler);
 
-    let client_spa = warp::path("client").and(warp::fs::file("client/client.html"));
+    let client_spa = warp::path("client").and(warp::fs::file("web/client.html"));
 
     let client_routes = health_route
         .or(register_routes)
@@ -44,6 +44,7 @@ async fn main() {
 
     // Admin/Presenter routes
     let update = warp::path!("update")
+        .and(warp::post())
         .and(warp::body::json())
         .and(with(clients.clone()))
         .and(with(configuration_sender.clone()))
@@ -55,7 +56,9 @@ async fn main() {
         .and(with(presenters.clone()))
         .and_then(handler::presenter_ws_handler);
 
-    let presenter_routes = update.or(presenter_emoji_stream);
+    let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
+
+    let presenter_routes = update.or(presenter_emoji_stream).or(presenter_spa);
 
     tokio::task::spawn(async move {
         processor::handle_sent_emojis(client_emoji_receiver, configuration_receiver, presenters)
