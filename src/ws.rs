@@ -1,68 +1,81 @@
-use crate::{Client, Clients};
+use crate::{Client, Clients, EmojiMessage};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
-#[derive(Deserialize, Debug)]
-pub struct TopicsRequest {
-    topics: Vec<String>,
-}
-
-pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut client: Client) {
+pub async fn client_connection(
+    ws: WebSocket,
+    identity: String,
+    guid: String,
+    clients: Clients,
+    mut client: Client,
+) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
+    let emoji_sender = client.emoji_sender.clone();
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);
     tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
         if let Err(e) = result {
-            eprintln!("error sending websocket msg: {}", e);
+            error!("error sending websocket msg: {}", e);
         }
     }));
 
-    client.sender = Some(client_sender);
-    clients.write().await.insert(id.clone(), client);
+    {
+        client.sender = Some(client_sender);
+        let mut clients = clients.write().await;
 
-    println!("{} connected", id);
+        let user_client = match clients.get_mut(&identity) {
+            Some(ucs) => ucs.get_mut(&guid),
+            None => {
+                error!(
+                    "{identity} could not upgrade their client because they have not registered"
+                );
+                return;
+            }
+        };
+
+        match user_client {
+            Some(c) => *c = client,
+            None => {
+                error!("{identity} could not upgrade client {guid} because it was not registered");
+                return;
+            }
+        };
+    }
+
+    info!("{identity} has new client with {guid}");
 
     while let Some(result) = client_ws_rcv.next().await {
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("error receiving ws message for id: {}): {}", id.clone(), e);
+                error!(
+                    "error receiving ws message for id: {}): {}",
+                    guid.clone(),
+                    e
+                );
                 break;
             }
         };
-        client_msg(&id, msg, &clients).await;
+        client_msg(&identity, msg, emoji_sender.clone()).await;
     }
 
-    clients.write().await.remove(&id);
-    println!("{} disconnected", id);
+    if let Some(ucs) = clients.write().await.get_mut(&identity) {
+        ucs.remove(&guid);
+        info!("{identity} - {guid} disconnected");
+    } else {
+        error!("{identity} - {guid} was already disconnected")
+    }
 }
 
-async fn client_msg(id: &str, msg: Message, clients: &Clients) {
-    println!("received message from {}: {:?}", id, msg);
-    let message = match msg.to_str() {
-        Ok(v) => v,
-        Err(_) => return,
-    };
-
-    if message == "ping" || message == "ping\n" {
-        return;
-    }
-
-    let topics_req: TopicsRequest = match from_str(&message) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("error while parsing message to topics request: {}", e);
-            return;
-        }
-    };
-
-    let mut locked = clients.write().await;
-    if let Some(v) = locked.get_mut(id) {
-        v.topics = topics_req.topics;
-    }
+async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<EmojiMessage>) {
+    info!("received message from {}: {:?}", identity, msg);
+    let _ = sender.send(EmojiMessage {
+        identity: identity.to_string(),
+        emoji: "Temp".to_string(),
+    });
 }
