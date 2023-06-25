@@ -108,11 +108,13 @@ pub async fn ws_handler(
     clients: Clients,
 ) -> Result<impl Reply> {
     info!("Got websocket call!");
-    let identity = headers
+    /*let identity = headers
         .get("X-SSO-EMAIL")
         .ok_or(warp::reject::not_found())?
         .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
+    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;*/
+
+    let identity = "mitchell@smartcontract.com".to_string();
 
     info!("Websocket upgrade for {identity}!");
 

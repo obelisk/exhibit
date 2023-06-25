@@ -19,8 +19,9 @@ async fn main() {
     let (configuration_sender, mut configuration_receiver) =
         mpsc::unbounded_channel::<ConfigurationMessage>();
 
-    let register = warp::path("register");
-    let register_routes = register
+    let client_spa = warp::path("client").and(warp::fs::file("client/client.html"));
+
+    let register_routes = warp::path("register")
         .and(warp::get())
         .and(warp::header::headers_cloned())
         .and(with_clients(clients.clone()))
@@ -40,13 +41,19 @@ async fn main() {
         .and(with_clients(clients.clone()))
         .and_then(handler::ws_handler);
 
-    let routes = health_route.or(register_routes).or(ws_route);
+    let routes = health_route.or(register_routes).or(ws_route).or(client_spa);
 
     let admin_routes = update;
 
     tokio::task::spawn(async move {
         let mut all_slide_settings: HashMap<u64, SlideSettings> = HashMap::new();
+        let mut rate_limiter: HashMap<String, u64> = HashMap::new();
         loop {
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
             tokio::select! {
                 msg = emoji_receiver.recv() => {
                     let msg = match msg {
@@ -56,6 +63,15 @@ async fn main() {
 
                     if let Some(settings) = all_slide_settings.get(&msg.slide) {
                         if settings.emojis.contains(&msg.emoji) {
+                            let last_time = rate_limiter.insert(msg.identity.clone(), time);
+
+                            if let Some(last_time) = last_time {
+                                if time - last_time < 15 {
+                                    error!("{} sent too many emojis", msg.identity);
+                                    continue;
+                                }
+                            }
+
                             println!("{} sent {}", msg.identity, msg.emoji);
                         } else {
                             error!("{} sent invalid {} for slide {}", msg.identity, msg.emoji, msg.slide);

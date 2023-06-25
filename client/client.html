@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Exhibit</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"
+        integrity="sha256-tG5mcZUtJsZvyKAxYLVXrmjKBVLd6VpVccqz/r4ypFE=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
+        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
+        crossorigin="anonymous"></script>
+
+</head>
+<script>
+    fetch("/register", {}).then((data) => {
+        console.log(data.json().then((data) => {
+            let socket = new WebSocket(data["url"]);
+
+            socket.addEventListener("message", (event) => {
+                console.log(event.data);
+                let new_slide_data = JSON.parse(event.data);
+                document.getElementById("slide_message").innerHTML = new_slide_data["message"];
+                var reactions = document.getElementById("reactions");
+                reactions.innerHTML = "";
+
+                new_slide_data["emojis"].forEach(element => {
+                    var reaction_button = document.createElement('h1');
+                    reaction_button.className = 'w-100 h-25';
+                    reaction_button.innerHTML = element;
+                    reaction_button.onclick = function () {
+                        let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
+                        socket.send(JSON.stringify(emoji_obj));
+                    };
+
+                    reactions.appendChild(reaction_button);
+                });
+
+            });
+        })); // JSON data parsed by `data.json()` call
+    });
+</script>
+
+<body>
+    <div class="container">
+        <h1>Product Security: What We Do, Why, and How</h1>
+        <p>Let's Go.</p>
+        <hr />
+        <h3 id="slide_message"></h3>
+        <!--<h4 id="slide_number"></h4> -->
+        <hr />
+        <div class="container" id="reactions">
+
+        </div>
+    </div>
+</body>
+
+</html>
