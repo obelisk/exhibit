@@ -68,7 +68,7 @@ pub async fn register_handler(
 
     register_client(guid.clone(), identity, clients, emoji_sender).await;
     Ok(json(&RegisterResponse {
-        url: format!("ws://127.0.0.1:8000/ws/{}", guid),
+        url: format!("/ws/{}", guid),
     }))
 }
 
@@ -108,13 +108,11 @@ pub async fn client_ws_handler(
     clients: Clients,
 ) -> Result<impl Reply> {
     info!("Got websocket call!");
-    /*let identity = headers
+    let identity = headers
         .get("X-SSO-EMAIL")
         .ok_or(warp::reject::not_found())?
         .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;*/
-
-    let identity = "mitchell@smartcontract.com".to_string();
+    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
 
     info!("Websocket upgrade for {identity}!");
 

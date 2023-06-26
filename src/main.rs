@@ -68,8 +68,8 @@ async fn main() {
     });
 
     tokio::join!(
-        warp::serve(client_routes).run(([127, 0, 0, 1], 8000)),
-        warp::serve(presenter_routes).run(([127, 0, 0, 1], 8001))
+        warp::serve(client_routes).run(([0, 0, 0, 0], 8000)),
+        warp::serve(presenter_routes).run(([0, 0, 0, 0], 8001))
     );
 }
 

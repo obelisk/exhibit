@@ -13,32 +13,46 @@
 
 </head>
 <script>
-    fetch("/register", {}).then((data) => {
-        console.log(data.json().then((data) => {
-            let socket = new WebSocket(data["url"]);
+    function reset_websocket() {
+        fetch("/register", {}).then((data) => {
+            console.log(data.json().then((data) => {
+                if (document.socket != null) {
+                    document.socket.close();
+                    document.socket = null;
+                }
 
-            socket.addEventListener("message", (event) => {
-                console.log(event.data);
-                let new_slide_data = JSON.parse(event.data);
-                document.getElementById("slide_message").innerHTML = new_slide_data["message"];
-                var reactions = document.getElementById("reactions");
-                reactions.innerHTML = "";
+                document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
 
-                new_slide_data["emojis"].forEach(element => {
-                    var reaction_button = document.createElement('h1');
-                    reaction_button.className = 'w-100 h-25';
-                    reaction_button.innerHTML = element;
-                    reaction_button.onclick = function () {
-                        let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
-                        socket.send(JSON.stringify(emoji_obj));
-                    };
-
-                    reactions.appendChild(reaction_button);
+                document.socket.addEventListener("close", (event) => {
+                    console.log("Socket closed");
+                    reset_websocket();
                 });
 
-            });
-        })); // JSON data parsed by `data.json()` call
-    });
+                document.socket.addEventListener("message", (event) => {
+                    console.log(event.data);
+                    let new_slide_data = JSON.parse(event.data);
+                    document.getElementById("slide_message").innerHTML = new_slide_data["message"];
+                    var reactions = document.getElementById("reactions");
+                    reactions.innerHTML = "";
+
+                    new_slide_data["emojis"].forEach(element => {
+                        var reaction_button = document.createElement('h1');
+                        reaction_button.className = 'w-100 h-25';
+                        reaction_button.innerHTML = element;
+                        reaction_button.onclick = function () {
+                            let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
+                            socket.send(JSON.stringify(emoji_obj));
+                        };
+
+                        reactions.appendChild(reaction_button);
+                    });
+
+                });
+            }));
+        });
+    }
+
+    reset_websocket();
 </script>
 
 <body>
