@@ -41,7 +41,7 @@
                         reaction_button.innerHTML = element;
                         reaction_button.onclick = function () {
                             let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
-                            socket.send(JSON.stringify(emoji_obj));
+                           document. socket.send(JSON.stringify(emoji_obj));
                         };
 
                         reactions.appendChild(reaction_button);
