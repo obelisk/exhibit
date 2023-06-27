@@ -35,7 +35,7 @@ async fn main() {
         .and(with(clients.clone()))
         .and_then(handler::client_ws_handler);
 
-    let client_spa = warp::path("/").and(warp::fs::file("web/client.html"));
+    let client_spa = warp::path::end().and(warp::fs::file("web/client.html"));
 
     let client_routes = health_route
         .or(register_routes)
