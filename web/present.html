@@ -3,47 +3,66 @@
 
 <head>
     <title>Exhibit</title>
-    <script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"
-        integrity="sha256-tG5mcZUtJsZvyKAxYLVXrmjKBVLd6VpVccqz/r4ypFE=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
-        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
-        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
-        crossorigin="anonymous"></script>
 
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #slides-container{}
+        
+        #reactions-float-bottom{
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+        }
+
+        #reactions-container{
+            position: relative;
+            font-size: 35px;
+        }
+        
+        #slide-img{
+            width: 100%;
+        }
+
         .moving-emoji {
             position: absolute;
-            width: 100px;
-            z-index: auto;
-            left: 0%;
-            animation: moveEmoji 9s ease-in-out forwards;
+            left: 1%;
+            animation: moveEmoji 8s ease-in-out forwards;
         }
 
         @keyframes moveEmoji {
             0% {
-                left: 0%;
+                left: 1%;
             }
-
+            70% {
+                opacity: 1;
+            }
             100% {
-                left: 110%;
+                left: 80%;
+                opacity: 0;
             }
         }
     </style>
 </head>
+
 <script>
     let emoji_stream = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/emoji_stream/" + Math.floor(Math.random() * 1000000000));
     emoji_stream.addEventListener("message", (event) => {
         console.log(event.data);
         let new_reaction_data = JSON.parse(event.data);
-        //var reactions = document.getElementById("reactions");
-
-        var reaction = document.createElement('h1');
-        reaction.innerHTML = new_reaction_data["emoji"];
+        
+        // Spawn the emoji
+        var reaction = document.createElement('span');
+        reaction.innerText = new_reaction_data["emoji"];
         reaction.className = "moving-emoji";
+        var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+        reaction.style.transform = `translateY(${yOffset}px)`
         setTimeout(() => { reaction.remove() }, 10000)
-
-        document.body.appendChild(reaction);
+        document.getElementById('reactions-container').appendChild(reaction);
     });
 
     function checkKey(e) {
@@ -52,6 +71,13 @@
 
         if (e.keyCode == '38') {
             // up arrow
+            var reaction = document.createElement('span');
+            reaction.innerText = "🙌";
+            reaction.className = "moving-emoji";
+            var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+            reaction.style.transform = `translateY(${yOffset}px)`
+            setTimeout(() => { reaction.remove() }, 10000)
+            document.getElementById('reactions-container').appendChild(reaction);
         }
         else if (e.keyCode == '40') {
             // down arrow
@@ -76,23 +102,11 @@
         if (index == 0) {
             index = 1;
         }
-        console.log(document.files[index]);
-        /**
-         * Get the image path.
-         */
-        const imageSrc = URL.createObjectURL(document.files[index]);
-        /**
-         * Select the image preview element.
-         */
-        const slideView = document.getElementById('slide-view');
-        /**
-         * Assign the path to the image preview element.
-         */
-        slideView.src = imageSrc;
-        /**
-         * Show the element by changing the display value to "block".
-         */
-        //slideView.style.display = "block";
+        
+        // Set slide display img element source to new slide image src
+        const slideView = document.getElementById('slide-img');
+        slideView.src = URL.createObjectURL(document.files[index]);
+
         console.log("Showing slide " + index);
         var slide_settings = document.slide_data[index - 1];
 
@@ -158,14 +172,18 @@
 <body>
     <input type="file" id="slide_data" accept=".json, .png" multiple="multiple"
         onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
-    <div class="h-100">
-        <div class="text-center h-75" id="slide-container">
-            <img id="slide-view" class="img-fluid" style="width: 93%;" />
-        </div>
-        <div id="reactions" style="position: absolute;">
-            <h2 style="color: lightgray">Reactions</h2>
+
+    <div id="slides-container">
+        <img id="slide-img"/>
+    </div>
+
+    <!-- Pos absolute container -->
+    <div id="reactions-float-bottom">
+        <!-- Pos relative reactions container -->
+        <div id="reactions-container">        
         </div>
     </div>
+
 </body>
 
 </html>

@@ -3,14 +3,83 @@
 
 <head>
     <title>Exhibit</title>
-    <script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"
-        integrity="sha256-tG5mcZUtJsZvyKAxYLVXrmjKBVLd6VpVccqz/r4ypFE=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
-        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
-        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
-        crossorigin="anonymous"></script>
 
+    <style>
+        body {
+            font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #333;
+            background: #fdfdfd;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container{
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 1px 13px 13px #eee;
+        }
+
+        .title-group{
+            margin-bottom: 20px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;   
+        }
+        .title-group > .title{
+            font-size: 32px;
+            font-weight: 800;
+        }
+        .title-group > p{
+
+        }
+
+        #slide-message{
+            text-align: center;
+            font-size: 24px;
+            font-weight: 500;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .reaction-help{
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        #reaction-container{
+            display: flex;
+            padding: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #reaction-container.disabled{
+            filter: brightness(0.90);
+            background: #fff;
+            pointer-events: none;
+        }
+
+        .reaction-button{
+            width: 20%;
+            height: 40px;
+            padding: 20px;
+            margin: 20px;
+            cursor: pointer;
+            background: #fafafa;
+            border-radius: 6px;
+            text-align: center;
+            line-height: 2.5;
+        }
+
+        .display-none{
+            display: none
+        }
+    </style>
 </head>
 <script>
     function reset_websocket() {
@@ -31,17 +100,18 @@
                 document.socket.addEventListener("message", (event) => {
                     console.log(event.data);
                     let new_slide_data = JSON.parse(event.data);
-                    document.getElementById("slide_message").innerHTML = new_slide_data["message"];
-                    var reactions = document.getElementById("reactions");
+                    document.getElementById("slide-message").innerText = new_slide_data["message"];
+                    var reactions = document.getElementById("reaction-container");
                     reactions.innerHTML = "";
 
                     new_slide_data["emojis"].forEach(element => {
-                        var reaction_button = document.createElement('h1');
-                        reaction_button.className = 'w-100 h-25';
-                        reaction_button.innerHTML = element;
+                        var reaction_button = document.createElement('div');
+                        reaction_button.className = 'reaction-button';
+                        reaction_button.innerText = element;
                         reaction_button.onclick = function () {
                             let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
-                           document. socket.send(JSON.stringify(emoji_obj));
+                            document. socket.send(JSON.stringify(emoji_obj));
+                            setDisabled()
                         };
 
                         reactions.appendChild(reaction_button);
@@ -52,19 +122,30 @@
         });
     }
 
+    function setDisabled(){
+        document.getElementById("reaction-container").classList.add("disabled")
+        window.setTimeout(() => {
+            document.getElementById("reaction-container").classList.remove("disabled")
+        }, 10 * 1000)
+    }
+
     reset_websocket();
 </script>
 
 <body>
     <div class="container">
-        <h1>Product Security: What We Do, Why, and How</h1>
-        <p>Let's Go.</p>
-        <hr />
-        <h3 id="slide_message"></h3>
-        <!--<h4 id="slide_number"></h4> -->
-        <hr />
-        <div class="container" id="reactions">
-
+        <div class="title-group">
+            <div class="title">Product Security: What We Do, Why, and How</div>
+            <p>Let's Go.</p>
+        </div>
+        
+        <div id="slide-message">
+            <!-- Dynamically add current slide message here -->    
+        </div>
+        
+        <div class="reaction-help">Send a reaction below (every 10s):</div>
+        <div id="reaction-container" class="">
+            <!-- Dynamically add reaction options here -->    
         </div>
     </div>
 </body>
