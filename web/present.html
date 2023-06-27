@@ -10,21 +10,21 @@
             padding: 0;
         }
 
-        #slides-container{}
-        
-        #reactions-float-bottom{
+        #slides-container {}
+
+        #reactions-float-bottom {
             position: absolute;
             bottom: 0;
             width: 100%;
             height: 60px;
         }
 
-        #reactions-container{
+        #reactions-container {
             position: relative;
             font-size: 35px;
         }
-        
-        #slide-img{
+
+        #slide-img {
             width: 100%;
         }
 
@@ -38,9 +38,11 @@
             0% {
                 left: 1%;
             }
+
             70% {
                 opacity: 1;
             }
+
             100% {
                 left: 80%;
                 opacity: 0;
@@ -54,7 +56,7 @@
     emoji_stream.addEventListener("message", (event) => {
         console.log(event.data);
         let new_reaction_data = JSON.parse(event.data);
-        
+
         // Spawn the emoji
         var reaction = document.createElement('span');
         reaction.innerText = new_reaction_data["emoji"];
@@ -71,13 +73,6 @@
 
         if (e.keyCode == '38') {
             // up arrow
-            var reaction = document.createElement('span');
-            reaction.innerText = "🙌";
-            reaction.className = "moving-emoji";
-            var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
-            reaction.style.transform = `translateY(${yOffset}px)`
-            setTimeout(() => { reaction.remove() }, 10000)
-            document.getElementById('reactions-container').appendChild(reaction);
         }
         else if (e.keyCode == '40') {
             // down arrow
@@ -102,7 +97,7 @@
         if (index == 0) {
             index = 1;
         }
-        
+
         // Set slide display img element source to new slide image src
         const slideView = document.getElementById('slide-img');
         slideView.src = URL.createObjectURL(document.files[index]);
@@ -174,13 +169,13 @@
         onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
 
     <div id="slides-container">
-        <img id="slide-img"/>
+        <img id="slide-img" />
     </div>
 
     <!-- Pos absolute container -->
     <div id="reactions-float-bottom">
         <!-- Pos relative reactions container -->
-        <div id="reactions-container">        
+        <div id="reactions-container">
         </div>
     </div>
 

@@ -55,12 +55,26 @@ pub async fn handle_sent_emojis(
                     .unwrap()
                     .as_secs();
 
+
                 // This has the effect of constantly blocking spammers
                 // because even though it's not sent, it still resets the timer
                 // Not sure if this is good or bad
-                let allowed_to_send_again = rate_limiter.insert(msg.identity.clone(), time).map(|last| time - last > 15).unwrap_or(true);
+                let allowed_to_send = if let Some(previous_send) = rate_limiter.get_mut(&msg.identity) {
+                    // It has been more than 10 seconds since this user last sent an emoji
+                    if time - *previous_send > 10 {
+                        *previous_send = time;
+                        true
+                    } else {
+                        // They have not waited 10 seconds
+                        false
+                    }
+                } else {
+                    // This is the first emoji sent by this user
+                    rate_limiter.insert(msg.identity.clone(), time);
+                    true
+                };
 
-                if allowed_to_send_again {
+                if allowed_to_send {
                     info!("{} sent {}", msg.identity, msg.emoji);
                     let presenters = presenters.clone();
                     tokio::task::spawn(async move {

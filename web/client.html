@@ -6,7 +6,7 @@
 
     <style>
         body {
-            font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             font-size: 14px;
             line-height: 1.42857143;
             color: #333;
@@ -15,7 +15,7 @@
             padding: 0;
         }
 
-        .container{
+        .container {
             width: 100%;
             max-width: 1200px;
             margin: 20px auto;
@@ -24,20 +24,20 @@
             box-shadow: 1px 13px 13px #eee;
         }
 
-        .title-group{
+        .title-group {
             margin-bottom: 20px;
             padding-bottom: 5px;
-            border-bottom: 1px solid #ddd;   
+            border-bottom: 1px solid #ddd;
         }
-        .title-group > .title{
+
+        .title-group>.title {
             font-size: 32px;
             font-weight: 800;
         }
-        .title-group > p{
 
-        }
+        .title-group>p {}
 
-        #slide-message{
+        #slide-message {
             text-align: center;
             font-size: 24px;
             font-weight: 500;
@@ -46,37 +46,38 @@
             border-bottom: 1px solid #ddd;
         }
 
-        .reaction-help{
+        .reaction-help {
             text-align: center;
             color: #999;
             font-size: 13px;
         }
 
-        #reaction-container{
+        #reaction-container {
             display: flex;
             padding: 20px;
             flex-wrap: wrap;
             justify-content: center;
         }
-        #reaction-container.disabled{
+
+        #reaction-container.disabled {
             filter: brightness(0.90);
             background: #fff;
             pointer-events: none;
         }
 
-        .reaction-button{
+        .reaction-button {
             width: 20%;
-            height: 40px;
+            height: 70px;
             padding: 20px;
             margin: 20px;
             cursor: pointer;
             background: #fafafa;
             border-radius: 6px;
             text-align: center;
-            line-height: 2.5;
+            font-size: 55px;
         }
 
-        .display-none{
+        .display-none {
             display: none
         }
     </style>
@@ -110,7 +111,7 @@
                         reaction_button.innerText = element;
                         reaction_button.onclick = function () {
                             let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
-                            document. socket.send(JSON.stringify(emoji_obj));
+                            document.socket.send(JSON.stringify(emoji_obj));
                             setDisabled()
                         };
 
@@ -122,7 +123,7 @@
         });
     }
 
-    function setDisabled(){
+    function setDisabled() {
         document.getElementById("reaction-container").classList.add("disabled")
         window.setTimeout(() => {
             document.getElementById("reaction-container").classList.remove("disabled")
@@ -138,14 +139,14 @@
             <div class="title">Product Security: What We Do, Why, and How</div>
             <p>Let's Go.</p>
         </div>
-        
+
         <div id="slide-message">
-            <!-- Dynamically add current slide message here -->    
+            <!-- Dynamically add current slide message here -->
         </div>
-        
+
         <div class="reaction-help">Send a reaction below (every 10s):</div>
         <div id="reaction-container" class="">
-            <!-- Dynamically add reaction options here -->    
+            <!-- Dynamically add reaction options here -->
         </div>
     </div>
 </body>
