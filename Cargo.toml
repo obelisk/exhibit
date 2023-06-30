@@ -6,6 +6,9 @@ edition = "2021"
 
 [dependencies]
 env_logger = "0.10"
+base64 = "0.21"
+hmac = "0.12"
+sha2 = "0.10"
 log = "0.4"
 tokio = { version = "1.19.2", features = ["macros", "sync", "rt-multi-thread"] }
 tokio-stream = "0.1"

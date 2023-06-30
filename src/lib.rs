@@ -14,7 +14,7 @@ use warp::{ws::Message, Rejection};
 // A user can be connected on multiple devices so we have a hashmap
 // linking their identity to another hashmap of their connected
 // devices
-pub type Clients = Arc<RwLock<HashMap<String, HashMap<String, Client>>>>;
+pub type Clients = Arc<RwLock<HashMap<String, Client>>>;
 pub type Presenters = Arc<RwLock<HashMap<String, Presenter>>>;
 pub type Result<T> = std::result::Result<T, Rejection>;
 
@@ -22,6 +22,7 @@ pub type Result<T> = std::result::Result<T, Rejection>;
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
     pub emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    pub identity: String,
 }
 
 #[derive(Debug, Clone)]
@@ -53,4 +54,15 @@ pub enum ConfigurationMessage {
         slide: u64,
         slide_settings: SlideSettings,
     },
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RawToken {
+    pub token: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Token {
+    pub email: String,
+    pub mac: String,
 }

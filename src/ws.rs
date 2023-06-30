@@ -4,16 +4,11 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
-pub async fn client_connection(
-    ws: WebSocket,
-    identity: String,
-    guid: String,
-    clients: Clients,
-    mut client: Client,
-) {
+pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mut client: Client) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
     let emoji_sender = client.emoji_sender.clone();
+    let identity = client.identity.clone();
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);
     tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
@@ -26,8 +21,8 @@ pub async fn client_connection(
         client.sender = Some(client_sender);
         let mut clients = clients.write().await;
 
-        let user_client = match clients.get_mut(&identity) {
-            Some(ucs) => ucs.get_mut(&guid),
+        let user_client = match clients.get_mut(&guid) {
+            Some(client) => client,
             None => {
                 error!(
                     "{identity} could not upgrade their client because they have not registered"
@@ -36,13 +31,7 @@ pub async fn client_connection(
             }
         };
 
-        match user_client {
-            Some(c) => *c = client,
-            None => {
-                error!("{identity} could not upgrade client {guid} because it was not registered");
-                return;
-            }
-        };
+        *user_client = client;
     }
 
     info!("{identity} has new client with {guid}");
@@ -62,8 +51,7 @@ pub async fn client_connection(
         client_msg(&identity, msg, emoji_sender.clone()).await;
     }
 
-    if let Some(ucs) = clients.write().await.get_mut(&identity) {
-        ucs.remove(&guid);
+    if let Some(_) = clients.write().await.remove(&guid) {
         info!("{identity} - {guid} disconnected");
     } else {
         error!("{identity} - {guid} was already disconnected")

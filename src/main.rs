@@ -28,8 +28,16 @@ async fn main() {
         .and(with(client_emoji_sender.clone()))
         .and_then(handler::register_handler);
 
+    let register_slack_routes = warp::path("register_token")
+        // Set maximum request size
+        .and(warp::body::content_length_limit(1024 * 32))
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with(clients.clone()))
+        .and(with(client_emoji_sender.clone()))
+        .and_then(handler::register_token_handler);
+
     let client_ws_route = warp::path("ws")
-        .and(warp::header::headers_cloned())
         .and(warp::ws())
         .and(warp::path::param())
         .and(with(clients.clone()))
@@ -39,6 +47,7 @@ async fn main() {
 
     let client_routes = health_route
         .or(register_routes)
+        .or(register_slack_routes)
         .or(client_ws_route)
         .or(client_spa);
 
