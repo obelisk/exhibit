@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Exhibit</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #slides-container {}
+
+        #reactions-float-bottom {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+        }
+
+        #reactions-container {
+            position: relative;
+            font-size: 35px;
+        }
+
+        #slide-img {
+            width: 100%;
+        }
+
+        .moving-emoji {
+            position: absolute;
+            left: 1%;
+            animation: moveEmoji 8s ease-in-out forwards;
+        }
+
+        @keyframes moveEmoji {
+            0% {
+                left: 1%;
+            }
+
+            70% {
+                opacity: 1;
+            }
+
+            100% {
+                left: 80%;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<script>
+    let emoji_stream = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/emoji_stream/" + Math.floor(Math.random() * 1000000000));
+    emoji_stream.addEventListener("message", (event) => {
+        console.log(event.data);
+        let new_reaction_data = JSON.parse(event.data);
+
+        // Spawn the emoji
+        var reaction = document.createElement('span');
+        reaction.innerText = new_reaction_data["emoji"];
+        reaction.className = "moving-emoji";
+        var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+        reaction.style.transform = `translateY(${yOffset}px)`
+        setTimeout(() => { reaction.remove() }, 10000)
+        document.getElementById('reactions-container').appendChild(reaction);
+    });
+
+    function checkKey(e) {
+
+        e = e || window.event;
+
+        if (e.keyCode == '38') {
+            // up arrow
+        }
+        else if (e.keyCode == '40') {
+            // down arrow
+        }
+        else if (e.keyCode == '37') {
+            document.slide_index = document.slide_index - 1;
+            showSlide(document.files, document.slide_index);
+        }
+        else if (e.keyCode == '39') {
+            document.slide_index = document.slide_index + 1;
+            showSlide(document.files, document.slide_index);
+        }
+
+    }
+
+    document.onkeydown = checkKey;
+</script>
+
+<script>
+    function showSlide(files, index) {
+        // 0 is slide_data
+        if (index == 0) {
+            index = 1;
+        }
+
+        // Set slide display img element source to new slide image src
+        const slideView = document.getElementById('slide-img');
+        slideView.src = URL.createObjectURL(document.files[index]);
+
+        console.log("Showing slide " + index);
+        var slide_settings = document.slide_data[index - 1];
+
+        if (slide_settings == null) {
+            slide_settings = {
+                "message": "No Reactions For This Slide",
+                emojis: []
+            }
+        }
+
+        let set_slide_msg = {
+            "NewSlide": {
+                "slide": document.slide_index,
+                "slide_settings": slide_settings
+            }
+        };
+        const response = fetch("/update", {
+            method: "POST", // or 'PUT'
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(set_slide_msg),
+        });
+    }
+
+    function onFileLoad(elementId, event) {
+        let slide_data = JSON.parse(event.target.result);
+
+        document.slide_data = slide_data;
+
+        if (slide_data.length != document.files.length - 1) {
+            alert("Slide data count doesn't match slide image count!: " + slide_data.length + " vs " + (document.files.length - 1));
+        }
+
+        document.slide_index = 1;
+        showSlide(document.files, document.slide_index);
+    }
+
+    function onChooseFiles(event, onLoadFileHandler) {
+        let files = document.getElementById('slide_data').files;
+        document.getElementById('slide_data').style.display = "none";
+        var slide_data = null;
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].name.endsWith(".json")) {
+                slide_data = files[i];
+                break;
+            }
+        }
+
+        if (slide_data == null) {
+            alert("No Slide Configuration Data Found!");
+            return;
+        }
+
+        document.files = files;
+
+        var reader = new FileReader();
+        reader.onload = onLoadFileHandler;
+        reader.readAsText(slide_data);
+    }
+</script>
+
+<body>
+    <input type="file" id="slide_data" accept=".json, .png" multiple="multiple"
+        onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
+
+    <div id="slides-container">
+        <img id="slide-img" />
+    </div>
+
+    <!-- Pos absolute container -->
+    <div id="reactions-float-bottom">
+        <!-- Pos relative reactions container -->
+        <div id="reactions-container">
+        </div>
+    </div>
+
+</body>
+
+</html>
