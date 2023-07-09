@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod config;
 pub mod handler;
 pub mod processor;
 pub mod ws;
@@ -57,12 +58,7 @@ pub enum ConfigurationMessage {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct RawToken {
-    pub token: String,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Token {
-    pub email: String,
-    pub mac: String,
+pub struct JwtClaims {
+    pub sub: String, // Contains the user's identifying information
+    pub exp: usize,
 }

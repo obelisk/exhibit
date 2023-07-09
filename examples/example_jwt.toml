@@ -1,0 +1,13 @@
+client_server_address = "127.0.0.1:8000"
+presentation_server_address = "127.0.0.1:8001"
+
+[authentication_configuration.Jwt]
+public_key = """
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
+q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==
+-----END PUBLIC KEY-----
+"""
+
+# Test JWT Using Key from JWT.io
+# eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBIE5vbiBFbWFpbCBUZXN0IFVzZXIiLCJleHAiOjE1MTYyMzkwMjIwfQ.xyhD7-bqG-gs7QcD9DnVm7K6l4LMOj-hMskoPnb1xhqLzd9p19R74tBYNBPrypy_Fo_ocJNFwXr2jU7Rja9G2A
