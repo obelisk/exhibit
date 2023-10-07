@@ -119,7 +119,9 @@ pub async fn client_ws_handler(
 
     info!("Websocket upgrade for {}!", client.identity);
 
-    Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, guid, clients, client)))
+    Ok(ws
+        .max_message_size(1024 * 2)
+        .on_upgrade(move |socket| ws::client_connection(socket, guid, clients, client)))
 }
 
 pub async fn presenter_ws_handler(

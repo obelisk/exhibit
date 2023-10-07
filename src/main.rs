@@ -64,7 +64,7 @@ async fn main() {
         } => {
             let register_route = warp::path("register")
                 // Set maximum request size
-                .and(warp::body::content_length_limit(1024 * 32))
+                .and(warp::body::content_length_limit(1024 * 2))
                 .and(warp::post())
                 .and(
                     warp::body::bytes()
