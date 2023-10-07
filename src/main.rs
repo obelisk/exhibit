@@ -36,7 +36,7 @@ async fn main() {
 
     let client_spa = warp::path::end().and(warp::fs::file("web/client.html"));
 
-    let base_route = warp::path("register").and(warp::body::content_length_limit(1024 * 32));
+    let base_route = warp::path("register");
 
     let possible_routes = match configuration.authentication_configuration {
         config::AuthenticationConfiguration::Header { header } => {

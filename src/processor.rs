@@ -24,9 +24,6 @@ pub async fn handle_sent_emojis(
     // What are the settings for the current slide
     let mut settings: Option<SlideSettings> = None;
 
-    // Store the number of current slide
-    let mut current_slide_number = None;
-
     // Keep track of the last time a user sent an emoji to rate limit them
     let mut rate_limiter: HashMap<String, u64> = HashMap::new();
 
@@ -94,9 +91,8 @@ pub async fn handle_sent_emojis(
             }
             config = configuration_receiver.recv() => {
                 match config {
-                    Some(ConfigurationMessage::NewSlide { slide, slide_settings }) => {
-                        info!("New current slide set: {slide}, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-                        current_slide_number = Some(slide);
+                    Some(ConfigurationMessage::NewSlide { slide_settings, .. }) => {
+                        info!("New slide set, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
                         settings = Some(slide_settings);
                     },
                     None => break,
