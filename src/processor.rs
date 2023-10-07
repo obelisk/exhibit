@@ -21,14 +21,15 @@ pub async fn handle_sent_emojis(
     mut configuration_receiver: UnboundedReceiver<ConfigurationMessage>,
     presenters: Presenters,
 ) {
-    // Stores the settings for the slides we've seen so far
-    // to allow people to send emojis for previous slides
-    let mut all_slide_settings: HashMap<u64, SlideSettings> = HashMap::new();
+    // What are the settings for the current slide
+    let mut settings: Option<SlideSettings> = None;
+
+    // Store the number of current slide
+    let mut current_slide_number = None;
 
     // Keep track of the last time a user sent an emoji to rate limit them
     let mut rate_limiter: HashMap<String, u64> = HashMap::new();
 
-    let mut current_slide = 0;
     loop {
         tokio::select! {
             msg = emoji_receiver.recv() => {
@@ -37,43 +38,34 @@ pub async fn handle_sent_emojis(
                     None => break,
                 };
 
-                // Check that this slide exists
-                let settings = match all_slide_settings.get(&msg.slide) {
-                    Some(s) => s,
-                    None => {
-                        error!("{} sent {} for unknown slide {}", msg.identity, msg.emoji, msg.slide);
-                        continue;
-                    },
+                // Check if the presentation has started
+                let slide_settings = if let Some(ref s) = settings {
+                    s
+                } else {
+                    error!("{} sent {} for slide {} but presentation has not started", msg.identity, msg.emoji, msg.slide);
+                    continue;
                 };
 
-                // Check the emoji is not for a future slide
-                if msg.slide > current_slide {
-                    error!("{} tried to send {} for future slide {}", msg.identity, msg.emoji, msg.slide);
-                    continue;
-                }
-
-                // Check that they are not trying to send an emoji for a slide too far in the past
-                if current_slide - msg.slide > 2 {
-                    error!("{} tried to send {} for slide {} which is too far in the past", msg.identity, msg.emoji, msg.slide);
-                    continue;
-                }
-
                 // Check that they are sending a valid emoji for the current slide
-                if !settings.emojis.contains(&msg.emoji) {
+                if !slide_settings.emojis.contains(&msg.emoji) {
                     error!("{} sent invalid {} for slide {}", msg.identity, msg.emoji, msg.slide);
                     continue;
                 }
 
+                // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
+                // I feel like I just have to hope the system never fails to give me the time?
+                // Perhaps it's better just to stop ratelimiting in the unlikely event we stop getting the time
                 let time = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_secs();
 
-
-                // This has the effect of constantly blocking spammers
-                // because even though it's not sent, it still resets the timer
-                // Not sure if this is good or bad
+                // Implement ratelimiting
                 let allowed_to_send = if let Some(previous_send) = rate_limiter.get_mut(&msg.identity) {
+                    if *previous_send > time {
+                        error!("{} last sent an emoji in the future. Not allowing this new send", msg.identity);
+                        continue;
+                    }
                     // It has been more than 10 seconds since this user last sent an emoji
                     if time - *previous_send > 10 {
                         *previous_send = time;
@@ -96,7 +88,7 @@ pub async fn handle_sent_emojis(
                     });
 
                 } else {
-                    error!("{} tried to send {} too soon", msg.identity, msg.emoji);
+                    warn!("{} tried to send {} too soon", msg.identity, msg.emoji);
                 }
 
             }
@@ -104,8 +96,8 @@ pub async fn handle_sent_emojis(
                 match config {
                     Some(ConfigurationMessage::NewSlide { slide, slide_settings }) => {
                         info!("New current slide set: {slide}, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-                        current_slide = slide;
-                        all_slide_settings.insert(slide, slide_settings);
+                        current_slide_number = Some(slide);
+                        settings = Some(slide_settings);
                     },
                     None => break,
                 }

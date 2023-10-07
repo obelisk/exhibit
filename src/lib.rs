@@ -61,4 +61,5 @@ pub enum ConfigurationMessage {
 pub struct JwtClaims {
     pub sub: String, // Contains the user's identifying information
     pub exp: usize,
+    pub aud: String,
 }
