@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use concurrent_map::ConcurrentMap;
 
+use crate::IdentifiedUserMessage;
+
 pub mod time;
 pub mod value;
 
@@ -24,7 +26,7 @@ pub trait Limiter: Send + Sync {
         current_time: u64,
         data_prefix: &str,
         data: &ConcurrentMap<String, u64>,
-        identity: &str,
+        message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
 
@@ -48,7 +50,7 @@ impl Ratelimiter {
         self.limiters.insert(name, limit);
     }
 
-    pub fn check_allowed(&mut self, identity: &str) -> RatelimiterResponse {
+    pub fn check_allowed(&mut self, message: &IdentifiedUserMessage) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event
@@ -59,7 +61,7 @@ impl Ratelimiter {
 
         let mut updates: HashMap<String, LimiterUpdate> = HashMap::new();
         for (name, limiter) in self.limiters.iter() {
-            let update = limiter.check_allowed(current_time, &name, &self.data, identity);
+            let update = limiter.check_allowed(current_time, &name, &self.data, message);
             match update {
                 Ok(update) => {
                     updates.insert(name.to_string(), update);

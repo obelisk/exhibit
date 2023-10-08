@@ -1,5 +1,7 @@
 use concurrent_map::ConcurrentMap;
 
+use crate::IdentifiedUserMessage;
+
 use super::{Limiter, LimiterUpdate};
 
 #[derive(Clone)]
@@ -19,8 +21,9 @@ impl Limiter for TimeLimiter {
         current_time: u64,
         data_prefix: &str,
         data: &ConcurrentMap<String, u64>,
-        identity: &str,
+        message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String> {
+        let identity = &message.identity;
         // If they've never sent a message then it's effectively 0
         let previous_send = data
             .get(&format!("{data_prefix}-{identity}"))

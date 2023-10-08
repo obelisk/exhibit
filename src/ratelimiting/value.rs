@@ -1,5 +1,7 @@
 use concurrent_map::ConcurrentMap;
 
+use crate::IdentifiedUserMessage;
+
 use super::{Limiter, LimiterUpdate};
 
 #[derive(Clone)]
@@ -27,11 +29,22 @@ impl Limiter for ValueLimiter {
         current_time: u64,
         data_prefix: &str,
         data: &ConcurrentMap<String, u64>,
-        identity: &str,
+        message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String> {
+        let identity = &message.identity;
+        // If they've never sent a message then it's whatever their starting balance is
+        let balance = data
+            .get(&format!("{data_prefix}-{identity}"))
+            .map(|x| x.to_owned())
+            .unwrap_or(self.max_points);
+
+        if balance <= 0 {
+            return Err("Cannot send more emojis. Out of balance!".to_string());
+        }
+
         Ok(LimiterUpdate {
             data: identity.to_string(),
-            value: 0,
+            value: balance - 1,
         })
     }
 }
