@@ -157,9 +157,9 @@ async fn parse_jwt(
     Ok(token.claims)
 }
 
-fn with<T>(users: T) -> impl Filter<Extract = (T,), Error = Infallible> + Clone
+fn with<T>(item: T) -> impl Filter<Extract = (T,), Error = Infallible> + Clone
 where
     T: Send + Sync + Clone,
 {
-    warp::any().map(move || users.clone())
+    warp::any().map(move || item.clone())
 }

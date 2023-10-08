@@ -4,6 +4,7 @@ extern crate log;
 pub mod config;
 pub mod handler;
 pub mod processor;
+pub mod ratelimiting;
 pub mod ws;
 
 use std::{collections::HashMap, sync::Arc};

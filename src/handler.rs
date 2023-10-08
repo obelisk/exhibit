@@ -54,7 +54,7 @@ pub async fn register_header_handler(
     clients: Clients,
     emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
 ) -> Result<impl Reply> {
-    info!("Got registration call!");
+    info!("Got header registration call!");
     let identity = headers
         .get(header)
         .ok_or(warp::reject::not_found())?
@@ -76,7 +76,7 @@ pub async fn register_jwt_handler(
     clients: Clients,
     emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
 ) -> Result<impl Reply> {
-    debug!("Registering client for [{}]", token.sub);
+    debug!("Registering client via JWT for [{}]", token.sub);
 
     let guid = Uuid::new_v4().as_simple().to_string();
 
