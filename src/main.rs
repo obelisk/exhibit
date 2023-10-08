@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate log;
 
-use exhibit::{config, handler, processor, Clients, ConfigurationMessage, EmojiMessage, JwtClaims};
+use exhibit::{
+    config, handler, processor, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims,
+};
 use jsonwebtoken::{decode, DecodingKey};
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -24,7 +26,8 @@ async fn main() {
 
     let health_route = warp::path!("health").and_then(handler::health_handler);
 
-    let (client_emoji_sender, client_emoji_receiver) = mpsc::unbounded_channel::<EmojiMessage>();
+    let (client_emoji_sender, client_emoji_receiver) =
+        mpsc::unbounded_channel::<IdentifiedUserMessage>();
     let (configuration_sender, configuration_receiver) =
         mpsc::unbounded_channel::<ConfigurationMessage>();
 
@@ -105,7 +108,7 @@ async fn main() {
     let presenter_routes = update.or(presenter_emoji_stream).or(presenter_spa);
 
     tokio::task::spawn(async move {
-        processor::handle_sent_emojis(client_emoji_receiver, configuration_receiver, presenters)
+        processor::handle_sent_messages(client_emoji_receiver, configuration_receiver, presenters)
             .await;
 
         panic!("Emoji receiver was dropped?");

@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use concurrent_map::ConcurrentMap;
 
-use crate::UserMessage;
-
 pub mod time;
 pub mod value;
 
@@ -23,10 +21,10 @@ pub trait Limiter: Send + Sync {
     // Checks if the limiter is going to block the action
     fn check_allowed(
         &self,
+        current_time: u64,
         data_prefix: &str,
         data: &ConcurrentMap<String, u64>,
         identity: &str,
-        message: &UserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
 
@@ -50,10 +48,18 @@ impl Ratelimiter {
         self.limiters.insert(name, limit);
     }
 
-    pub fn check_allowed(&mut self, identity: &str, message: &UserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(&mut self, identity: &str) -> RatelimiterResponse {
+        // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
+        // I feel like I just have to hope the system never fails to give me the time?
+        // Perhaps it's better just to stop this limiter in that event
+        let current_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         let mut updates: HashMap<String, LimiterUpdate> = HashMap::new();
         for (name, limiter) in self.limiters.iter() {
-            let update = limiter.check_allowed(&name, &self.data, identity, message);
+            let update = limiter.check_allowed(current_time, &name, &self.data, identity);
             match update {
                 Ok(update) => {
                     updates.insert(name.to_string(), update);
@@ -68,6 +74,10 @@ impl Ratelimiter {
         }
 
         // Update all the limiters now that none of them are blocking
+        for (name, update) in updates {
+            self.data
+                .insert(format!("{name}-{}", update.data), update.value);
+        }
 
         return RatelimiterResponse {
             blocked: false,

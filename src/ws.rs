@@ -1,4 +1,4 @@
-use crate::{Client, Clients, EmojiMessage, Presenter, Presenters, UserMessage};
+use crate::{Client, Clients, IdentifiedUserMessage, Presenter, Presenters, UserMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -58,10 +58,10 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
     }
 }
 
-async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<EmojiMessage>) {
+async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<IdentifiedUserMessage>) {
     info!("received message from {}: {:?}", identity, msg);
 
-    let msg = match msg.to_str().map(|x| serde_json::from_str::<UserMessage>(x)) {
+    let user_message = match msg.to_str().map(|x| serde_json::from_str::<UserMessage>(x)) {
         Ok(Ok(m)) => m,
         _ => {
             error!("{identity} sent an invalid message");
@@ -69,15 +69,10 @@ async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<EmojiM
         }
     };
 
-    match msg {
-        UserMessage::Emoji { slide, emoji } => {
-            let _ = sender.send(EmojiMessage {
-                identity: identity.to_string(),
-                slide,
-                emoji,
-            });
-        }
-    }
+    let _ = sender.send(IdentifiedUserMessage {
+        identity: identity.to_string(),
+        user_message,
+    });
 }
 
 pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {

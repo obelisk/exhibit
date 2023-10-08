@@ -1,5 +1,5 @@
 use crate::{
-    ws, Client, Clients, ConfigurationMessage, EmojiMessage, JwtClaims, Presenters, Result,
+    ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presenters, Result,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
@@ -52,7 +52,7 @@ pub async fn register_header_handler(
     header: String,
     headers: warp::http::HeaderMap,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
     info!("Got header registration call!");
     let identity = headers
@@ -74,7 +74,7 @@ pub async fn register_header_handler(
 pub async fn register_jwt_handler(
     token: JwtClaims,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
     debug!("Registering client via JWT for [{}]", token.sub);
 
@@ -90,7 +90,7 @@ async fn register_client(
     guid: String,
     identity: String,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) {
     let mut clients = clients.write().await;
 

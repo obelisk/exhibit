@@ -23,7 +23,7 @@ pub type Result<T> = std::result::Result<T, Rejection>;
 #[derive(Debug, Clone)]
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
-    pub emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    pub emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
     pub identity: String,
 }
 
@@ -37,6 +37,12 @@ pub struct EmojiMessage {
     pub identity: String,
     pub slide: u64,
     pub emoji: String,
+}
+
+#[derive(Debug)]
+pub struct IdentifiedUserMessage {
+    identity: String,
+    user_message: UserMessage,
 }
 
 #[derive(Debug, Deserialize)]
