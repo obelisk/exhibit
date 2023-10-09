@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
-use crate::{ws, Client, Clients, ConfigurationMessage, EmojiMessage, Presenters, Result};
+use crate::{
+    ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presenters, Result,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use uuid::Uuid;
@@ -37,11 +37,9 @@ pub async fn update_handler(
                 emojis: slide_settings.emojis,
             };
             let event = serde_json::to_string(&event).unwrap();
-            clients.read().await.iter().for_each(|(_, connected_user)| {
-                for (_, client) in connected_user {
-                    if let Some(sender) = &client.sender {
-                        let _ = sender.send(Ok(Message::text(&event)));
-                    }
+            clients.read().await.iter().for_each(|(_, client)| {
+                if let Some(sender) = &client.sender {
+                    let _ = sender.send(Ok(Message::text(&event)));
                 }
             });
         }
@@ -50,19 +48,20 @@ pub async fn update_handler(
     Ok(StatusCode::OK)
 }
 
-pub async fn register_handler(
+pub async fn register_header_handler(
+    header: String,
     headers: warp::http::HeaderMap,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
-    info!("Got registration call!");
+    info!("Got header registration call!");
     let identity = headers
-        .get("X-SSO-EMAIL")
+        .get(header)
         .ok_or(warp::reject::not_found())?
         .as_bytes();
     let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
 
-    debug!("Registering client for {}", identity);
+    debug!("Registering client for [{identity}]");
 
     let guid = Uuid::new_v4().as_simple().to_string();
 
@@ -72,60 +71,57 @@ pub async fn register_handler(
     }))
 }
 
+pub async fn register_jwt_handler(
+    token: JwtClaims,
+    clients: Clients,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
+) -> Result<impl Reply> {
+    debug!("Registering client via JWT for [{}]", token.sub);
+
+    let guid = Uuid::new_v4().as_simple().to_string();
+
+    register_client(guid.clone(), token.sub, clients, emoji_sender).await;
+    Ok(json(&RegisterResponse {
+        url: format!("/ws/{}", guid),
+    }))
+}
+
 async fn register_client(
     guid: String,
     identity: String,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
+    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) {
     let mut clients = clients.write().await;
 
-    if let Some(user_clients) = clients.get_mut(&identity) {
-        user_clients.insert(
-            guid,
-            Client {
-                sender: None,
-                emoji_sender,
-            },
-        );
-    } else {
-        let mut user_clients = HashMap::new();
-        user_clients.insert(
-            guid,
-            Client {
-                sender: None,
-                emoji_sender,
-            },
-        );
-        clients.insert(identity, user_clients);
-    }
+    clients.insert(
+        guid,
+        Client {
+            sender: None,
+            emoji_sender,
+            identity,
+        },
+    );
 }
 
 pub async fn client_ws_handler(
-    headers: warp::http::HeaderMap,
     ws: warp::ws::Ws,
     guid: String,
     clients: Clients,
 ) -> Result<impl Reply> {
     info!("Got websocket call!");
-
-    let identity = headers
-        .get("X-SSO-EMAIL")
-        .ok_or(warp::reject::not_found())?
-        .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
-    info!("Websocket upgrade for {identity}!");
-
     let client = clients
         .read()
         .await
-        .get(&identity)
-        .ok_or(warp::reject::not_found())?
         .get(&guid)
         .ok_or(warp::reject::not_found())?
         .clone();
 
-    Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, identity, guid, clients, client)))
+    info!("Websocket upgrade for {}!", client.identity);
+
+    Ok(ws
+        .max_message_size(1024 * 2)
+        .on_upgrade(move |socket| ws::client_connection(socket, guid, clients, client)))
 }
 
 pub async fn presenter_ws_handler(

@@ -102,23 +102,38 @@
                 document.socket.addEventListener("message", (event) => {
                     console.log(event.data);
                     let new_slide_data = JSON.parse(event.data);
-                    document.getElementById("slide-message").innerText = new_slide_data["message"];
-                    var reactions = document.getElementById("reaction-container");
-                    reactions.innerHTML = "";
 
-                    new_slide_data["emojis"].forEach(element => {
-                        var reaction_button = document.createElement('div');
-                        reaction_button.className = 'reaction-button';
-                        reaction_button.innerText = element;
-                        reaction_button.onclick = function () {
-                            let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element } };
-                            document.socket.send(JSON.stringify(emoji_obj));
-                            setDisabled()
-                        };
+                    // If this message is informing the client of a new slide
+                    if (new_slide_data["message"] !== undefined) {
+                        document.getElementById("slide-message").innerText = new_slide_data["message"];
+                        var reactions = document.getElementById("reaction-container");
+                        reactions.innerHTML = "";
 
-                        reactions.appendChild(reaction_button);
-                    });
+                        new_slide_data["emojis"].forEach(element => {
+                            var reaction_button = document.createElement('div');
+                            reaction_button.className = 'reaction-button';
+                            reaction_button.innerText = element;
+                            reaction_button.onclick = function () {
+                                let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element, "size": parseInt(document.getElementById("emoji-size").value) } };
+                                document.socket.send(JSON.stringify(emoji_obj));
+                                setDisabled()
+                            };
 
+                            reactions.appendChild(reaction_button);
+                        });
+                    }
+
+                    // if this is informing the users of their ratelimits
+                    if (new_slide_data["ratelimit_status"] !== undefined) {
+                        var rl_elem = document.getElementById("ratelimit_info");
+                        rl_elem.innerHTML = "";
+                        Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {
+                            const [key, value] = element;
+                            var li = document.createElement("li");
+                            li.appendChild(document.createTextNode(key + " - " + value));
+                            rl_elem.appendChild(li);
+                        });
+                    }
                 });
             }));
         });
@@ -138,7 +153,17 @@
     <div class="container">
         <div class="title-group">
             <div class="title">Product Security: What We Do, Why, and How</div>
-            <p>Let's Go.</p>
+            <ul id="ratelimit_info">
+                <li>Let's Go.</li>
+            </ul>
+        </div>
+        <div class="title-group">
+            <label for="cars">Choose Emoji Size:</label>
+            <select name="emoji-size" id="emoji-size">
+                <option value=0>Normal</option>
+                <option value=1>Large</option>
+                <option value=2>Huge</option>
+            </select>
         </div>
 
         <div id="slide-message">
