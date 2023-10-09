@@ -37,17 +37,20 @@ pub struct EmojiMessage {
     pub identity: String,
     pub slide: u64,
     pub emoji: String,
+    pub size: u8,
 }
 
 #[derive(Debug)]
 pub struct IdentifiedUserMessage {
     identity: String,
+    guid_identifier: String,
+    clients: Clients,
     user_message: UserMessage,
 }
 
 #[derive(Debug, Deserialize)]
 pub enum UserMessage {
-    Emoji { slide: u64, emoji: String },
+    Emoji { slide: u64, emoji: String, size: u8 },
 }
 
 #[derive(Clone, Debug, Deserialize)]

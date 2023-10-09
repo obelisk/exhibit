@@ -18,6 +18,7 @@ impl TimeLimiter {
 impl Limiter for TimeLimiter {
     fn check_allowed(
         &self,
+        last_message_time: u64,
         current_time: u64,
         data_prefix: &str,
         data: &ConcurrentMap<String, u64>,
@@ -25,12 +26,8 @@ impl Limiter for TimeLimiter {
     ) -> Result<LimiterUpdate, String> {
         let identity = &message.identity;
         // If they've never sent a message then it's effectively 0
-        let previous_send = data
-            .get(&format!("{data_prefix}-{identity}"))
-            .map(|x| x.to_owned())
-            .unwrap_or(0);
 
-        if previous_send > current_time {
+        if last_message_time > current_time {
             error!(
                 "{} last sent an emoji in the future. Not allowing this new send",
                 identity
@@ -40,16 +37,17 @@ impl Limiter for TimeLimiter {
         }
 
         // Check if this message should be blocked
-        if (current_time - previous_send) < self.interval {
+        if (current_time - last_message_time) < self.interval {
             return Err(format!(
                 "Try again in {} seconds",
-                current_time - previous_send
+                current_time - last_message_time
             ));
         }
 
+        // Last message time is stored in global limiter scope so we don't need to return anything
         Ok(LimiterUpdate {
-            data: identity.to_string(),
-            value: current_time,
+            client_message: format!("Next send allowed: {}", current_time + self.interval),
+            limiter_data_update: None,
         })
     }
 }

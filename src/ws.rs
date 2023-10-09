@@ -48,7 +48,7 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
                 break;
             }
         };
-        client_msg(&identity, msg, emoji_sender.clone()).await;
+        client_msg(&identity, &guid, msg, emoji_sender.clone(), clients.clone()).await;
     }
 
     if let Some(_) = clients.write().await.remove(&guid) {
@@ -58,7 +58,13 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
     }
 }
 
-async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<IdentifiedUserMessage>) {
+async fn client_msg(
+    identity: &str,
+    guid: &str,
+    msg: Message,
+    sender: UnboundedSender<IdentifiedUserMessage>,
+    clients: Clients,
+) {
     info!("received message from {}: {:?}", identity, msg);
 
     let user_message = match msg.to_str().map(|x| serde_json::from_str::<UserMessage>(x)) {
@@ -71,6 +77,8 @@ async fn client_msg(identity: &str, msg: Message, sender: UnboundedSender<Identi
 
     let _ = sender.send(IdentifiedUserMessage {
         identity: identity.to_string(),
+        guid_identifier: guid.to_string(),
+        clients,
         user_message,
     });
 }
