@@ -1,14 +1,15 @@
-client_server_address = "127.0.0.1:8000"
-presentation_server_address = "127.0.0.1:8001"
+service_address = "127.0.0.1:8000"
 
-[authentication_configuration.Jwt]
-public_key = """
------BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
-q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==
------END PUBLIC KEY-----
-"""
-audience = "exhibit"
+new_presentation_authorization_key = "0123456789abcdefghijklmonpqrstuvwxyz"
+
+# [authentication_configuration.Jwt]
+# public_key = """
+# -----BEGIN PUBLIC KEY-----
+# MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
+# q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==
+# -----END PUBLIC KEY-----
+# """
+# audience = "exhibit"
 
 # Test JWT Using Key from JWT.io
 # eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBIE5vbiBFbWFpbCBUZXN0IFVzZXIiLCJleHAiOjE1MTYyMzkwMjIwLCJhdWQiOiJleGhpYml0In0.3B3JqAPMWQobcUwXm3BrDWs1aKM3yDuQ67smr8kej6-1Ujf5H4JF_bwG1wsLIucNT83LQMgXgGmJVTdxjcMWig

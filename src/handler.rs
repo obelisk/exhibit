@@ -1,6 +1,8 @@
 use crate::{
-    ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presenters, Result,
+    ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presentation,
+    Presenters, Result,
 };
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use uuid::Uuid;
@@ -135,5 +137,11 @@ pub async fn presenter_ws_handler(
 }
 
 pub async fn health_handler() -> Result<impl Reply> {
+    Ok(StatusCode::OK)
+}
+
+pub async fn new_presentation_hander(
+    presentations: DashMap<String, Presentation>,
+) -> Result<impl Reply> {
     Ok(StatusCode::OK)
 }

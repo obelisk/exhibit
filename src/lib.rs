@@ -73,3 +73,11 @@ pub struct JwtClaims {
     pub exp: usize,
     pub aud: String,
 }
+
+#[derive(Clone)]
+pub struct Presentation {
+    pub id: String,
+    pub clients: Clients,
+    pub presenters: Presenters,
+    pub client_authentication_key: zeroize::Zeroizing<String>,
+}

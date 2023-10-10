@@ -3,8 +3,7 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     pub authentication_configuration: AuthenticationConfiguration,
-    pub presentation_server_address: String,
-    pub client_server_address: String,
+    pub service_address: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -12,9 +11,6 @@ pub enum AuthenticationConfiguration {
     Header {
         header: String,
     },
-    //Token {
-    //    secret: String,
-    //},
     Jwt {
         public_key: String,
         audience: Option<String>,
