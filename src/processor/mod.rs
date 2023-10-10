@@ -73,7 +73,7 @@ async fn handle_user_message(
                         .get(&user_message.guid_identifier)
                     {
                         if let Some(ref sender) = client.sender {
-                            let text = sender.send(Ok(Message::text(response)));
+                            let _ = sender.send(Ok(Message::text(response)));
                         } else {
                             error!(
                                 "{identity} sent a message from a guid that has no open connection?: {}",

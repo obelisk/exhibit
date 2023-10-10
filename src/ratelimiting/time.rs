@@ -20,8 +20,8 @@ impl Limiter for TimeLimiter {
         &self,
         last_message_time: u64,
         current_time: u64,
-        data_prefix: &str,
-        data: &ConcurrentMap<String, u64>,
+        _data_prefix: &str,
+        _data: &ConcurrentMap<String, u64>,
         message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String> {
         let identity = &message.identity;
