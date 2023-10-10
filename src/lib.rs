@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod authentication;
 pub mod config;
 pub mod handler;
 pub mod processor;

@@ -141,6 +141,7 @@ pub async fn health_handler() -> Result<impl Reply> {
 }
 
 pub async fn new_presentation_hander(
+    token: JwtClaims,
     presentations: DashMap<String, Presentation>,
 ) -> Result<impl Reply> {
     Ok(StatusCode::OK)

@@ -1,0 +1,12 @@
+service_address = "127.0.0.1:8000"
+
+new_presentation_authorization_key = "0123456789abcdefghijklmonpqrstuvwxyz"
+
+# Example user JWT
+# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3RfcHJlc2VudGF0aW9uIn0.eyJzdWIiOiJtaXRjaGVsbEBjb25mdXJpb3VzLmlvIiwiaWF0IjoxNTE2MjM5MDIyfQ.XmUaM8_j85_PV-pZoMAMRPba8MvjemMC5c8OXBA0i0g
+
+# kid: test_presentation
+
+# sub: mitchell@confurious.io
+
+# key: password

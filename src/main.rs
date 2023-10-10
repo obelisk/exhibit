@@ -3,10 +3,10 @@ extern crate log;
 
 use dashmap::DashMap;
 use exhibit::{
-    config, handler, processor, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims,
-    Presentation,
+    authentication::{parse_jwt_presentation_join, parse_jwt_presentation_new},
+    config, handler, processor, Clients, ConfigurationMessage, IdentifiedUserMessage, Presentation,
 };
-use jsonwebtoken::{decode, DecodingKey};
+
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::{collections::HashMap, net::SocketAddr};
@@ -39,18 +39,29 @@ async fn main() {
         .and(warp::path::param())
         .and(with(clients.clone()))
         .and_then(handler::client_ws_handler);
+
+    let presentation_capture = presentations.clone();
     let new_presentation = warp::path!("new")
         .and(warp::post())
+        // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 4))
+        .and(warp::body::bytes().and_then(move |provided_token| {
+            parse_jwt_presentation_new(
+                configuration.new_presentation_authorization_key.clone(),
+                provided_token,
+                presentation_capture.clone(),
+            )
+        }))
         .and(with(presentations.clone()))
         .and_then(handler::new_presentation_hander);
 
+    // TODO @obelisk: Rename this route to join
     let register_route = warp::path!("register")
+        .and(warp::post())
         // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 2))
-        .and(warp::post())
         .and(warp::body::bytes().and_then(move |provided_token| {
-            parse_jwt_for_presentation(provided_token, presentations.clone())
+            parse_jwt_presentation_join(provided_token, presentations.clone())
         }))
         .and(with(clients.clone()))
         .and(with(client_emoji_sender.clone()))
@@ -93,37 +104,6 @@ async fn main() {
     let service_address: SocketAddr = configuration.service_address.parse().unwrap();
 
     warp::serve(all_routes).run(service_address).await
-}
-
-async fn parse_jwt_for_presentation(
-    provided_token: warp::hyper::body::Bytes,
-    presentations: DashMap<String, Presentation>,
-) -> Result<JwtClaims, warp::reject::Rejection> {
-    let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-
-    let token = String::from_utf8(provided_token.to_vec()).map_err(|e| {
-        error!("User rejected due to non UTF8 JWT: {e}");
-        warp::reject::not_found()
-    })?;
-
-    let header = jsonwebtoken::decode_header(&token).map_err(|_| warp::reject::not_found())?;
-    let requested_presentation_id = header.kid.ok_or(warp::reject::not_found())?;
-
-    let presentation = presentations
-        .get(&requested_presentation_id)
-        .ok_or(warp::reject::not_found())?;
-
-    let token = decode::<JwtClaims>(
-        &token,
-        &DecodingKey::from_secret(presentation.value().client_authentication_key.as_bytes()),
-        &validation,
-    )
-    .map_err(|e| {
-        error!("User rejected due to JWT error: {e}");
-        warp::reject::not_found()
-    })?;
-
-    Ok(token.claims)
 }
 
 fn with<T>(item: T) -> impl Filter<Extract = (T,), Error = Infallible> + Clone
