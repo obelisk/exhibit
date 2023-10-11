@@ -67,6 +67,7 @@ pub async fn join_jwt_handler(
         .ok_or(warp::reject::not_found())?;
 
     let presentation = presentation.value();
+    let presentation_id = &presentation.id;
 
     register_client(
         guid.clone(),
@@ -76,7 +77,7 @@ pub async fn join_jwt_handler(
     )
     .await;
     Ok(json(&RegisterResponse {
-        url: format!("/ws/{guid}"),
+        url: format!("/ws/{presentation_id}/{guid}"),
     }))
 }
 
@@ -97,18 +98,28 @@ async fn register_client(
 }
 
 pub async fn client_ws_handler(
-    ws: warp::ws::Ws,
+    presentation_id: String,
     guid: String,
-    clients: Clients,
+    ws: warp::ws::Ws,
+    presentations: Presentations,
 ) -> Result<impl Reply> {
-    info!("Got websocket call!");
+    trace!("Got websocket call for presentation: {presentation_id}!");
+    let presentation = presentations
+        .get(&presentation_id)
+        .ok_or(warp::reject::not_found())?;
+
+    let presentation = presentation.value().to_owned();
+    let clients = presentation.clients.clone();
     let client = clients.get(&guid).ok_or(warp::reject::not_found())?.clone();
 
-    info!("Websocket upgrade for {}!", client.identity);
+    info!(
+        "Websocket upgrade for {} in {presentation_id}!",
+        client.identity
+    );
 
     Ok(ws
         .max_message_size(1024 * 2)
-        .on_upgrade(move |socket| ws::client_connection(socket, guid, clients, client)))
+        .on_upgrade(move |socket| ws::client_connection(socket, presentation, guid, client)))
 }
 
 pub async fn presenter_ws_handler(

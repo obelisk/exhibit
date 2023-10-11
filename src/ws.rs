@@ -1,14 +1,22 @@
-use crate::{Client, Clients, IdentifiedUserMessage, Presenter, Presenters, UserMessage};
+use crate::{
+    Client, Clients, IdentifiedUserMessage, Presentation, Presenter, Presenters, UserMessage,
+};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
-pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mut client: Client) {
+pub async fn client_connection(
+    ws: WebSocket,
+    presentation: Presentation,
+    guid: String,
+    mut client: Client,
+) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
     let emoji_sender = client.emoji_sender.clone();
     let identity = client.identity.clone();
+    let presentation_id = &presentation.id;
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);
     tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
@@ -20,7 +28,7 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
     {
         client.sender = Some(client_sender);
 
-        let mut user_client = match clients.get_mut(&guid) {
+        let mut user_client = match presentation.clients.get_mut(&guid) {
             Some(client) => client,
             None => {
                 error!(
@@ -33,7 +41,7 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
         *user_client = client;
     }
 
-    info!("{identity} has new client with {guid}");
+    info!("{identity} has new client with {guid} for {presentation_id}");
 
     while let Some(result) = client_ws_rcv.next().await {
         let msg = match result {
@@ -47,13 +55,20 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
                 break;
             }
         };
-        client_msg(&identity, &guid, msg, emoji_sender.clone(), clients.clone()).await;
+        client_msg(
+            &identity,
+            &guid,
+            msg,
+            emoji_sender.clone(),
+            presentation.clients.clone(),
+        )
+        .await;
     }
 
-    if let Some(_) = clients.remove(&guid) {
-        info!("{identity} - {guid} disconnected");
+    if let Some(_) = presentation.clients.remove(&guid) {
+        info!("{identity} - {guid} disconnected from {presentation_id}");
     } else {
-        error!("{identity} - {guid} was already disconnected")
+        error!("{identity} - {guid} was already disconnected from {presentation_id}")
     }
 }
 

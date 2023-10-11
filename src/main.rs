@@ -23,15 +23,14 @@ async fn main() {
 
     // Probably the most important data structure in the whole application.
     // Stores all the presenters and clients for all active presentations
-    let mut presentations = Presentations::new();
+    let presentations = Presentations::new();
 
     // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
-    // let client_ws_route = warp::path("ws")
-    //     .and(warp::ws())
-    //     .and(warp::path::param())
-    //     .and(with(clients.clone()))
-    //     .and_then(handler::client_ws_handler);
+    let client_ws_route = warp::path!("ws" / String / String)
+        .and(warp::ws())
+        .and(with(presentations.clone()))
+        .and_then(handler::client_ws_handler);
 
     let presentation_capture = presentations.clone();
     let new_presentation = warp::path!("new")
@@ -64,8 +63,8 @@ async fn main() {
     let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
 
     let client_routes = health_route
-        //.or(join_route)
-        //.or(client_ws_route)
+        .or(join_route)
+        .or(client_ws_route)
         .or(client_spa);
 
     // Admin/Presenter routes
