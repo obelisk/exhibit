@@ -11,10 +11,10 @@ pub async fn client_connection(
     presentation: Presentation,
     guid: String,
     mut client: Client,
+    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
-    let emoji_sender = client.emoji_sender.clone();
     let identity = client.identity.clone();
     let presentation_id = &presentation.id;
 
@@ -59,7 +59,7 @@ pub async fn client_connection(
             &identity,
             &guid,
             msg,
-            emoji_sender.clone(),
+            user_message_sender.clone(),
             presentation.clients.clone(),
         )
         .await;

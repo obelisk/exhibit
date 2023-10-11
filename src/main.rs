@@ -3,9 +3,9 @@ extern crate log;
 
 use exhibit::{
     authentication::{parse_jwt_presentation_join, parse_jwt_presentation_new},
-    config, handler, processor, Clients, ConfigurationMessage, IdentifiedUserMessage, Presentation,
-    Presentations,
+    config, handler, ConfigurationMessage, IdentifiedUserMessage, Presentations,
 };
+use tokio::sync::mpsc::unbounded_channel;
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -25,11 +25,16 @@ async fn main() {
     // Stores all the presenters and clients for all active presentations
     let presentations = Presentations::new();
 
+    let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedUserMessage>();
+    let (configuration_message_sender, configuration_message_receiver) =
+        unbounded_channel::<ConfigurationMessage>();
+
     // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
     let client_ws_route = warp::path!("ws" / String / String)
         .and(warp::ws())
         .and(with(presentations.clone()))
+        .and(with(user_message_sender.clone()))
         .and_then(handler::client_ws_handler);
 
     let presentation_capture = presentations.clone();
@@ -56,6 +61,7 @@ async fn main() {
             parse_jwt_presentation_join(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))
+        .and(with(user_message_sender.clone()))
         .and_then(handler::join_jwt_handler);
 
     // SPAs
@@ -81,7 +87,7 @@ async fn main() {
     //     .and(with(presenters.clone()))
     //     .and_then(handler::presenter_ws_handler);
 
-    let presenter_routes = presenter_spa;
+    let presenter_routes = presenter_spa.or(new_presentation);
     //.or(presenter_emoji_stream)
     //.or(update);
 

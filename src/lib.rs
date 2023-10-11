@@ -25,7 +25,6 @@ pub type Result<T> = std::result::Result<T, Rejection>;
 #[derive(Debug, Clone)]
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
-    pub emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
     pub identity: String,
 }
 
@@ -80,37 +79,22 @@ pub struct JwtClaims {
 #[derive(Clone)]
 pub struct Presentation {
     id: String,
-    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
-    configuration_message_sender: UnboundedSender<ConfigurationMessage>,
+    owner: String,
     pub clients: Clients,
     pub presenters: Presenters,
     pub client_authentication_key: String,
 }
 
 impl Presentation {
-    pub fn new() -> Self {
-        let (user_message_sender, user_message_receiver) =
-            mpsc::unbounded_channel::<IdentifiedUserMessage>();
-        let (configuration_message_sender, configuration_message_receiver) =
-            mpsc::unbounded_channel::<ConfigurationMessage>();
-
+    pub fn new(owner: String) -> Self {
         Self {
             id: Uuid::new_v4().as_simple().to_string(),
-            user_message_sender,
-            configuration_message_sender,
+            owner,
             clients: DashMap::new(),
             presenters: DashMap::new(),
             // TODO @obelisk: I bet this doesn't use secure randomness.
             // Double check
             client_authentication_key: Uuid::new_v4().as_simple().to_string(),
         }
-    }
-
-    pub fn get_user_message_sender(&self) -> UnboundedSender<IdentifiedUserMessage> {
-        self.user_message_sender.clone()
-    }
-
-    pub fn get_configuration_message_sender(&self) -> UnboundedSender<ConfigurationMessage> {
-        self.configuration_message_sender.clone()
     }
 }

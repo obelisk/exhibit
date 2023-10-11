@@ -54,6 +54,7 @@ pub async fn update_handler(
 pub async fn join_jwt_handler(
     token: JwtClaims,
     presentations: Presentations,
+    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
     debug!(
         "Registering client [{}] via JWT for presentation [{}]",
@@ -73,7 +74,7 @@ pub async fn join_jwt_handler(
         guid.clone(),
         token.sub,
         presentation.clients.clone(),
-        presentation.get_user_message_sender(),
+        user_message_sender,
     )
     .await;
     Ok(json(&RegisterResponse {
@@ -85,13 +86,12 @@ async fn register_client(
     guid: String,
     identity: String,
     clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
+    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) {
     clients.insert(
         guid,
         Client {
             sender: None,
-            emoji_sender,
             identity,
         },
     );
@@ -102,6 +102,7 @@ pub async fn client_ws_handler(
     guid: String,
     ws: warp::ws::Ws,
     presentations: Presentations,
+    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
     trace!("Got websocket call for presentation: {presentation_id}!");
     let presentation = presentations
@@ -117,9 +118,9 @@ pub async fn client_ws_handler(
         client.identity
     );
 
-    Ok(ws
-        .max_message_size(1024 * 2)
-        .on_upgrade(move |socket| ws::client_connection(socket, presentation, guid, client)))
+    Ok(ws.max_message_size(1024 * 2).on_upgrade(move |socket| {
+        ws::client_connection(socket, presentation, guid, client, user_message_sender)
+    }))
 }
 
 pub async fn presenter_ws_handler(
@@ -140,5 +141,8 @@ pub async fn new_presentation_hander(
     token: JwtClaims,
     presentations: DashMap<String, Presentation>,
 ) -> Result<impl Reply> {
+    let presentation = Presentation::new(token.sub);
+    presentations.insert(presentation.id.clone(), presentation);
+
     Ok(StatusCode::OK)
 }
