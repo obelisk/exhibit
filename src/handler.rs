@@ -1,6 +1,6 @@
 use crate::{
     ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presentation,
-    Presenters, Result,
+    Presentations, Presenters, Result,
 };
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,8 @@ pub async fn update_handler(
                 emojis: slide_settings.emojis,
             };
             let event = serde_json::to_string(&event).unwrap();
-            clients.read().await.iter().for_each(|(_, client)| {
+            clients.iter().for_each(|item| {
+                let client = item.value();
                 if let Some(sender) = &client.sender {
                     let _ = sender.send(Ok(Message::text(&event)));
                 }
@@ -50,41 +51,32 @@ pub async fn update_handler(
     Ok(StatusCode::OK)
 }
 
-pub async fn register_header_handler(
-    header: String,
-    headers: warp::http::HeaderMap,
-    clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
-) -> Result<impl Reply> {
-    info!("Got header registration call!");
-    let identity = headers
-        .get(header)
-        .ok_or(warp::reject::not_found())?
-        .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
-
-    debug!("Registering client for [{identity}]");
-
-    let guid = Uuid::new_v4().as_simple().to_string();
-
-    register_client(guid.clone(), identity, clients, emoji_sender).await;
-    Ok(json(&RegisterResponse {
-        url: format!("/ws/{}", guid),
-    }))
-}
-
-pub async fn register_jwt_handler(
+pub async fn join_jwt_handler(
     token: JwtClaims,
-    clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
+    presentations: Presentations,
 ) -> Result<impl Reply> {
-    debug!("Registering client via JWT for [{}]", token.sub);
+    debug!(
+        "Registering client [{}] via JWT for presentation [{}]",
+        token.sub, token.kid
+    );
 
     let guid = Uuid::new_v4().as_simple().to_string();
 
-    register_client(guid.clone(), token.sub, clients, emoji_sender).await;
+    let presentation = presentations
+        .get(&token.kid)
+        .ok_or(warp::reject::not_found())?;
+
+    let presentation = presentation.value();
+
+    register_client(
+        guid.clone(),
+        token.sub,
+        presentation.clients.clone(),
+        presentation.get_user_message_sender(),
+    )
+    .await;
     Ok(json(&RegisterResponse {
-        url: format!("/ws/{}", guid),
+        url: format!("/ws/{guid}"),
     }))
 }
 
@@ -94,8 +86,6 @@ async fn register_client(
     clients: Clients,
     emoji_sender: mpsc::UnboundedSender<IdentifiedUserMessage>,
 ) {
-    let mut clients = clients.write().await;
-
     clients.insert(
         guid,
         Client {
@@ -112,12 +102,7 @@ pub async fn client_ws_handler(
     clients: Clients,
 ) -> Result<impl Reply> {
     info!("Got websocket call!");
-    let client = clients
-        .read()
-        .await
-        .get(&guid)
-        .ok_or(warp::reject::not_found())?
-        .clone();
+    let client = clients.get(&guid).ok_or(warp::reject::not_found())?.clone();
 
     info!("Websocket upgrade for {}!", client.identity);
 

@@ -8,17 +8,18 @@ pub mod processor;
 pub mod ratelimiting;
 pub mod ws;
 
-use std::{collections::HashMap, sync::Arc};
-
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use uuid::Uuid;
 use warp::{ws::Message, Rejection};
 
 // A user can be connected on multiple devices so we have a hashmap
 // linking their identity to another hashmap of their connected
 // devices
-pub type Clients = Arc<RwLock<HashMap<String, Client>>>;
-pub type Presenters = Arc<RwLock<HashMap<String, Presenter>>>;
+pub type Clients = DashMap<String, Client>;
+pub type Presenters = DashMap<String, Presenter>;
+pub type Presentations = DashMap<String, Presentation>;
 pub type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, Clone)]
@@ -73,12 +74,43 @@ pub struct JwtClaims {
     pub sub: String, // Contains the user's identifying information
     pub exp: usize,
     pub aud: String,
+    pub kid: String,
 }
 
 #[derive(Clone)]
 pub struct Presentation {
-    pub id: String,
+    id: String,
+    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    configuration_message_sender: UnboundedSender<ConfigurationMessage>,
     pub clients: Clients,
     pub presenters: Presenters,
-    pub client_authentication_key: zeroize::Zeroizing<String>,
+    pub client_authentication_key: String,
+}
+
+impl Presentation {
+    pub fn new() -> Self {
+        let (user_message_sender, user_message_receiver) =
+            mpsc::unbounded_channel::<IdentifiedUserMessage>();
+        let (configuration_message_sender, configuration_message_receiver) =
+            mpsc::unbounded_channel::<ConfigurationMessage>();
+
+        Self {
+            id: Uuid::new_v4().as_simple().to_string(),
+            user_message_sender,
+            configuration_message_sender,
+            clients: DashMap::new(),
+            presenters: DashMap::new(),
+            // TODO @obelisk: I bet this doesn't use secure randomness.
+            // Double check
+            client_authentication_key: Uuid::new_v4().as_simple().to_string(),
+        }
+    }
+
+    pub fn get_user_message_sender(&self) -> UnboundedSender<IdentifiedUserMessage> {
+        self.user_message_sender.clone()
+    }
+
+    pub fn get_configuration_message_sender(&self) -> UnboundedSender<ConfigurationMessage> {
+        self.configuration_message_sender.clone()
+    }
 }

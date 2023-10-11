@@ -85,7 +85,7 @@
 </head>
 <script>
     function reset_websocket() {
-        fetch("/register", {}).then((data) => {
+        fetch("/join", {}).then((data) => {
             console.log(data.json().then((data) => {
                 if (document.socket != null) {
                     document.socket.close();

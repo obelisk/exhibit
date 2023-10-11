@@ -17,13 +17,10 @@ struct ClientRateLimitResponse {
 
 pub async fn broadcast_to_presenters(message: EmojiMessage, presenters: Presenters) {
     let event = serde_json::to_string(&message).unwrap();
-    presenters
-        .read()
-        .await
-        .iter()
-        .for_each(|(_, connected_presenter)| {
-            let _ = connected_presenter.sender.send(Ok(Message::text(&event)));
-        });
+    presenters.iter().for_each(|item| {
+        let connected_presenter = item.value();
+        let _ = connected_presenter.sender.send(Ok(Message::text(&event)));
+    });
 }
 
 async fn handle_user_message(
@@ -66,12 +63,7 @@ async fn handle_user_message(
                             return;
                         }
                     };
-                    if let Some(client) = user_message
-                        .clients
-                        .read()
-                        .await
-                        .get(&user_message.guid_identifier)
-                    {
+                    if let Some(client) = user_message.clients.get(&user_message.guid_identifier) {
                         if let Some(ref sender) = client.sender {
                             let _ = sender.send(Ok(Message::text(response)));
                         } else {

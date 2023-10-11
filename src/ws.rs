@@ -19,9 +19,8 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
 
     {
         client.sender = Some(client_sender);
-        let mut clients = clients.write().await;
 
-        let user_client = match clients.get_mut(&guid) {
+        let mut user_client = match clients.get_mut(&guid) {
             Some(client) => client,
             None => {
                 error!(
@@ -51,7 +50,7 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
         client_msg(&identity, &guid, msg, emoji_sender.clone(), clients.clone()).await;
     }
 
-    if let Some(_) = clients.write().await.remove(&guid) {
+    if let Some(_) = clients.remove(&guid) {
         info!("{identity} - {guid} disconnected");
     } else {
         error!("{identity} - {guid} was already disconnected")
@@ -87,7 +86,7 @@ pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Prese
     let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
     let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
 
-    presenters.write().await.insert(
+    presenters.insert(
         guid.clone(),
         Presenter {
             sender: presenter_sender,
@@ -103,7 +102,7 @@ pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Prese
 
     while let Some(_) = presenter_ws_rcv.next().await {}
 
-    if let Some(_) = presenters.write().await.remove(&guid) {
+    if let Some(_) = presenters.remove(&guid) {
         info!("Presenter {guid} - disconnected");
     } else {
         error!("Presenter {guid} - was already disconnected")
