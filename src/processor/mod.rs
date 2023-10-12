@@ -4,10 +4,11 @@ use serde::Serialize;
 use tokio::sync::mpsc::UnboundedReceiver;
 use warp::ws::Message;
 
+mod emoji;
+
 use crate::{
     ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter, RatelimiterResponse},
-    ConfigurationMessage, EmojiMessage, IdentifiedUserMessage, Presenters, SlideSettings,
-    UserMessage,
+    BroadcastMessage, EmojiMessage, IdentifiedUserMessage, Presenters, SlideSettings, UserMessage,
 };
 
 #[derive(Serialize)]
@@ -15,7 +16,7 @@ struct ClientRateLimitResponse {
     ratelimit_status: HashMap<String, String>,
 }
 
-pub async fn broadcast_to_presenters(message: EmojiMessage, presenters: Presenters) {
+pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Presenters) {
     let event = serde_json::to_string(&message).unwrap();
     presenters.iter().for_each(|item| {
         let connected_presenter = item.value();
@@ -29,7 +30,7 @@ async fn handle_user_message(
     slide_settings: Option<SlideSettings>,
     user_message: IdentifiedUserMessage,
 ) {
-    let identity = user_message.identity.clone();
+    let identity = user_message.client.identity.clone();
     // Check if the presentation has started
     let slide_settings = if let Some(ref s) = slide_settings {
         s
@@ -38,73 +39,28 @@ async fn handle_user_message(
         return;
     };
 
-    let allowed_to_send = rate_limiter.check_allowed(&user_message);
+    let ratelimit_responses = match rate_limiter.check_allowed(&user_message) {
+        RatelimiterResponse::Allowed(responses) => responses,
+        RatelimiterResponse::Blocked(blocker) => {
+            warn!("{user_message} was blocked by {blocker}");
+            return;
+        }
+    };
 
     match user_message.user_message {
-        UserMessage::Emoji { slide, emoji, size } => {
-            // Check that they are sending a valid emoji for the current slide
-            if !slide_settings.emojis.contains(&emoji) {
-                error!("{identity} sent invalid {emoji} for slide {slide}");
-                return;
-            }
-
-            match allowed_to_send {
-                RatelimiterResponse::Allowed(ratelimit_responses) => {
-                    // Update the client on ratelimits
-                    let response = match serde_json::to_string(&ClientRateLimitResponse {
-                        ratelimit_status: ratelimit_responses,
-                    }) {
-                        Ok(text) => text,
-                        Err(e) => {
-                            error!(
-                                "Could not serialize ratelimit response for {identity} - {}: {e}",
-                                user_message.guid_identifier
-                            );
-                            return;
-                        }
-                    };
-                    if let Some(client) = user_message.clients.get(&user_message.guid_identifier) {
-                        if let Some(ref sender) = client.sender {
-                            let _ = sender.send(Ok(Message::text(response)));
-                        } else {
-                            error!(
-                                "{identity} sent a message from a guid that has no open connection?: {}",
-                                user_message.guid_identifier
-                            );
-                        }
-                    } else {
-                        error!(
-                            "{identity} sent a message from a guid not in the clients map: {}",
-                            user_message.guid_identifier
-                        )
-                    }
-
-                    // Send the emojis to the presenters
-                    info!("{identity} sent {emoji}");
-                    tokio::task::spawn(async move {
-                        broadcast_to_presenters(
-                            EmojiMessage {
-                                identity,
-                                slide,
-                                emoji,
-                                size,
-                            },
-                            presenters,
-                        )
-                        .await;
-                    });
-                }
-                RatelimiterResponse::Blocked(blocker) => {
-                    warn!("Ratelimiter {blocker} blocked from {identity} sending {emoji}");
-                }
-            }
-        }
+        UserMessage::Emoji(msg) => emoji::handle_user_emoji(
+            &slide_settings,
+            ratelimit_responses,
+            user_message.client.clone(),
+            msg,
+            presenters.clone(),
+        ),
+        UserMessage::NewSlide(_msg) => todo!(),
     };
 }
 
 pub async fn handle_sent_messages(
     mut user_message_receiver: UnboundedReceiver<IdentifiedUserMessage>,
-    mut configuration_receiver: UnboundedReceiver<ConfigurationMessage>,
     presenters: Presenters,
 ) {
     // What are the settings for the current slide
@@ -132,15 +88,15 @@ pub async fn handle_sent_messages(
                     handle_user_message(rate_limiter, presenters.clone(), settings, msg)
                 });
             }
-            config = configuration_receiver.recv() => {
-                match config {
-                    Some(ConfigurationMessage::NewSlide { slide_settings, .. }) => {
-                        info!("New slide set, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-                        settings = Some(slide_settings);
-                    },
-                    None => break,
-                }
-            }
+            // config = configuration_receiver.recv() => {
+            //     match config {
+            //         Some(ConfigurationMessage::NewSlide { slide_settings, .. }) => {
+            //             info!("New slide set, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
+            //             settings = Some(slide_settings);
+            //         },
+            //         None => break,
+            //     }
+            // }
         };
     }
 }

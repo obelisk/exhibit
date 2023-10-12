@@ -8,9 +8,15 @@ pub mod processor;
 pub mod ratelimiting;
 pub mod ws;
 
+use std::sync::Arc;
+
 use dashmap::DashMap;
+use ratelimiting::Ratelimiter;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    RwLock,
+};
 use uuid::Uuid;
 use warp::{ws::Message, Rejection};
 
@@ -26,6 +32,23 @@ pub type Result<T> = std::result::Result<T, Rejection>;
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
     pub identity: String,
+    pub guid: String,
+}
+
+#[derive(Debug)]
+pub struct IdentifiedUserMessage {
+    client: Client,
+    user_message: UserMessage,
+}
+
+impl std::fmt::Display for IdentifiedUserMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} ({}): {}",
+            self.client.identity, self.client.guid, self.user_message
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -34,24 +57,44 @@ pub struct Presenter {
 }
 
 #[derive(Debug, Serialize)]
-pub struct EmojiMessage {
-    pub identity: String,
-    pub slide: u64,
-    pub emoji: String,
-    pub size: u8,
+pub enum BroadcastMessage {
+    Emoji(EmojiMessage),
 }
 
-#[derive(Debug)]
-pub struct IdentifiedUserMessage {
-    identity: String,
-    guid_identifier: String,
-    clients: Clients,
-    user_message: UserMessage,
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EmojiMessage {
+    slide: u64,
+    emoji: String,
+    size: u8,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NewSlideMessage {
+    slide: u64,
+    slide_settings: SlideSettings,
 }
 
 #[derive(Debug, Deserialize)]
 pub enum UserMessage {
-    Emoji { slide: u64, emoji: String, size: u8 },
+    Emoji(EmojiMessage),
+    NewSlide(NewSlideMessage),
+}
+
+impl std::fmt::Display for UserMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UserMessage::Emoji(emoji) => write!(
+                f,
+                "{} for {} with size {}",
+                emoji.emoji, emoji.slide, emoji.size
+            ),
+            UserMessage::NewSlide(slide) => write!(
+                f,
+                "New settings for slide {}: {}",
+                slide.slide, slide.slide_settings
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -60,12 +103,10 @@ pub struct SlideSettings {
     pub emojis: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub enum ConfigurationMessage {
-    NewSlide {
-        slide: u64,
-        slide_settings: SlideSettings,
-    },
+impl std::fmt::Display for SlideSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} - {}", self.emojis, self.message)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -83,6 +124,8 @@ pub struct Presentation {
     pub clients: Clients,
     pub presenters: Presenters,
     pub client_authentication_key: String,
+    pub ratelimiter: Ratelimiter,
+    pub slide_settings: Arc<RwLock<Option<SlideSettings>>>,
 }
 
 impl Presentation {
@@ -95,6 +138,8 @@ impl Presentation {
             // TODO @obelisk: I bet this doesn't use secure randomness.
             // Double check
             client_authentication_key: Uuid::new_v4().as_simple().to_string(),
+            ratelimiter: Ratelimiter::new(),
+            slide_settings: Arc::new(None.into()),
         }
     }
 }

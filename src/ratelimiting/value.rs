@@ -1,6 +1,6 @@
-use concurrent_map::ConcurrentMap;
+use dashmap::DashMap;
 
-use crate::{ratelimiting::LimiterDataUpdate, IdentifiedUserMessage};
+use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IdentifiedUserMessage, UserMessage};
 
 use super::{Limiter, LimiterUpdate};
 
@@ -37,17 +37,23 @@ impl Limiter for ValueLimiter {
         last_message_time: u64,
         current_time: u64,
         data_prefix: &str,
-        data: &ConcurrentMap<String, u64>,
+        data: &DashMap<String, u64>,
         message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String> {
-        let identity = &message.identity;
+        let identity = &message.client.identity;
         let message_cost = match &message.user_message {
-            crate::UserMessage::Emoji { size: 0, .. } => self.small_cost, // Normal
-            crate::UserMessage::Emoji { size: 1, .. } => self.large_cost, // Large
-            crate::UserMessage::Emoji { size: 2, .. } => self.huge_cost,  //Huge
-            crate::UserMessage::Emoji { size, .. } => {
-                return Err(format!("{identity} send emoji with invalid size: {size}"))
+            UserMessage::Emoji(EmojiMessage { size: 0, .. }) => self.small_cost, // Normal
+            UserMessage::Emoji(EmojiMessage { size: 1, .. }) => self.large_cost, // Large
+            UserMessage::Emoji(EmojiMessage { size: 2, .. }) => self.huge_cost,  // Huge
+            UserMessage::Emoji(EmojiMessage { size, .. }) => {
+                return Err(format!("{identity} sent emoji with invalid size: {size}"))
             } // Fuckery
+            UserMessage::NewSlide(_) => {
+                return Ok(LimiterUpdate {
+                    client_message: String::new(),
+                    limiter_data_update: None,
+                })
+            }
         };
         // If they've never sent a message then it's whatever their starting balance is
         let existing_balance = data

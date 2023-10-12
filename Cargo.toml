@@ -5,7 +5,6 @@ authors = ["Mitchell Grenier <mitchell@confurious.io>"]
 edition = "2021"
 
 [dependencies]
-concurrent-map = "5"
 dashmap = "5.5"
 env_logger = "0.10"
 jsonwebtoken = "8"

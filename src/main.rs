@@ -3,7 +3,7 @@ extern crate log;
 
 use exhibit::{
     authentication::{parse_jwt_presentation_join, parse_jwt_presentation_new},
-    config, handler, ConfigurationMessage, IdentifiedUserMessage, Presentations,
+    config, handler, IdentifiedUserMessage, Presentations,
 };
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -26,14 +26,13 @@ async fn main() {
     let presentations = Presentations::new();
 
     let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedUserMessage>();
-    let (configuration_message_sender, configuration_message_receiver) =
-        unbounded_channel::<ConfigurationMessage>();
 
     // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
+    let presentation_capture = presentations.clone();
     let client_ws_route = warp::path!("ws" / String / String)
         .and(warp::ws())
-        .and(with(presentations.clone()))
+        .and(with(presentation_capture.clone()))
         .and(with(user_message_sender.clone()))
         .and_then(handler::client_ws_handler);
 

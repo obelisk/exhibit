@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use concurrent_map::ConcurrentMap;
+use dashmap::DashMap;
 
 use crate::IdentifiedUserMessage;
 
@@ -31,33 +31,33 @@ pub trait Limiter: Send + Sync {
         last_message_time: u64,
         current_time: u64,
         data_prefix: &str,
-        data: &ConcurrentMap<String, u64>,
+        data: &DashMap<String, u64>,
         message: &IdentifiedUserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
 
 #[derive(Clone)]
 pub struct Ratelimiter {
-    limiters: ConcurrentMap<String, Arc<dyn Limiter>>,
-    limiter_data: ConcurrentMap<String, u64>,
-    global_data: ConcurrentMap<String, u64>,
+    limiters: DashMap<String, Arc<dyn Limiter>>,
+    limiter_data: DashMap<String, u64>,
+    global_data: DashMap<String, u64>,
 }
 
 impl Ratelimiter {
     pub fn new() -> Self {
         return Self {
             /// Contains all the configured limiters
-            limiters: ConcurrentMap::default(),
+            limiters: DashMap::default(),
 
             /// Contains the data for all the configured limiters. Limiters
             /// are never given write access to this data and updates must be
             /// done by the Ratelimiter
-            limiter_data: ConcurrentMap::default(),
+            limiter_data: DashMap::default(),
 
             /// Separated data storage for the ratelimiter itself to store
             /// data that is useful to many limiters such as last time a message
             /// was successfully sent
-            global_data: ConcurrentMap::default(),
+            global_data: DashMap::default(),
         };
     }
 
@@ -83,21 +83,21 @@ impl Ratelimiter {
 
         let last_message_time = self
             .global_data
-            .get(&format!("lmt-{}", message.identity))
+            .get(&format!("lmt-{}", message.client.identity))
             .map(|x| x.to_owned())
             .unwrap_or(0);
 
         let mut updates: HashMap<String, LimiterUpdate> = HashMap::new();
-        for (name, limiter) in self.limiters.iter() {
-            let update = limiter.check_allowed(
+        for item in self.limiters.iter() {
+            let update = item.value().check_allowed(
                 last_message_time,
                 current_time,
-                &name,
+                &item.key(),
                 &self.limiter_data,
                 message,
             );
             match update {
-                Ok(update) => updates.insert(name.to_string(), update),
+                Ok(update) => updates.insert(item.key().to_string(), update),
                 Err(e) => return RatelimiterResponse::Blocked(e),
             };
         }
@@ -112,7 +112,7 @@ impl Ratelimiter {
 
         // Update global data as well
         self.global_data
-            .insert(format!("lmt-{}", message.identity), current_time);
+            .insert(format!("lmt-{}", message.client.identity), current_time);
 
         RatelimiterResponse::Allowed(
             updates

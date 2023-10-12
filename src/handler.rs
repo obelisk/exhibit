@@ -1,6 +1,6 @@
 use crate::{
-    ws, Client, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims, Presentation,
-    Presentations, Presenters, Result,
+    ws, Client, Clients, IdentifiedUserMessage, JwtClaims, Presentation, Presentations, Presenters,
+    Result,
 };
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -20,36 +20,36 @@ pub struct Event {
     emojis: Vec<String>,
 }
 
-pub async fn update_handler(
-    update: ConfigurationMessage,
-    clients: Clients,
-    configuration_sender: UnboundedSender<ConfigurationMessage>,
-) -> Result<impl Reply> {
-    let _ = configuration_sender.send(update.clone());
+// pub async fn update_handler(
+//     update: ConfigurationMessage,
+//     clients: Clients,
+//     configuration_sender: UnboundedSender<ConfigurationMessage>,
+// ) -> Result<impl Reply> {
+//     let _ = configuration_sender.send(update.clone());
 
-    match update {
-        // A new slide is bring displayed
-        ConfigurationMessage::NewSlide {
-            slide,
-            slide_settings,
-        } => {
-            let event = Event {
-                message: slide_settings.message,
-                slide,
-                emojis: slide_settings.emojis,
-            };
-            let event = serde_json::to_string(&event).unwrap();
-            clients.iter().for_each(|item| {
-                let client = item.value();
-                if let Some(sender) = &client.sender {
-                    let _ = sender.send(Ok(Message::text(&event)));
-                }
-            });
-        }
-    }
+//     match update {
+//         // A new slide is bring displayed
+//         ConfigurationMessage::NewSlide {
+//             slide,
+//             slide_settings,
+//         } => {
+//             let event = Event {
+//                 message: slide_settings.message,
+//                 slide,
+//                 emojis: slide_settings.emojis,
+//             };
+//             let event = serde_json::to_string(&event).unwrap();
+//             clients.iter().for_each(|item| {
+//                 let client = item.value();
+//                 if let Some(sender) = &client.sender {
+//                     let _ = sender.send(Ok(Message::text(&event)));
+//                 }
+//             });
+//         }
+//     }
 
-    Ok(StatusCode::OK)
-}
+//     Ok(StatusCode::OK)
+// }
 
 pub async fn join_jwt_handler(
     token: JwtClaims,
@@ -89,10 +89,11 @@ async fn register_client(
     user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) {
     clients.insert(
-        guid,
+        guid.clone(),
         Client {
             sender: None,
             identity,
+            guid,
         },
     );
 }

@@ -38,7 +38,7 @@ pub async fn client_connection(
             }
         };
 
-        *user_client = client;
+        *user_client = client.clone();
     }
 
     info!("{identity} has new client with {guid} for {presentation_id}");
@@ -60,7 +60,7 @@ pub async fn client_connection(
             &guid,
             msg,
             user_message_sender.clone(),
-            presentation.clients.clone(),
+            client.clone(),
         )
         .await;
     }
@@ -77,7 +77,7 @@ async fn client_msg(
     guid: &str,
     msg: Message,
     sender: UnboundedSender<IdentifiedUserMessage>,
-    clients: Clients,
+    client: Client,
 ) {
     info!("received message from {}: {:?}", identity, msg);
 
@@ -90,9 +90,7 @@ async fn client_msg(
     };
 
     let _ = sender.send(IdentifiedUserMessage {
-        identity: identity.to_string(),
-        guid_identifier: guid.to_string(),
-        clients,
+        client,
         user_message,
     });
 }
