@@ -8,7 +8,8 @@ mod emoji;
 
 use crate::{
     ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter, RatelimiterResponse},
-    BroadcastMessage, EmojiMessage, IdentifiedUserMessage, Presenters, SlideSettings, UserMessage,
+    BroadcastMessage, EmojiMessage, IdentifiedUserMessage, Presentation, Presentations, Presenters,
+    SlideSettings, UserMessage,
 };
 
 #[derive(Serialize)]
@@ -24,22 +25,19 @@ pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Pres
     });
 }
 
-async fn handle_user_message(
-    mut rate_limiter: Ratelimiter,
-    presenters: Presenters,
-    slide_settings: Option<SlideSettings>,
-    user_message: IdentifiedUserMessage,
-) {
+async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentation: Presentation) {
     let identity = user_message.client.identity.clone();
+
+    let slide_settings = presentation.slide_settings.read().await;
     // Check if the presentation has started
-    let slide_settings = if let Some(ref s) = slide_settings {
+    let slide_settings = if let Some(ref s) = *slide_settings {
         s
     } else {
         error!("{identity} sent a message but the presentation has not started");
         return;
     };
 
-    let ratelimit_responses = match rate_limiter.check_allowed(&user_message) {
+    let ratelimit_responses = match presentation.ratelimiter.check_allowed(&user_message) {
         RatelimiterResponse::Allowed(responses) => responses,
         RatelimiterResponse::Blocked(blocker) => {
             warn!("{user_message} was blocked by {blocker}");
@@ -53,7 +51,7 @@ async fn handle_user_message(
             ratelimit_responses,
             user_message.client.clone(),
             msg,
-            presenters.clone(),
+            presentation.presenters.clone(),
         ),
         UserMessage::NewSlide(_msg) => todo!(),
     };
@@ -61,19 +59,8 @@ async fn handle_user_message(
 
 pub async fn handle_sent_messages(
     mut user_message_receiver: UnboundedReceiver<IdentifiedUserMessage>,
-    presenters: Presenters,
+    presentations: Presentations,
 ) {
-    // What are the settings for the current slide
-    let mut settings: Option<SlideSettings> = None;
-
-    // Keep track of the last time a user sent an emoji to rate limit them
-    let mut rate_limiter = Ratelimiter::new();
-    rate_limiter.add_ratelimit("10s-limit".to_string(), Arc::new(TimeLimiter::new(10)));
-    rate_limiter.add_ratelimit(
-        "normal-big-huge".to_string(),
-        Arc::new(ValueLimiter::new(0, 5, 10, 1, 25)),
-    );
-
     loop {
         tokio::select! {
             msg = user_message_receiver.recv() => {
@@ -82,21 +69,14 @@ pub async fn handle_sent_messages(
                     None => break,
                 };
 
-                let rate_limiter = rate_limiter.clone();
-                let settings = settings.clone();
-                tokio::spawn({
-                    handle_user_message(rate_limiter, presenters.clone(), settings, msg)
-                });
+                if let Some(presentation) = presentations.get(&msg.client.presentation) {
+                    tokio::spawn({
+                        handle_user_message(msg, presentation.value().clone())
+                    });
+                } else {
+                    warn!("{} send a message for presentation {} which doesn't exist: {msg}", msg.client.identity, msg.client.presentation);
+                }
             }
-            // config = configuration_receiver.recv() => {
-            //     match config {
-            //         Some(ConfigurationMessage::NewSlide { slide_settings, .. }) => {
-            //             info!("New slide set, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-            //             settings = Some(slide_settings);
-            //         },
-            //         None => break,
-            //     }
-            // }
         };
     }
 }

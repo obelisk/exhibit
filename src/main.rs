@@ -3,7 +3,7 @@ extern crate log;
 
 use exhibit::{
     authentication::{parse_jwt_presentation_join, parse_jwt_presentation_new},
-    config, handler, IdentifiedUserMessage, Presentations,
+    config, handler, processor, IdentifiedUserMessage, Presentations,
 };
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -72,14 +72,6 @@ async fn main() {
         .or(client_ws_route)
         .or(client_spa);
 
-    // Admin/Presenter routes
-    // let update = warp::path!("update")
-    //     .and(warp::post())
-    //     .and(warp::body::json())
-    //     .and(with(clients.clone()))
-    //     .and(with(configuration_sender.clone()))
-    //     .and_then(handler::update_handler);
-
     // let presenter_emoji_stream = warp::path("emoji_stream")
     //     .and(warp::ws())
     //     .and(warp::path::param())
@@ -90,12 +82,12 @@ async fn main() {
     //.or(presenter_emoji_stream)
     //.or(update);
 
-    // tokio::task::spawn(async move {
-    //     processor::handle_sent_messages(client_emoji_receiver, configuration_receiver, presenters)
-    //         .await;
+    let presentations_clone = presentations.clone();
+    tokio::task::spawn(async move {
+        processor::handle_sent_messages(user_message_receiver, presentations_clone).await;
 
-    //     panic!("Emoji receiver was dropped?");
-    // });
+        panic!("User message receiver was dropped?");
+    });
 
     let all_routes = client_routes.or(presenter_routes);
 

@@ -75,6 +75,7 @@ pub async fn join_jwt_handler(
         token.sub,
         presentation.clients.clone(),
         user_message_sender,
+        token.kid,
     )
     .await;
     Ok(json(&RegisterResponse {
@@ -87,6 +88,7 @@ async fn register_client(
     identity: String,
     clients: Clients,
     user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    presentation: String,
 ) {
     clients.insert(
         guid.clone(),
@@ -94,6 +96,7 @@ async fn register_client(
             sender: None,
             identity,
             guid,
+            presentation,
         },
     );
 }

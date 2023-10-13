@@ -33,6 +33,7 @@ pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
     pub identity: String,
     pub guid: String,
+    pub presentation: String,
 }
 
 #[derive(Debug)]
