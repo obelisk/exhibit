@@ -21,7 +21,9 @@ pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Pres
     let event = serde_json::to_string(&message).unwrap();
     presenters.iter().for_each(|item| {
         let connected_presenter = item.value();
-        let _ = connected_presenter.sender.send(Ok(Message::text(&event)));
+        if let Some(ref connected_presenter) = connected_presenter.sender {
+            let _ = connected_presenter.send(Ok(Message::text(&event)));
+        }
     });
 }
 

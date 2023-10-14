@@ -1,6 +1,4 @@
-use crate::{
-    Client, Clients, IdentifiedUserMessage, Presentation, Presenter, Presenters, UserMessage,
-};
+use crate::{Client, Clients, IdentifiedUserMessage, Presentation, Presenters, UserMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -95,29 +93,29 @@ async fn client_msg(
     });
 }
 
-pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {
-    let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
-    let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
+// pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {
+//     let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
+//     let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
 
-    presenters.insert(
-        guid.clone(),
-        Presenter {
-            sender: presenter_sender,
-        },
-    );
+//     presenters.insert(
+//         guid.clone(),
+//         Client { sender: presenter_sender, identity: (), guid: (), presentation: () } {
+//             sender: presenter_sender,
+//         },
+//     );
 
-    let presenter_rcv = UnboundedReceiverStream::new(presenter_rcv);
-    tokio::task::spawn(presenter_rcv.forward(presenter_ws_sender).map(|result| {
-        if let Err(e) = result {
-            error!("error sending websocket msg: {}", e);
-        }
-    }));
+//     let presenter_rcv = UnboundedReceiverStream::new(presenter_rcv);
+//     tokio::task::spawn(presenter_rcv.forward(presenter_ws_sender).map(|result| {
+//         if let Err(e) = result {
+//             error!("error sending websocket msg: {}", e);
+//         }
+//     }));
 
-    while let Some(_) = presenter_ws_rcv.next().await {}
+//     while let Some(_) = presenter_ws_rcv.next().await {}
 
-    if let Some(_) = presenters.remove(&guid) {
-        info!("Presenter {guid} - disconnected");
-    } else {
-        error!("Presenter {guid} - was already disconnected")
-    }
-}
+//     if let Some(_) = presenters.remove(&guid) {
+//         info!("Presenter {guid} - disconnected");
+//     } else {
+//         error!("Presenter {guid} - was already disconnected")
+//     }
+// }

@@ -24,7 +24,7 @@ use warp::{ws::Message, Rejection};
 // linking their identity to another hashmap of their connected
 // devices
 pub type Clients = DashMap<String, Client>;
-pub type Presenters = DashMap<String, Presenter>;
+pub type Presenters = DashMap<String, Client>;
 pub type Presentations = DashMap<String, Presentation>;
 pub type Result<T> = std::result::Result<T, Rejection>;
 
@@ -50,11 +50,6 @@ impl std::fmt::Display for IdentifiedUserMessage {
             self.client.identity, self.client.guid, self.user_message
         )
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Presenter {
-    pub sender: mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>,
 }
 
 #[derive(Debug, Serialize)]

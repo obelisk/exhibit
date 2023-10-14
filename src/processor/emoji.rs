@@ -41,7 +41,10 @@ pub async fn handle_user_emoji(
     }
 
     // Send the emojis to the presenters
-    info!("{identity} sent {emoji}");
+    info!(
+        "{identity} sent {emoji} to presentation {}",
+        client.presentation
+    );
     tokio::task::spawn(async move {
         super::broadcast_to_presenters(BroadcastMessage::Emoji(emoji_message), presenters).await;
     });

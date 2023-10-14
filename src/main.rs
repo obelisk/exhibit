@@ -34,7 +34,7 @@ async fn main() {
         .and(warp::ws())
         .and(with(presentation_capture.clone()))
         .and(with(user_message_sender.clone()))
-        .and_then(handler::client_ws_handler);
+        .and_then(handler::ws_handler);
 
     let presentation_capture = presentations.clone();
     let new_presentation = warp::path!("new")
