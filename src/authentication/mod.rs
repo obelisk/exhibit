@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 
-use crate::{
-    ClientJoinPresentationData, JwtClaims, NewPresentationRequest, Presentation, Presentations,
-};
+use crate::{ClientJoinPresentationData, JwtClaims, Presentation, Presentations};
 
 pub async fn join_presentation(
     provided_token: warp::hyper::body::Bytes,
@@ -24,15 +22,12 @@ pub async fn join_presentation(
         .get(&requested_presentation_id)
         .ok_or(warp::reject::not_found())?;
 
-    let token = jsonwebtoken::decode::<JwtClaims>(
-        &token,
-        &DecodingKey::from_secret(presentation.value().authentication_key.as_bytes()),
-        &validation,
-    )
-    .map_err(|e| {
-        error!("User rejected due to JWT error: {e}");
-        warp::reject::not_found()
-    })?;
+    let token =
+        jsonwebtoken::decode::<JwtClaims>(&token, &presentation.authentication_key, &validation)
+            .map_err(|e| {
+                error!("User rejected due to JWT error: {e}");
+                warp::reject::not_found()
+            })?;
 
     Ok(ClientJoinPresentationData {
         presentation: requested_presentation_id,
@@ -42,44 +37,46 @@ pub async fn join_presentation(
 
 pub async fn new_presentation(
     new_presentation_signing_key: DecodingKey,
-    new_presentation_request: HashMap<String, String>,
+    request: HashMap<String, String>,
     presentations: Presentations,
 ) -> Result<Presentation, warp::reject::Rejection> {
-    info!("New presentation requested!");
-    let validation = Validation::new(Algorithm::ES256);
-    println!("{:?}", new_presentation_request);
-    // We could put this in a lazy static but since we instantiate new
-    // presentations comparatively infrequently, keeping the JWT code
-    // inside the authentication module I believe is preferable
+    // Pull the token out of the request, this will have had to be
+    // signed by the owner of the service so we can fail fast if it's
+    // not valid
+    let token = request
+        .get("registration_key")
+        .ok_or(warp::reject())?
+        .to_string();
 
-    let new_presentation_request = NewPresentationRequest {
-        token: new_presentation_request
-            .get("registration_key")
-            .ok_or(warp::reject())?
-            .to_string(),
-        presenter_identity: new_presentation_request
-            .get("presenter_identity")
-            .ok_or(warp::reject())?
-            .to_string(),
-        encrypted: new_presentation_request
-            .get("encrypted")
-            .ok_or(warp::reject())?
-            == "on",
-        authorization_key: new_presentation_request
-            .get("authorization_public_key")
-            .ok_or(warp::reject())?
-            .to_string(),
-    };
-
+    // Validate the token and pull out the claims if validation succeeds
     let token = jsonwebtoken::decode::<JwtClaims>(
-        &new_presentation_request.token,
+        &token,
         &new_presentation_signing_key,
-        &validation,
+        &Validation::new(Algorithm::ES256),
     )
     .map_err(|e| {
         error!("User rejected due to JWT error: {e}");
         warp::reject::not_found()
     })?;
+
+    let user_authorization_key = request
+        .get("authorization_public_key")
+        .ok_or(warp::reject())?
+        .to_string();
+
+    let presenter_identity = request
+        .get("presenter_identity")
+        .ok_or(warp::reject())?
+        .to_string();
+
+    let encrypted = request
+        .get("encrypted")
+        .map(|x| x.as_str())
+        .unwrap_or("off")
+        == "on";
+
+    let authentication_key =
+        DecodingKey::from_ec_pem(user_authorization_key.as_bytes()).map_err(|_| warp::reject())?;
 
     // Check if that presentation already exists
     // If so, we breakout as we will not override that presentation
@@ -87,17 +84,22 @@ pub async fn new_presentation(
         return Err(warp::reject::reject());
     }
 
-    let presentation = Presentation::new(
-        token.claims.pid,
-        new_presentation_request.presenter_identity,
-        new_presentation_request.encrypted,
-        new_presentation_request.authorization_key,
-    );
-
+    // That if statement is super ugly but it currently feels better than duplicating the debug line
     debug!(
-        "Creating new presentation {} with presenter {}. Authentication public key: {}",
-        presentation.id, token.claims.sub, presentation.authentication_key,
+        "[{}] creating new {}presentation [{}] with presenter [{presenter_identity}]. Authentication public key: {user_authorization_key}",
+        token.claims.sub,
+        if encrypted {
+            "encrypted "
+        } else {
+            ""
+        },
+        token.claims.pid,
     );
 
-    Ok(presentation)
+    Ok(Presentation::new(
+        token.claims.pid,
+        presenter_identity,
+        encrypted,
+        authentication_key,
+    ))
 }

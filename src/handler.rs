@@ -1,6 +1,6 @@
 use crate::{
     ws, Client, ClientJoinPresentationData, Clients, IdentifiedUserMessage, JwtClaims,
-    NewPresentationRequest, Presentation, Presentations, Presenters, Result,
+    Presentation, Presentations, Presenters, Result,
 };
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedSender;
@@ -135,6 +135,7 @@ pub async fn new_presentation_hander(
         );
         return Err(warp::reject::reject());
     }
+
     presentations.insert(presentation.id.clone(), presentation);
 
     Ok(StatusCode::OK)

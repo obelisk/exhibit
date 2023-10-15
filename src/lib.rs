@@ -11,6 +11,7 @@ pub mod ws;
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use jsonwebtoken::DecodingKey;
 use ratelimiting::Ratelimiter;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{
@@ -124,18 +125,10 @@ pub struct Presentation {
     presenter_identity: String,
     pub clients: Clients,
     pub presenters: Presenters,
-    pub authentication_key: String,
+    pub authentication_key: DecodingKey,
     pub ratelimiter: Ratelimiter,
     pub slide_settings: Arc<RwLock<Option<SlideSettings>>>,
     pub encrypted: bool,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct NewPresentationRequest {
-    pub token: String,
-    pub presenter_identity: String,
-    pub encrypted: bool,
-    pub authorization_key: String,
 }
 
 impl Presentation {
@@ -143,7 +136,7 @@ impl Presentation {
         presentation_id: String,
         presenter_identity: String,
         encrypted: bool,
-        authentication_key: String,
+        authentication_key: DecodingKey,
     ) -> Self {
         Self {
             id: presentation_id,

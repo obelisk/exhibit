@@ -97,10 +97,11 @@
             <input type="text" id="presenter_identity" name="presenter_identity" required><br><br>
 
             <label for="encrypted">Encrypted:</label>
-            <input type="checkbox" id="encrypted" name="encrypted" required><br><br>
+            <input type="checkbox" id="encrypted" name="encrypted"><br><br>
 
             <label for="authorization_public_key">Authroization Public Key (PEM):</label>
-            <input type="textbox" id="authorization_public_key" name="authorization_public_key" required><br><br>
+            <textarea id="authorization_public_key" name="authorization_public_key" rows="4" cols="50"
+                required></textarea><br><br>
 
             <input type="submit" value="Submit">
         </form>
