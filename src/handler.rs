@@ -1,12 +1,11 @@
 use crate::{
-    ws, Client, Clients, IdentifiedUserMessage, JwtClaims, Presentation, Presentations, Presenters,
-    Result,
+    ws, Client, ClientJoinPresentationData, Clients, IdentifiedUserMessage, JwtClaims,
+    NewPresentationRequest, Presentation, Presentations, Presenters, Result,
 };
-use dashmap::DashMap;
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, UnboundedSender};
+use serde::Serialize;
+use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
-use warp::{http::StatusCode, reply::json, ws::Message, Reply};
+use warp::{http::StatusCode, reply::json, Reply};
 
 #[derive(Serialize, Debug)]
 pub struct RegisterResponse {
@@ -14,45 +13,67 @@ pub struct RegisterResponse {
 }
 
 pub async fn join_jwt_handler(
-    token: JwtClaims,
+    user_auth_data: ClientJoinPresentationData,
     presentations: Presentations,
-    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
 ) -> Result<impl Reply> {
-    debug!(
-        "Registering client [{}] via JWT for presentation [{}]",
-        token.sub, token.kid
-    );
-
+    debug!("Got user joining call");
     let guid = Uuid::new_v4().as_simple().to_string();
 
     let presentation = presentations
-        .get(&token.kid)
+        .get(&user_auth_data.presentation)
         .ok_or(warp::reject::not_found())?;
 
     let presentation = presentation.value();
     let presentation_id = &presentation.id;
 
-    register_client(
-        guid.clone(),
-        token.sub,
-        presentation.clients.clone(),
-        user_message_sender,
-        token.kid,
-    )
-    .await;
+    if presentation.presenter_identity == user_auth_data.claims.sub {
+        debug!("Registering presenter {presentation_id}");
+        register_presenter(
+            guid.clone(),
+            user_auth_data.claims.sub,
+            presentation.clients.clone(),
+            user_auth_data.presentation,
+        )
+        .await;
+    } else {
+        debug!(
+            "Registering client [{}] via JWT for presentation [{}]",
+            user_auth_data.claims.sub, user_auth_data.presentation
+        );
+
+        register_client(
+            guid.clone(),
+            user_auth_data.claims.sub,
+            presentation.clients.clone(),
+            user_auth_data.presentation,
+        )
+        .await;
+    }
+
     Ok(json(&RegisterResponse {
         url: format!("/ws/{presentation_id}/{guid}"),
     }))
 }
 
-async fn register_client(
+async fn register_client(guid: String, identity: String, clients: Clients, presentation: String) {
+    clients.insert(
+        guid.clone(),
+        Client {
+            sender: None,
+            identity,
+            guid,
+            presentation,
+        },
+    );
+}
+
+async fn register_presenter(
     guid: String,
     identity: String,
-    clients: Clients,
-    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    presenters: Presenters,
     presentation: String,
 ) {
-    clients.insert(
+    presenters.insert(
         guid.clone(),
         Client {
             sender: None,
@@ -102,10 +123,18 @@ pub async fn health_handler() -> Result<impl Reply> {
 }
 
 pub async fn new_presentation_hander(
-    token: JwtClaims,
-    presentations: DashMap<String, Presentation>,
+    presentation: Presentation,
+    presentations: Presentations,
 ) -> Result<impl Reply> {
-    let presentation = Presentation::new(token.sub);
+    debug!("Registering presentation {}", presentation.id);
+
+    if presentations.get(&presentation.id).is_some() {
+        error!(
+            "Refusing to register a new version of presentation: {}",
+            presentation.id
+        );
+        return Err(warp::reject::reject());
+    }
     presentations.insert(presentation.id.clone(), presentation);
 
     Ok(StatusCode::OK)

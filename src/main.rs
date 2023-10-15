@@ -1,14 +1,16 @@
 #[macro_use]
 extern crate log;
 
+use dashmap::DashMap;
+use exhibit::authentication::join_presentation;
 use exhibit::{
-    authentication::{parse_jwt_presentation_join, parse_jwt_presentation_new},
-    config, handler, processor, IdentifiedUserMessage, Presentations,
+    authentication::new_presentation, config, handler, processor, IdentifiedUserMessage,
+    Presentations,
 };
 use tokio::sync::mpsc::unbounded_channel;
 
-use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::{convert::Infallible, sync::Arc};
 use warp::Filter;
 
 #[tokio::main]
@@ -23,7 +25,7 @@ async fn main() {
 
     // Probably the most important data structure in the whole application.
     // Stores all the presenters and clients for all active presentations
-    let presentations = Presentations::new();
+    let presentations: Presentations = Arc::new(DashMap::new());
 
     let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedUserMessage>();
 
@@ -41,9 +43,9 @@ async fn main() {
         .and(warp::post())
         // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 4))
-        .and(warp::body::bytes().and_then(move |provided_token| {
-            parse_jwt_presentation_new(
-                configuration.new_presentation_authorization_key.clone(),
+        .and(warp::body::form().and_then(move |provided_token| {
+            new_presentation(
+                configuration.new_presentation_signing_key.clone(),
                 provided_token,
                 presentation_capture.clone(),
             )
@@ -57,30 +59,23 @@ async fn main() {
         // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 2))
         .and(warp::body::bytes().and_then(move |provided_token| {
-            parse_jwt_presentation_join(provided_token, presentation_capture.clone())
+            join_presentation(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))
-        .and(with(user_message_sender.clone()))
         .and_then(handler::join_jwt_handler);
 
     // SPAs
     let client_spa = warp::path::end().and(warp::fs::file("web/client.html"));
     let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
+    let new_spa = warp::path("new").and(warp::fs::file("web/new.html"));
 
-    let client_routes = health_route
+    let all_routes = health_route
+        .or(new_presentation)
         .or(join_route)
         .or(client_ws_route)
-        .or(client_spa);
-
-    // let presenter_emoji_stream = warp::path("emoji_stream")
-    //     .and(warp::ws())
-    //     .and(warp::path::param())
-    //     .and(with(presenters.clone()))
-    //     .and_then(handler::presenter_ws_handler);
-
-    let presenter_routes = presenter_spa.or(new_presentation);
-    //.or(presenter_emoji_stream)
-    //.or(update);
+        .or(client_spa)
+        .or(presenter_spa)
+        .or(new_spa);
 
     let presentations_clone = presentations.clone();
     tokio::task::spawn(async move {
@@ -88,8 +83,6 @@ async fn main() {
 
         panic!("User message receiver was dropped?");
     });
-
-    let all_routes = client_routes.or(presenter_routes);
 
     let service_address: SocketAddr = configuration.service_address.parse().unwrap();
 

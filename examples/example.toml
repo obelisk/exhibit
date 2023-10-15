@@ -1,12 +1,20 @@
 service_address = "127.0.0.1:8000"
 
-new_presentation_authorization_key = "0123456789abcdefghijklmonpqrstuvwxyz"
+# Key from jwt.io
+new_presentation_signing_key = """
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
+q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==
+-----END PUBLIC KEY-----
+"""
 
-# Example user JWT
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3RfcHJlc2VudGF0aW9uIn0.eyJzdWIiOiJtaXRjaGVsbEBjb25mdXJpb3VzLmlvIiwiaWF0IjoxNTE2MjM5MDIyfQ.XmUaM8_j85_PV-pZoMAMRPba8MvjemMC5c8OXBA0i0g
+# Corresponding private key
+#
+# -----BEGIN PRIVATE KEY-----
+# MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgevZzL1gdAFr88hb2
+# OF/2NxApJCzGCEDdfSp6VQO30hyhRANCAAQRWz+jn65BtOMvdyHKcvjBeBSDZH2r
+# 1RTwjmYSi9R/zpBnuQ4EiMnCqfMPWiZqB4QdbAd0E7oH50VpuZ1P087G
+# -----END PRIVATE KEY-----
 
-# kid: test_presentation
-
-# sub: mitchell@confurious.io
-
-# key: password
+# New presentation with id 5d313aea523d41569469e4abd72028d2
+# eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcmVzZW50YXRpb25faWQiOiI1ZDMxM2FlYTUyM2Q0MTU2OTQ2OWU0YWJkNzIwMjhkMiIsImV4cCI6MjAwMDAwMDAwMH0.iemV2tYQemz86kv7VbdlUHQv_3oEzMOYubM_7btNtRrXP4pwol5DTs403EEvYLTIb9cqZQt9jp2_H2Y_JOverQ

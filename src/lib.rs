@@ -14,7 +14,7 @@ use dashmap::DashMap;
 use ratelimiting::Ratelimiter;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    mpsc::{self},
     RwLock,
 };
 use uuid::Uuid;
@@ -23,9 +23,9 @@ use warp::{ws::Message, Rejection};
 // A user can be connected on multiple devices so we have a hashmap
 // linking their identity to another hashmap of their connected
 // devices
-pub type Clients = DashMap<String, Client>;
-pub type Presenters = DashMap<String, Client>;
-pub type Presentations = DashMap<String, Presentation>;
+pub type Clients = Arc<DashMap<String, Client>>;
+pub type Presenters = Arc<DashMap<String, Client>>;
+pub type Presentations = Arc<DashMap<String, Presentation>>;
 pub type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, Clone)]
@@ -108,34 +108,54 @@ impl std::fmt::Display for SlideSettings {
 #[derive(Clone, Debug, Deserialize)]
 pub struct JwtClaims {
     pub sub: String, // Contains the user's identifying information
+    pub pid: String, // Presentation ID, should always match kid in header to be valid
     pub exp: usize,
-    pub aud: String,
-    pub kid: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ClientJoinPresentationData {
+    pub presentation: String,
+    pub claims: JwtClaims,
 }
 
 #[derive(Clone)]
 pub struct Presentation {
     id: String,
-    owner: String,
+    presenter_identity: String,
     pub clients: Clients,
     pub presenters: Presenters,
-    pub client_authentication_key: String,
+    pub authentication_key: String,
     pub ratelimiter: Ratelimiter,
     pub slide_settings: Arc<RwLock<Option<SlideSettings>>>,
+    pub encrypted: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct NewPresentationRequest {
+    pub token: String,
+    pub presenter_identity: String,
+    pub encrypted: bool,
+    pub authorization_key: String,
 }
 
 impl Presentation {
-    pub fn new(owner: String) -> Self {
+    pub fn new(
+        presentation_id: String,
+        presenter_identity: String,
+        encrypted: bool,
+        authentication_key: String,
+    ) -> Self {
         Self {
-            id: Uuid::new_v4().as_simple().to_string(),
-            owner,
-            clients: DashMap::new(),
-            presenters: DashMap::new(),
+            id: presentation_id,
+            presenter_identity,
+            clients: Arc::new(DashMap::new()),
+            presenters: Arc::new(DashMap::new()),
             // TODO @obelisk: I bet this doesn't use secure randomness.
             // Double check
-            client_authentication_key: Uuid::new_v4().as_simple().to_string(),
+            authentication_key,
             ratelimiter: Ratelimiter::new(),
             slide_settings: Arc::new(None.into()),
+            encrypted,
         }
     }
 }
