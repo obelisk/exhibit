@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use warp::filters::ws::Message;
 
 use crate::{
-    processor::ClientRateLimitResponse, ratelimiting::RatelimiterResponse, BroadcastMessage,
-    Client, EmojiMessage, Presenters, SlideSettings,
+    processor::ClientRateLimitResponse, BroadcastMessage, Client, EmojiMessage, Presenters,
+    SlideSettings,
 };
 
-pub async fn handle_user_emoji(
+pub fn handle_user_emoji(
     slide_settings: &SlideSettings,
     ratelimit_responses: HashMap<String, String>,
     client: Client,

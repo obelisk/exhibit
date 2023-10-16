@@ -18,3 +18,16 @@ q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==
 
 # New presentation with id 5d313aea523d41569469e4abd72028d2
 # eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwicGlkIjoiNWQzMTNhZWE1MjNkNDE1Njk0NjllNGFiZDcyMDI4ZDIiLCJleHAiOjIwMDAwMDAwMDB9.IaL8xg_AF34oueaa5KxkplIC9AKJJ-D4OKuM-oLVwmpwyEGBKGxwa3wA6COHG5reyFPRlHpofsRPVVbtPZk6-A
+#
+# Sample authorization key
+# -----BEGIN PUBLIC KEY-----
+# MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpYDwCVZI5bUVgNOJR3lHTfO0oOQl
+# R+PbqML+RLVwjgHcaRJvi4R7GKvShFMp7KTj9FOdu/EHJrMoHNDSXUc3FA==
+# -----END PUBLIC KEY-----
+
+# Corresponding private key for presentation viewers
+# -----BEGIN PRIVATE KEY-----
+# MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg/YCN67i7pa4keOIP
+# tv1+3aRnUB5jcJEkm5Dnd0687aihRANCAASlgPAJVkjltRWA04lHeUdN87Sg5CVH
+# 49uowv5EtXCOAdxpEm+LhHsYq9KEUynspOP0U5278Qcmsygc0NJdRzcU
+# -----END PRIVATE KEY-----

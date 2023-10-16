@@ -55,7 +55,21 @@ async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentati
             msg,
             presentation.presenters.clone(),
         ),
-        UserMessage::NewSlide(_msg) => todo!(),
+        UserMessage::NewSlide(msg) => {
+            // Check if the client sending this message has the identity of the
+            // set presenter.
+            if user_message.client.identity != presentation.presenter_identity {
+                warn!(
+                    "{} attempted to change slide data but only {} is allowed to do that",
+                    user_message.client.identity, presentation.presenter_identity
+                );
+                return;
+            }
+
+            // The message is from the presenter identity
+            let mut slide_settings = presentation.slide_settings.write().await;
+            *slide_settings = Some(msg.slide_settings);
+        }
     };
 }
 
