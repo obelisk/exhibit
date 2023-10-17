@@ -107,7 +107,7 @@
             // down arrow
         }
         else if (e.keyCode == '37') {
-            document.slide_index = document.slide_index - 1;
+            document.slide_index = Math.max(document.slide_index - 1, 0);
             showSlide(document.files, document.slide_index);
         }
         else if (e.keyCode == '39') {
@@ -123,8 +123,8 @@
 <script>
     function showSlide(files, index) {
         // 0 is slide_data
-        if (index == 0) {
-            index = 1;
+        if (index <= 0) {
+            index = 0;
         }
 
         // Set slide display img element source to new slide image src
@@ -132,7 +132,7 @@
         slideView.src = URL.createObjectURL(document.files[index]);
 
         console.log("Showing slide " + index);
-        var slide_settings = document.slide_data[index - 1];
+        var slide_settings = document.slide_data[index];
 
         if (slide_settings == null) {
             slide_settings = {
@@ -156,11 +156,11 @@
 
         document.slide_data = slide_data;
 
-        if (slide_data.length != document.files.length - 1) {
+        if (slide_data.length != document.files.length) {
             alert("Slide data count doesn't match slide image count!: " + slide_data.length + " vs " + (document.files.length - 1));
         }
 
-        document.slide_index = 1;
+        document.slide_index = 0;
         showSlide(document.files, document.slide_index);
     }
 
@@ -168,19 +168,23 @@
         let files = document.getElementById('slide_data').files;
         document.getElementById('slide_data').style.display = "none";
         var slide_data = null;
+
+        var slides = [];
         for (var i = 0; i < files.length; i++) {
             if (files[i].name.endsWith(".json")) {
                 slide_data = files[i];
-                break;
+            } else {
+                slides.push(files[i])
             }
         }
+
 
         if (slide_data == null) {
             alert("No Slide Configuration Data Found!");
             return;
         }
 
-        document.files = files;
+        document.files = slides;
 
         var reader = new FileReader();
         reader.onload = onLoadFileHandler;

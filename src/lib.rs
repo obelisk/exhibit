@@ -18,7 +18,6 @@ use tokio::sync::{
     mpsc::{self},
     RwLock,
 };
-use uuid::Uuid;
 use warp::{ws::Message, Rejection};
 
 // A user can be connected on multiple devices so we have a hashmap
@@ -56,6 +55,7 @@ impl std::fmt::Display for IdentifiedUserMessage {
 #[derive(Debug, Serialize)]
 pub enum BroadcastMessage {
     Emoji(EmojiMessage),
+    NewSlide(SlideSettings),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -94,7 +94,7 @@ impl std::fmt::Display for UserMessage {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SlideSettings {
     pub message: String,
     pub emojis: Vec<String>,

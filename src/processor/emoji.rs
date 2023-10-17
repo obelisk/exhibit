@@ -7,6 +7,9 @@ use crate::{
     Presenters,
 };
 
+/// Called from the processor system. Only one processor should be called per user message
+/// which is in a separate tokio task. Again this means we do not need to start tokio tasks
+/// to unblock processesing of further user messages.
 pub async fn handle_user_emoji(
     presentation: &Presentation,
     ratelimit_responses: HashMap<String, String>,
@@ -57,7 +60,6 @@ pub async fn handle_user_emoji(
         "{identity} sent {emoji} to presentation {}",
         client.presentation
     );
-    tokio::task::spawn(async move {
-        super::broadcast_to_presenters(BroadcastMessage::Emoji(emoji_message), presenters).await;
-    });
+
+    super::broadcast_to_presenters(BroadcastMessage::Emoji(emoji_message), presenters).await;
 }

@@ -28,29 +28,32 @@ pub async fn client_connection(
     client.sender = Some(client_sender);
 
     // TODO @obelisk: Come back and make this code better
-    let mut upgrade_client = if is_presenter {
-        match presentation.presenters.get_mut(&guid) {
-            Some(client) => client,
-            None => {
-                error!(
+    // Create strict scoping here to release the lock
+    {
+        let mut upgrade_client = if is_presenter {
+            match presentation.presenters.get_mut(&guid) {
+                Some(client) => client,
+                None => {
+                    error!(
                     "{identity} (as a presenter) could not upgrade their client because they have not registered"
                 );
-                return;
+                    return;
+                }
             }
-        }
-    } else {
-        match presentation.clients.get_mut(&guid) {
-            Some(client) => client,
-            None => {
-                error!(
+        } else {
+            match presentation.clients.get_mut(&guid) {
+                Some(client) => client,
+                None => {
+                    error!(
                     "{identity} could not upgrade their client because they have not registered"
                 );
-                return;
+                    return;
+                }
             }
-        }
-    };
+        };
 
-    *upgrade_client = client.clone();
+        *upgrade_client = client.clone();
+    }
 
     info!("{identity} has new client with {guid} for {presentation_id}");
 

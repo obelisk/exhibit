@@ -7,9 +7,8 @@ use warp::ws::Message;
 mod emoji;
 
 use crate::{
-    ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter, RatelimiterResponse},
-    BroadcastMessage, EmojiMessage, IdentifiedUserMessage, Presentation, Presentations, Presenters,
-    SlideSettings, UserMessage,
+    ratelimiting::RatelimiterResponse, BroadcastMessage, Clients, IdentifiedUserMessage,
+    Presentation, Presentations, Presenters, SlideSettings, UserMessage,
 };
 
 #[derive(Serialize)]
@@ -27,6 +26,19 @@ pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Pres
     });
 }
 
+pub async fn broadcast_to_clients(message: BroadcastMessage, clients: Clients) {
+    let event = serde_json::to_string(&message).unwrap();
+    clients.iter().for_each(|item| {
+        let connected_client = item.value();
+        if let Some(ref connected_client) = connected_client.sender {
+            let _ = connected_client.send(Ok(Message::text(&event)));
+        }
+    });
+}
+
+/// Handle a specific incoming user message. Each message is handled in it's own
+/// tokio task so we don't need to start any new ones to prevent blocking, only
+/// to achieve concurrency
 async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentation: Presentation) {
     let ratelimit_responses = match presentation.ratelimiter.check_allowed(&user_message) {
         RatelimiterResponse::Allowed(responses) => responses,
@@ -60,7 +72,13 @@ async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentati
 
             // The message is from the presenter identity
             let mut slide_settings = presentation.slide_settings.write().await;
-            *slide_settings = Some(msg.slide_settings);
+            *slide_settings = Some(msg.slide_settings.clone());
+
+            broadcast_to_clients(
+                BroadcastMessage::NewSlide(msg.slide_settings),
+                presentation.clients,
+            )
+            .await;
         }
     };
 }
