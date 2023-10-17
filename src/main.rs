@@ -58,14 +58,14 @@ async fn main() {
         .and(warp::post())
         // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 2))
-        .and(warp::body::bytes().and_then(move |provided_token| {
+        .and(warp::body::form().and_then(move |provided_token| {
             join_presentation(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))
         .and_then(handler::join_jwt_handler);
 
     // SPAs
-    let client_spa = warp::path::end().and(warp::fs::file("web/client.html"));
+    let join_spa = warp::path::end().and(warp::fs::file("web/join.html"));
     let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
     let new_spa = warp::path("new").and(warp::fs::file("web/new.html"));
 
@@ -73,7 +73,7 @@ async fn main() {
         .or(new_presentation)
         .or(join_route)
         .or(client_ws_route)
-        .or(client_spa)
+        .or(join_spa)
         .or(presenter_spa)
         .or(new_spa);
 

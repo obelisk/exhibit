@@ -5,15 +5,16 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use crate::{ClientJoinPresentationData, JwtClaims, Presentation, Presentations};
 
 pub async fn join_presentation(
-    provided_token: warp::hyper::body::Bytes,
+    request: HashMap<String, String>,
     presentations: Presentations,
 ) -> Result<ClientJoinPresentationData, warp::reject::Rejection> {
-    let validation = Validation::new(Algorithm::HS256);
-
-    let token = String::from_utf8(provided_token.to_vec()).map_err(|e| {
-        error!("User rejected due to non UTF8 JWT: {e}");
-        warp::reject::not_found()
-    })?;
+    // Pull the token out of the request, this will have had to be
+    // signed by the owner of the service so we can fail fast if it's
+    // not valid
+    let token = request
+        .get("registration_key")
+        .ok_or(warp::reject())?
+        .to_string();
 
     let header = jsonwebtoken::decode_header(&token).map_err(|_| warp::reject::not_found())?;
     let requested_presentation_id = header.kid.ok_or(warp::reject::not_found())?;
@@ -22,12 +23,15 @@ pub async fn join_presentation(
         .get(&requested_presentation_id)
         .ok_or(warp::reject::not_found())?;
 
-    let token =
-        jsonwebtoken::decode::<JwtClaims>(&token, &presentation.authentication_key, &validation)
-            .map_err(|e| {
-                error!("User rejected due to JWT error: {e}");
-                warp::reject::not_found()
-            })?;
+    let token = jsonwebtoken::decode::<JwtClaims>(
+        &token,
+        &presentation.authentication_key,
+        &Validation::new(Algorithm::ES256),
+    )
+    .map_err(|e| {
+        error!("User rejected due to JWT error: {e}");
+        warp::reject::not_found()
+    })?;
 
     Ok(ClientJoinPresentationData {
         presentation: requested_presentation_id,
