@@ -58,7 +58,7 @@ async fn main() {
         .and(warp::post())
         // Set maximum request size
         .and(warp::body::content_length_limit(1024 * 2))
-        .and(warp::body::form().and_then(move |provided_token| {
+        .and(warp::body::bytes().and_then(move |provided_token| {
             join_presentation(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))

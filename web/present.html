@@ -52,28 +52,49 @@
 </head>
 
 <script>
-    let emoji_stream = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/emoji_stream/" + Math.floor(Math.random() * 1000000000));
-    emoji_stream.addEventListener("message", (event) => {
-        console.log(event.data);
-        let new_reaction_data = JSON.parse(event.data);
-
-        // Spawn the emoji
-        var reaction = document.createElement('span');
-        reaction.innerText = new_reaction_data["emoji"];
-        if (new_reaction_data["size"] == 2) {
-            reaction.style = "font-size: 75px";
-        } else if (new_reaction_data["size"] == 1) {
-            reaction.style = "font-size: 50px";
-        } else {
-            reaction.style = "font-size: 35px";
+    function reset_websocket() {
+        // Save the token so we can reuse it if the connection dies
+        if (document.getElementById("registration_key").value != undefined) {
+            document.saved_token = document.getElementById("registration_key").value;
         }
 
-        reaction.className = "moving-emoji";
-        var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
-        reaction.style.transform = `translateY(${yOffset}px)`
-        setTimeout(() => { reaction.remove() }, 10000)
-        document.getElementById('reactions-container').appendChild(reaction);
-    });
+        fetch("/join", {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, *cors, same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: "same-origin", // include, *same-origin, omit
+            redirect: "follow", // manual, *follow, error
+            referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            body: document.saved_token,
+        }).then((data) => {
+            data.json().then((data) => {
+                console.log(data);
+                document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
+                document.socket.addEventListener("message", (event) => {
+                    console.log(event.data);
+                    let new_reaction_data = JSON.parse(event.data);
+
+                    // Spawn the emoji
+                    var reaction = document.createElement('span');
+                    reaction.innerText = new_reaction_data["emoji"];
+                    if (new_reaction_data["size"] == 2) {
+                        reaction.style = "font-size: 75px";
+                    } else if (new_reaction_data["size"] == 1) {
+                        reaction.style = "font-size: 50px";
+                    } else {
+                        reaction.style = "font-size: 35px";
+                    }
+
+                    reaction.className = "moving-emoji";
+                    var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+                    reaction.style.transform = `translateY(${yOffset}px)`
+                    setTimeout(() => { reaction.remove() }, 10000)
+                    document.getElementById('reactions-container').appendChild(reaction);
+                });
+            });
+        });
+    }
+
 
     function checkKey(e) {
 
@@ -126,13 +147,8 @@
                 "slide_settings": slide_settings
             }
         };
-        const response = fetch("/update", {
-            method: "POST", // or 'PUT'
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(set_slide_msg),
-        });
+
+        document.socket.send(JSON.stringify(set_slide_msg));
     }
 
     function onFileLoad(elementId, event) {
@@ -173,6 +189,10 @@
 </script>
 
 <body>
+    <label for="registration_key">Registration Key:</label>
+    <input type="text" id="registration_key" name="registration_key"><br><br>
+    <button onclick="reset_websocket()">Start Presentation</button>
+
     <input type="file" id="slide_data" accept=".json, .png" multiple="multiple"
         onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
 

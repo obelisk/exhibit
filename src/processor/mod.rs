@@ -28,17 +28,6 @@ pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Pres
 }
 
 async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentation: Presentation) {
-    let identity = user_message.client.identity.clone();
-
-    let slide_settings = presentation.slide_settings.read().await;
-    // Check if the presentation has started
-    let slide_settings = if let Some(ref s) = *slide_settings {
-        s
-    } else {
-        error!("{identity} sent a message but the presentation has not started");
-        return;
-    };
-
     let ratelimit_responses = match presentation.ratelimiter.check_allowed(&user_message) {
         RatelimiterResponse::Allowed(responses) => responses,
         RatelimiterResponse::Blocked(blocker) => {
@@ -48,13 +37,16 @@ async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentati
     };
 
     match user_message.user_message {
-        UserMessage::Emoji(msg) => emoji::handle_user_emoji(
-            &slide_settings,
-            ratelimit_responses,
-            user_message.client.clone(),
-            msg,
-            presentation.presenters.clone(),
-        ),
+        UserMessage::Emoji(msg) => {
+            emoji::handle_user_emoji(
+                &presentation,
+                ratelimit_responses,
+                user_message.client.clone(),
+                msg,
+                presentation.presenters.clone(),
+            )
+            .await
+        }
         UserMessage::NewSlide(msg) => {
             // Check if the client sending this message has the identity of the
             // set presenter.

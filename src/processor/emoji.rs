@@ -3,17 +3,29 @@ use std::collections::HashMap;
 use warp::filters::ws::Message;
 
 use crate::{
-    processor::ClientRateLimitResponse, BroadcastMessage, Client, EmojiMessage, Presenters,
-    SlideSettings,
+    processor::ClientRateLimitResponse, BroadcastMessage, Client, EmojiMessage, Presentation,
+    Presenters,
 };
 
-pub fn handle_user_emoji(
-    slide_settings: &SlideSettings,
+pub async fn handle_user_emoji(
+    presentation: &Presentation,
     ratelimit_responses: HashMap<String, String>,
     client: Client,
     emoji_message: EmojiMessage,
     presenters: Presenters,
 ) {
+    let slide_settings = presentation.slide_settings.read().await;
+    // Check if the presentation has started
+    let slide_settings = if let Some(ref s) = *slide_settings {
+        s
+    } else {
+        error!(
+            "{} sent a message but the presentation has not started",
+            client.identity
+        );
+        return;
+    };
+
     let emoji = &emoji_message.emoji;
     let identity = &client.identity;
     // Check that they are sending a valid emoji for the current slide

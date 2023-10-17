@@ -27,11 +27,11 @@ pub async fn join_jwt_handler(
     let presentation_id = &presentation.id;
 
     if presentation.presenter_identity == user_auth_data.claims.sub {
-        debug!("Registering presenter {presentation_id}");
+        debug!("Registering presenter for [{presentation_id}]");
         register_presenter(
             guid.clone(),
             user_auth_data.claims.sub,
-            presentation.clients.clone(),
+            presentation.presenters.clone(),
             user_auth_data.presentation,
         )
         .await;
@@ -99,7 +99,7 @@ pub async fn ws_handler(
     let presentation = presentation.value().to_owned();
 
     // There is no registered client or presenter for this websocket
-    let client = match (
+    let (client, is_presenter) = match (
         presentation.clients.get(&guid).map(|x| x.value().clone()),
         presentation
             .presenters
@@ -107,14 +107,22 @@ pub async fn ws_handler(
             .map(|x| x.value().clone()),
     ) {
         (None, None) => return Err(warp::reject::not_found()),
-        // It should never occur that it's both but if it is, assume client
-        (Some(x), _) | (_, Some(x)) => x,
+
+        (Some(x), _) => (x, false),
+        (_, Some(x)) => (x, true),
     };
 
     Ok(ws
         .max_message_size(1024 * 4) // Set max message size to 4KiB
         .on_upgrade(move |socket| {
-            ws::client_connection(socket, presentation, guid, client, user_message_sender)
+            ws::client_connection(
+                socket,
+                presentation,
+                guid,
+                client,
+                user_message_sender,
+                is_presenter,
+            )
         }))
 }
 

@@ -1,4 +1,4 @@
-use crate::{Client, Clients, IdentifiedUserMessage, Presentation, Presenters, UserMessage};
+use crate::{Client, IdentifiedUserMessage, Presentation, UserMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -10,6 +10,7 @@ pub async fn client_connection(
     guid: String,
     mut client: Client,
     user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    is_presenter: bool,
 ) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
@@ -23,10 +24,22 @@ pub async fn client_connection(
         }
     }));
 
-    {
-        client.sender = Some(client_sender);
+    // Upgrade the client with the sender
+    client.sender = Some(client_sender);
 
-        let mut user_client = match presentation.clients.get_mut(&guid) {
+    // TODO @obelisk: Come back and make this code better
+    let mut upgrade_client = if is_presenter {
+        match presentation.presenters.get_mut(&guid) {
+            Some(client) => client,
+            None => {
+                error!(
+                    "{identity} (as a presenter) could not upgrade their client because they have not registered"
+                );
+                return;
+            }
+        }
+    } else {
+        match presentation.clients.get_mut(&guid) {
             Some(client) => client,
             None => {
                 error!(
@@ -34,10 +47,10 @@ pub async fn client_connection(
                 );
                 return;
             }
-        };
+        }
+    };
 
-        *user_client = client.clone();
-    }
+    *upgrade_client = client.clone();
 
     info!("{identity} has new client with {guid} for {presentation_id}");
 
@@ -92,30 +105,3 @@ async fn client_msg(
         user_message,
     });
 }
-
-// pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {
-//     let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
-//     let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
-
-//     presenters.insert(
-//         guid.clone(),
-//         Client { sender: presenter_sender, identity: (), guid: (), presentation: () } {
-//             sender: presenter_sender,
-//         },
-//     );
-
-//     let presenter_rcv = UnboundedReceiverStream::new(presenter_rcv);
-//     tokio::task::spawn(presenter_rcv.forward(presenter_ws_sender).map(|result| {
-//         if let Err(e) = result {
-//             error!("error sending websocket msg: {}", e);
-//         }
-//     }));
-
-//     while let Some(_) = presenter_ws_rcv.next().await {}
-
-//     if let Some(_) = presenters.remove(&guid) {
-//         info!("Presenter {guid} - disconnected");
-//     } else {
-//         error!("Presenter {guid} - was already disconnected")
-//     }
-// }
