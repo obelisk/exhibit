@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -7,8 +7,8 @@ use warp::ws::Message;
 mod emoji;
 
 use crate::{
-    ratelimiting::RatelimiterResponse, BroadcastMessage, Clients, IdentifiedUserMessage,
-    Presentation, Presentations, Presenters, SlideSettings, UserMessage,
+    ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Clients, IdentifiedUserMessage,
+    Presentation, Presentations, Presenters, IncomingMessage, OutgoingUserMessage,
 };
 
 #[derive(Serialize)]
@@ -16,7 +16,7 @@ struct ClientRateLimitResponse {
     ratelimit_status: HashMap<String, String>,
 }
 
-pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Presenters) {
+pub async fn broadcast_to_presenters(message: OutgoingPresenterMessage, presenters: Presenters) {
     let event = serde_json::to_string(&message).unwrap();
     presenters.iter().for_each(|item| {
         let connected_presenter = item.value();
@@ -26,7 +26,7 @@ pub async fn broadcast_to_presenters(message: BroadcastMessage, presenters: Pres
     });
 }
 
-pub async fn broadcast_to_clients(message: BroadcastMessage, clients: Clients) {
+pub async fn broadcast_to_clients(message: OutgoingPresenterMessage, clients: Clients) {
     let event = serde_json::to_string(&message).unwrap();
     clients.iter().for_each(|item| {
         let connected_client = item.value();
@@ -40,26 +40,43 @@ pub async fn broadcast_to_clients(message: BroadcastMessage, clients: Clients) {
 /// tokio task so we don't need to start any new ones to prevent blocking, only
 /// to achieve concurrency
 async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentation: Presentation) {
-    let ratelimit_responses = match presentation.ratelimiter.check_allowed(&user_message) {
-        RatelimiterResponse::Allowed(responses) => responses,
-        RatelimiterResponse::Blocked(blocker) => {
-            warn!("{user_message} was blocked by {blocker}");
+
+    // Check ratelimit for all users except the configured presenter
+    if user_message.client.identity != presentation.presenter_identity {
+        // Run the ratelimiter check
+        let ratelimiter_response = presentation.ratelimiter.check_allowed(&user_message);
+
+        // If the connection is still open (should be almost always), send the response
+        if let Some(ref sender) = user_message.client.sender {
+            let response = OutgoingUserMessage::RatelimiterResponse(ratelimiter_response.clone()).json();
+            let _ = sender.send(Ok(Message::text(response)));
+        } else {
+            error!("{} sent a message from a guid that has no open connection. Dropping message: {user_message}", user_message.client.identity);
             return;
         }
-    };
 
+        // If something in the system blocked them, log it and stop
+        if let RatelimiterResponse::Blocked(name) = ratelimiter_response {
+            warn!(
+                "{} sent a message but was blocked by the ratelimiter: {name}",
+                user_message.client.identity
+            );
+            return;
+        }
+    }
+
+    // Now that we've dealt with the ratelimiting, we can handle the message
     match user_message.user_message {
-        UserMessage::Emoji(msg) => {
+        IncomingMessage::Emoji(msg) => {
             emoji::handle_user_emoji(
                 &presentation,
-                ratelimit_responses,
                 user_message.client.clone(),
                 msg,
                 presentation.presenters.clone(),
             )
             .await
         }
-        UserMessage::NewSlide(msg) => {
+        IncomingMessage::NewSlide(msg) => {
             // Check if the client sending this message has the identity of the
             // set presenter.
             if user_message.client.identity != presentation.presenter_identity {
@@ -75,7 +92,7 @@ async fn handle_user_message(user_message: IdentifiedUserMessage, mut presentati
             *slide_settings = Some(msg.slide_settings.clone());
 
             broadcast_to_clients(
-                BroadcastMessage::NewSlide(msg.slide_settings),
+                OutgoingPresenterMessage::NewSlide(msg.slide_settings),
                 presentation.clients,
             )
             .await;

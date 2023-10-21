@@ -5,20 +5,19 @@ pub mod authentication;
 pub mod config;
 pub mod handler;
 pub mod processor;
+pub mod presentation;
 pub mod ratelimiting;
 pub mod ws;
 
 use std::sync::Arc;
 
+pub use presentation::Presentation;
+
 use dashmap::DashMap;
-use jsonwebtoken::DecodingKey;
-use ratelimiting::Ratelimiter;
+use ratelimiting::RatelimiterResponse;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-    mpsc::{self},
-    RwLock,
-};
-use warp::{ws::Message, Rejection};
+use tokio::sync::mpsc;
+use warp::{Rejection, filters::ws::Message};
 
 // A user can be connected on multiple devices so we have a hashmap
 // linking their identity to another hashmap of their connected
@@ -39,7 +38,7 @@ pub struct Client {
 #[derive(Debug)]
 pub struct IdentifiedUserMessage {
     client: Client,
-    user_message: UserMessage,
+    user_message: IncomingMessage,
 }
 
 impl std::fmt::Display for IdentifiedUserMessage {
@@ -52,8 +51,9 @@ impl std::fmt::Display for IdentifiedUserMessage {
     }
 }
 
+
 #[derive(Debug, Serialize)]
-pub enum BroadcastMessage {
+pub enum OutgoingPresenterMessage {
     Emoji(EmojiMessage),
     NewSlide(SlideSettings),
 }
@@ -72,20 +72,38 @@ pub struct NewSlideMessage {
 }
 
 #[derive(Debug, Deserialize)]
-pub enum UserMessage {
+pub enum IncomingMessage {
     Emoji(EmojiMessage),
     NewSlide(NewSlideMessage),
 }
 
-impl std::fmt::Display for UserMessage {
+#[derive(Debug, Serialize)]
+pub enum OutgoingUserMessage {
+    RatelimiterResponse(RatelimiterResponse),
+    NewSlide(SlideSettings),
+}
+
+impl OutgoingUserMessage {
+    pub fn json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(text) => text,
+            Err(e) => {
+                error!("Could not serialize outgoing user message: {e}");
+                String::new()
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for IncomingMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UserMessage::Emoji(emoji) => write!(
+            IncomingMessage::Emoji(emoji) => write!(
                 f,
                 "{} for {} with size {}",
                 emoji.emoji, emoji.slide, emoji.size
             ),
-            UserMessage::NewSlide(slide) => write!(
+            IncomingMessage::NewSlide(slide) => write!(
                 f,
                 "New settings for slide {}: {}",
                 slide.slide, slide.slide_settings
@@ -109,7 +127,7 @@ impl std::fmt::Display for SlideSettings {
 #[derive(Clone, Debug, Deserialize)]
 pub struct JwtClaims {
     pub sub: String, // Contains the user's identifying information
-    pub pid: String, // Presentation ID, should always match kid in header to be valid
+    pub pid: String, // Presentation ID, should always match the kid in header to be valid
     pub exp: usize,
 }
 
@@ -119,36 +137,3 @@ pub struct ClientJoinPresentationData {
     pub claims: JwtClaims,
 }
 
-#[derive(Clone)]
-pub struct Presentation {
-    id: String,
-    presenter_identity: String,
-    pub clients: Clients,
-    pub presenters: Presenters,
-    pub authentication_key: DecodingKey,
-    pub ratelimiter: Ratelimiter,
-    pub slide_settings: Arc<RwLock<Option<SlideSettings>>>,
-    pub encrypted: bool,
-}
-
-impl Presentation {
-    pub fn new(
-        presentation_id: String,
-        presenter_identity: String,
-        encrypted: bool,
-        authentication_key: DecodingKey,
-    ) -> Self {
-        Self {
-            id: presentation_id,
-            presenter_identity,
-            clients: Arc::new(DashMap::new()),
-            presenters: Arc::new(DashMap::new()),
-            // TODO @obelisk: I bet this doesn't use secure randomness.
-            // Double check
-            authentication_key,
-            ratelimiter: Ratelimiter::new(),
-            slide_settings: Arc::new(None.into()),
-            encrypted,
-        }
-    }
-}

@@ -2,12 +2,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use serde::Serialize;
 
 use crate::IdentifiedUserMessage;
 
 pub mod time;
 pub mod value;
 
+#[derive(Clone, Debug, Serialize)]
 pub enum RatelimiterResponse {
     Allowed(HashMap<String, String>),
     Blocked(String),

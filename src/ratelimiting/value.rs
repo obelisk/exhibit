@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 
-use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IdentifiedUserMessage, UserMessage};
+use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IdentifiedUserMessage, IncomingMessage};
 
 use super::{Limiter, LimiterUpdate};
 
@@ -42,13 +42,13 @@ impl Limiter for ValueLimiter {
     ) -> Result<LimiterUpdate, String> {
         let identity = &message.client.identity;
         let message_cost = match &message.user_message {
-            UserMessage::Emoji(EmojiMessage { size: 0, .. }) => self.small_cost, // Normal
-            UserMessage::Emoji(EmojiMessage { size: 1, .. }) => self.large_cost, // Large
-            UserMessage::Emoji(EmojiMessage { size: 2, .. }) => self.huge_cost,  // Huge
-            UserMessage::Emoji(EmojiMessage { size, .. }) => {
+            IncomingMessage::Emoji(EmojiMessage { size: 0, .. }) => self.small_cost, // Normal
+            IncomingMessage::Emoji(EmojiMessage { size: 1, .. }) => self.large_cost, // Large
+            IncomingMessage::Emoji(EmojiMessage { size: 2, .. }) => self.huge_cost,  // Huge
+            IncomingMessage::Emoji(EmojiMessage { size, .. }) => {
                 return Err(format!("{identity} sent emoji with invalid size: {size}"))
             } // Fuckery
-            UserMessage::NewSlide(_) => {
+            IncomingMessage::NewSlide(_) => {
                 return Ok(LimiterUpdate {
                     client_message: String::new(),
                     limiter_data_update: None,

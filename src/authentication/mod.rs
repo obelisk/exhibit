@@ -79,6 +79,11 @@ pub async fn new_presentation(
         .unwrap_or("off")
         == "on";
 
+    let title = request
+        .get("title")
+        .ok_or(warp::reject())?
+        .to_string();
+
     let authentication_key =
         DecodingKey::from_ec_pem(user_authorization_key.as_bytes()).map_err(|_| warp::reject())?;
 
@@ -105,5 +110,6 @@ pub async fn new_presentation(
         presenter_identity,
         encrypted,
         authentication_key,
+        title,
     ))
 }

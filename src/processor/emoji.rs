@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use warp::filters::ws::Message;
 
 use crate::{
-    processor::ClientRateLimitResponse, BroadcastMessage, Client, EmojiMessage, Presentation,
-    Presenters,
+    processor::ClientRateLimitResponse, OutgoingPresenterMessage, Client, EmojiMessage, Presentation,
+    Presenters, OutgoingUserMessage, ratelimiting::RatelimiterResponse,
 };
 
 /// Called from the processor system. Only one processor should be called per user message
@@ -12,7 +12,6 @@ use crate::{
 /// to unblock processesing of further user messages.
 pub async fn handle_user_emoji(
     presentation: &Presentation,
-    ratelimit_responses: HashMap<String, String>,
     client: Client,
     emoji_message: EmojiMessage,
     presenters: Presenters,
@@ -37,29 +36,11 @@ pub async fn handle_user_emoji(
         return;
     }
 
-    // Update the client on ratelimits
-    let response = match serde_json::to_string(&ClientRateLimitResponse {
-        ratelimit_status: ratelimit_responses,
-    }) {
-        Ok(text) => text,
-        Err(e) => {
-            error!("Could not serialize ratelimit response for {identity}: {e}");
-            return;
-        }
-    };
-
-    if let Some(ref sender) = client.sender {
-        let _ = sender.send(Ok(Message::text(response)));
-    } else {
-        error!("{identity} sent a message from a guid that has no open connection. Dropping Emoji: {emoji}");
-        return;
-    }
-
     // Send the emojis to the presenters
     info!(
         "{identity} sent {emoji} to presentation {}",
         client.presentation
     );
 
-    super::broadcast_to_presenters(BroadcastMessage::Emoji(emoji_message), presenters).await;
+    super::broadcast_to_presenters(OutgoingPresenterMessage::Emoji(emoji_message), presenters).await;
 }
