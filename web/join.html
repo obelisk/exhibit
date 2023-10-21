@@ -110,26 +110,42 @@
                 document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
 
                 document.socket.addEventListener("close", (event) => {
-                    console.log("Socket closed");
-                    reset_websocket();
+                    console.log("Socket closed. Waiting 5 seconds to reconnect.");
+                    // Wait 5 seconds
+                    window.setTimeout(() => {
+                        document.socket = null;
+                        reset_websocket();
+                    }, 5000);
                 });
 
                 document.socket.addEventListener("message", (event) => {
                     console.log(event.data);
-                    let new_slide_data = JSON.parse(event.data);
+                    let update = JSON.parse(event.data);
 
+                    // {"NewSlide":{"message":"Welcome To Exhibit!","emojis":["👋","😲","🙌","👏"]}}
                     // If this message is informing the client of a new slide
-                    if (new_slide_data["message"] !== undefined) {
-                        document.getElementById("slide-message").innerText = new_slide_data["message"];
+                    if (update["NewSlide"] !== undefined) {
+                        let new_slide = update["NewSlide"];
+                        document.getElementById("slide-message").innerText = new_slide["message"];
                         var reactions = document.getElementById("reaction-container");
                         reactions.innerHTML = "";
 
-                        new_slide_data["emojis"].forEach(element => {
+                        new_slide["emojis"].forEach(element => {
                             var reaction_button = document.createElement('div');
                             reaction_button.className = 'reaction-button';
                             reaction_button.innerText = element;
                             reaction_button.onclick = function () {
-                                let emoji_obj = { "Emoji": { "slide": new_slide_data["slide"], "emoji": element, "size": parseInt(document.getElementById("emoji-size").value) } };
+                                
+                                let emoji_obj = { 
+                                    "User" : {
+                                        "Emoji": {
+                                            "slide": new_slide["slide"],
+                                            "emoji": element,
+                                            "size": 0//parseInt(document.getElementById("emoji-size").value)
+                                        }
+                                    }
+                                };
+                                console.log("Sending emoji object: " + JSON.stringify(emoji_obj));
                                 document.socket.send(JSON.stringify(emoji_obj));
                                 setDisabled()
                             };
@@ -139,7 +155,7 @@
                     }
 
                     // if this is informing the users of their ratelimits
-                    if (new_slide_data["ratelimit_status"] !== undefined) {
+                    if (update["ratelimit_status"] !== undefined) {
                         var rl_elem = document.getElementById("ratelimit_info");
                         rl_elem.innerHTML = "";
                         Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {

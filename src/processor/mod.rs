@@ -51,7 +51,7 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
     };
 }
 
-pub async fn handle_user_message_types(user_message: IncomingUserMessage, client: Client, mut presentation: Presentation) {
+pub async fn handle_user_message_types(user_message: IncomingUserMessage, client: Client, presentation: Presentation) {
     // Run the ratelimiter check
     let ratelimiter_response = presentation.ratelimiter.check_allowed(client.clone(), &user_message);
 

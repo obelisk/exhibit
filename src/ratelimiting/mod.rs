@@ -66,16 +66,16 @@ impl Ratelimiter {
 
     /// Adds a ratelimit to the ratelimiter. If a ratelimit with that name
     /// is already present it replaces it.
-    pub fn add_ratelimit(&mut self, name: String, limit: Arc<dyn Limiter>) {
+    pub fn add_ratelimit(&self, name: String, limit: Arc<dyn Limiter>) {
         self.limiters.insert(name, limit);
     }
 
     /// Remove a limiter from the ratelimiter system
-    pub fn remove_ratelimit(&mut self, name: &str) {
+    pub fn remove_ratelimit(&self, name: &str) {
         self.limiters.remove(name);
     }
 
-    pub fn check_allowed(&mut self, client: Client, message: &IncomingUserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(&self, client: Client, message: &IncomingUserMessage) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event
@@ -83,6 +83,8 @@ impl Ratelimiter {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
+
+        trace!("Size of global data: {}", self.global_data.len());
 
         let last_message_time = self
             .global_data

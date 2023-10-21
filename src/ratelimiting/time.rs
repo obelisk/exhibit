@@ -41,7 +41,7 @@ impl Limiter for TimeLimiter {
         if (current_time - last_message_time) < self.interval {
             return Err(format!(
                 "Try again in {} seconds",
-                current_time - last_message_time
+                self.interval - (current_time - last_message_time)
             ));
         }
 

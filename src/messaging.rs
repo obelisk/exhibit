@@ -28,7 +28,6 @@ pub enum OutgoingPresenterMessage {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmojiMessage {
-    pub slide: u64,
     pub emoji: String,
     pub size: u8,
 }
@@ -80,8 +79,8 @@ impl std::fmt::Display for IncomingUserMessage {
         match self {
             Self::Emoji(emoji) => write!(
                 f,
-                "{} for {} with size {}",
-                emoji.emoji, emoji.slide, emoji.size
+                "{} with size {}",
+                emoji.emoji, emoji.size
             )
         }
     }
