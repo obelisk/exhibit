@@ -4,7 +4,7 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use serde::Serialize;
 
-use crate::IdentifiedUserMessage;
+use crate::{Client, IncomingUserMessage};
 
 pub mod time;
 pub mod value;
@@ -34,7 +34,8 @@ pub trait Limiter: Send + Sync {
         current_time: u64,
         data_prefix: &str,
         data: &DashMap<String, u64>,
-        message: &IdentifiedUserMessage,
+        client: &Client,
+        message: &IncomingUserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
 
@@ -48,17 +49,17 @@ pub struct Ratelimiter {
 impl Ratelimiter {
     pub fn new() -> Self {
         return Self {
-            /// Contains all the configured limiters
+            // Contains all the configured limiters
             limiters: DashMap::default(),
 
-            /// Contains the data for all the configured limiters. Limiters
-            /// are never given write access to this data and updates must be
-            /// done by the Ratelimiter
+            // Contains the data for all the configured limiters. Limiters
+            // are never given write access to this data and updates must be
+            // done by the Ratelimiter
             limiter_data: DashMap::default(),
 
-            /// Separated data storage for the ratelimiter itself to store
-            /// data that is useful to many limiters such as last time a message
-            /// was successfully sent
+            // Separated data storage for the ratelimiter itself to store
+            // data that is useful to many limiters such as last time a message
+            // was successfully sent
             global_data: DashMap::default(),
         };
     }
@@ -74,7 +75,7 @@ impl Ratelimiter {
         self.limiters.remove(name);
     }
 
-    pub fn check_allowed(&mut self, message: &IdentifiedUserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(&mut self, client: Client, message: &IncomingUserMessage) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event
@@ -85,7 +86,7 @@ impl Ratelimiter {
 
         let last_message_time = self
             .global_data
-            .get(&format!("lmt-{}", message.client.identity))
+            .get(&format!("lmt-{}", client.identity))
             .map(|x| x.to_owned())
             .unwrap_or(0);
 
@@ -96,6 +97,7 @@ impl Ratelimiter {
                 current_time,
                 &item.key(),
                 &self.limiter_data,
+                &client,
                 message,
             );
             match update {
@@ -114,7 +116,7 @@ impl Ratelimiter {
 
         // Update global data as well
         self.global_data
-            .insert(format!("lmt-{}", message.client.identity), current_time);
+            .insert(format!("lmt-{}", client.identity), current_time);
 
         RatelimiterResponse::Allowed(
             updates

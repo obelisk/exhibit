@@ -1,5 +1,5 @@
 use crate::{
-    ws, Client, ClientJoinPresentationData, Clients, IdentifiedUserMessage, JwtClaims,
+    ws, Client, ClientJoinPresentationData, Clients, IdentifiedIncomingMessage,
     Presentation, Presentations, Presenters, Result,
 };
 use serde::Serialize;
@@ -89,7 +89,7 @@ pub async fn ws_handler(
     guid: String,
     ws: warp::ws::Ws,
     presentations: Presentations,
-    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
 ) -> Result<impl Reply> {
     trace!("Got websocket call for presentation: {presentation_id}!");
     let presentation = presentations

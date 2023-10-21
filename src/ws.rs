@@ -1,4 +1,4 @@
-use crate::{Client, IdentifiedUserMessage, Presentation, IncomingMessage};
+use crate::{Client, IdentifiedIncomingMessage, Presentation, IncomingMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -9,7 +9,7 @@ pub async fn client_connection(
     presentation: Presentation,
     guid: String,
     mut client: Client,
-    user_message_sender: UnboundedSender<IdentifiedUserMessage>,
+    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
     is_presenter: bool,
 ) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
@@ -88,14 +88,14 @@ pub async fn client_connection(
 
 async fn client_msg(
     identity: &str,
-    guid: &str,
+    _guid: &str,
     msg: Message,
-    sender: UnboundedSender<IdentifiedUserMessage>,
+    sender: UnboundedSender<IdentifiedIncomingMessage>,
     client: Client,
 ) {
     info!("received message from {}: {:?}", identity, msg);
 
-    let user_message = match msg.to_str().map(|x| serde_json::from_str::<IncomingMessage>(x)) {
+    let message = match msg.to_str().map(|x| serde_json::from_str::<IncomingMessage>(x)) {
         Ok(Ok(m)) => m,
         _ => {
             error!("{identity} sent an invalid message");
@@ -103,8 +103,8 @@ async fn client_msg(
         }
     };
 
-    let _ = sender.send(IdentifiedUserMessage {
+    let _ = sender.send(IdentifiedIncomingMessage {
         client,
-        user_message,
+        message,
     });
 }

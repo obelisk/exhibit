@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 
-use crate::IdentifiedUserMessage;
+use crate::{IncomingUserMessage, Client};
 
 use super::{Limiter, LimiterUpdate};
 
@@ -22,9 +22,10 @@ impl Limiter for TimeLimiter {
         current_time: u64,
         _data_prefix: &str,
         _data: &DashMap<String, u64>,
-        message: &IdentifiedUserMessage,
+        client: &Client,
+        _: &IncomingUserMessage,
     ) -> Result<LimiterUpdate, String> {
-        let identity = &message.client.identity;
+        let identity = &client.identity;
         // If they've never sent a message then it's effectively 0
 
         if last_message_time > current_time {

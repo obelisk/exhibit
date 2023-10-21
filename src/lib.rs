@@ -4,6 +4,7 @@ extern crate log;
 pub mod authentication;
 pub mod config;
 pub mod handler;
+pub mod messaging;
 pub mod processor;
 pub mod presentation;
 pub mod ratelimiting;
@@ -12,9 +13,9 @@ pub mod ws;
 use std::sync::Arc;
 
 pub use presentation::Presentation;
+pub use messaging::*;
 
 use dashmap::DashMap;
-use ratelimiting::RatelimiterResponse;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use warp::{Rejection, filters::ws::Message};
@@ -35,82 +36,6 @@ pub struct Client {
     pub presentation: String,
 }
 
-#[derive(Debug)]
-pub struct IdentifiedUserMessage {
-    client: Client,
-    user_message: IncomingMessage,
-}
-
-impl std::fmt::Display for IdentifiedUserMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} ({}): {}",
-            self.client.identity, self.client.guid, self.user_message
-        )
-    }
-}
-
-
-#[derive(Debug, Serialize)]
-pub enum OutgoingPresenterMessage {
-    Emoji(EmojiMessage),
-    NewSlide(SlideSettings),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct EmojiMessage {
-    slide: u64,
-    emoji: String,
-    size: u8,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct NewSlideMessage {
-    slide: u64,
-    slide_settings: SlideSettings,
-}
-
-#[derive(Debug, Deserialize)]
-pub enum IncomingMessage {
-    Emoji(EmojiMessage),
-    NewSlide(NewSlideMessage),
-}
-
-#[derive(Debug, Serialize)]
-pub enum OutgoingUserMessage {
-    RatelimiterResponse(RatelimiterResponse),
-    NewSlide(SlideSettings),
-}
-
-impl OutgoingUserMessage {
-    pub fn json(&self) -> String {
-        match serde_json::to_string(&self) {
-            Ok(text) => text,
-            Err(e) => {
-                error!("Could not serialize outgoing user message: {e}");
-                String::new()
-            }
-        }
-    }
-}
-
-impl std::fmt::Display for IncomingMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            IncomingMessage::Emoji(emoji) => write!(
-                f,
-                "{} for {} with size {}",
-                emoji.emoji, emoji.slide, emoji.size
-            ),
-            IncomingMessage::NewSlide(slide) => write!(
-                f,
-                "New settings for slide {}: {}",
-                slide.slide, slide.slide_settings
-            ),
-        }
-    }
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SlideSettings {

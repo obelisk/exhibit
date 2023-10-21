@@ -1,10 +1,7 @@
-#[macro_use]
-extern crate log;
-
 use dashmap::DashMap;
 use exhibit::authentication::join_presentation;
 use exhibit::{
-    authentication::new_presentation, config, handler, processor, IdentifiedUserMessage,
+    authentication::new_presentation, config, handler, processor, IdentifiedIncomingMessage,
     Presentations,
 };
 use tokio::sync::mpsc::unbounded_channel;
@@ -27,7 +24,7 @@ async fn main() {
     // Stores all the presenters and clients for all active presentations
     let presentations: Presentations = Arc::new(DashMap::new());
 
-    let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedUserMessage>();
+    let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedIncomingMessage>();
 
     // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
