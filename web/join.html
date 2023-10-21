@@ -86,6 +86,36 @@
     </style>
 </head>
 <script>
+    function set_emojis(emojis, slide) {
+        // Clear the old emojis
+        var reactions = document.getElementById("reaction-container");
+        reactions.innerHTML = "";
+
+        // Add the new emojis
+        emojis.forEach(element => {
+            var reaction_button = document.createElement('div');
+            reaction_button.className = 'reaction-button';
+            reaction_button.innerText = element;
+            reaction_button.onclick = function () {
+                
+                let emoji_obj = { 
+                    "User" : {
+                        "Emoji": {
+                            "slide": slide,
+                            "emoji": element,
+                            "size": 0//parseInt(document.getElementById("emoji-size").value)
+                        }
+                    }
+                };
+                console.log("Sending emoji object: " + JSON.stringify(emoji_obj));
+                document.socket.send(JSON.stringify(emoji_obj));
+                setDisabled()
+            };
+
+            reactions.appendChild(reaction_button);
+        });
+    }
+
     function reset_websocket() {
         // Save the token so we can reuse it if the connection dies
         if (document.getElementById("registration_key").value != undefined) {
@@ -122,40 +152,17 @@
                     console.log(event.data);
                     let update = JSON.parse(event.data);
 
-                    // {"NewSlide":{"message":"Welcome To Exhibit!","emojis":["👋","😲","🙌","👏"]}}
                     // If this message is informing the client of a new slide
+                    // Data looks like:
+                    // {"NewSlide":{"message":"Welcome To Exhibit!","emojis":["👋","😲","🙌","👏"]}}
                     if (update["NewSlide"] !== undefined) {
                         let new_slide = update["NewSlide"];
+                        // Set the slide title
                         document.getElementById("slide-message").innerText = new_slide["message"];
-                        var reactions = document.getElementById("reaction-container");
-                        reactions.innerHTML = "";
-
-                        new_slide["emojis"].forEach(element => {
-                            var reaction_button = document.createElement('div');
-                            reaction_button.className = 'reaction-button';
-                            reaction_button.innerText = element;
-                            reaction_button.onclick = function () {
-                                
-                                let emoji_obj = { 
-                                    "User" : {
-                                        "Emoji": {
-                                            "slide": new_slide["slide"],
-                                            "emoji": element,
-                                            "size": 0//parseInt(document.getElementById("emoji-size").value)
-                                        }
-                                    }
-                                };
-                                console.log("Sending emoji object: " + JSON.stringify(emoji_obj));
-                                document.socket.send(JSON.stringify(emoji_obj));
-                                setDisabled()
-                            };
-
-                            reactions.appendChild(reaction_button);
-                        });
-                    }
-
-                    // if this is informing the users of their ratelimits
-                    if (update["ratelimit_status"] !== undefined) {
+                        // Set the emojis
+                        set_emojis(new_slide["emojis"], new_slide["slide"]);
+                    } else if (update["ratelimit_status"] !== undefined) {
+                        // This is informing the users of their ratelimits
                         var rl_elem = document.getElementById("ratelimit_info");
                         rl_elem.innerHTML = "";
                         Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {
@@ -164,6 +171,22 @@
                             li.appendChild(document.createTextNode(key + " - " + value));
                             rl_elem.appendChild(li);
                         });
+                    } else if (update["InitialPresentationData"] !== undefined) {
+                        // This is the initial presentation data
+                        // Set the presentation title
+                        let title = update["InitialPresentationData"]["title"];
+                        document.getElementById("title").innerText = title;
+
+                        // Set the slide message and emojis if presentation has started
+                        if (update["InitialPresentationData"]["settings"] !== null) {
+                            let slide_data = update["InitialPresentationData"]["settings"];
+                            document.getElementById("slide-message").innerText = slide_data["message"];
+
+                            // Set the emojis
+                            set_emojis(slide_data["emojis"], slide_data["slide"]);
+                        }
+                    } else {
+                        console.log("Unknown message type: " + event.data);
                     }
                 });
             }));
@@ -181,7 +204,7 @@
 <body>
     <div class="container">
         <div class="title-group">
-            <div class="title">Join A Presentation</div>
+            <div class="title" id="title">Join A Presentation</div>
             <ul id="ratelimit_info">
             </ul>
         </div>

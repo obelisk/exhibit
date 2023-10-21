@@ -20,10 +20,9 @@ impl std::fmt::Display for IncomingUserMessage {
     }
 }
 
-
-
 #[derive(Debug, Serialize)]
 pub enum OutgoingUserMessage {
+    InitialPresentationData {title: String, settings: Option<SlideSettings>},
     RatelimiterResponse(RatelimiterResponse),
     NewSlide(SlideSettings),
 }

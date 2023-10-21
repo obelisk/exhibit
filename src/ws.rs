@@ -1,4 +1,4 @@
-use crate::{Client, IdentifiedIncomingMessage, Presentation, IncomingMessage};
+use crate::{Client, IdentifiedIncomingMessage, Presentation, IncomingMessage, OutgoingUserMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -25,7 +25,7 @@ pub async fn client_connection(
     }));
 
     // Upgrade the client with the sender
-    client.sender = Some(client_sender);
+    client.sender = Some(client_sender.clone());
 
     // TODO @obelisk: Come back and make this code better
     // Create strict scoping here to release the lock
@@ -56,6 +56,12 @@ pub async fn client_connection(
     }
 
     info!("{identity} has new client with {guid} for {presentation_id}");
+
+    // Send the initial presentation data including the current slide data
+    let _ = client_sender.send(Ok(Message::text(OutgoingUserMessage::InitialPresentationData {
+        title: presentation.presentation_data.title.clone(),
+        settings: presentation.slide_settings.read().await.clone()
+    }.json())));
 
     while let Some(result) = client_ws_rcv.next().await {
         let msg = match result {
