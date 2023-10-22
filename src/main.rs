@@ -7,18 +7,14 @@ use exhibit::{
 use tokio::sync::mpsc::unbounded_channel;
 
 use std::net::SocketAddr;
+use std::str::FromStr;
 use std::{convert::Infallible, sync::Arc};
 use warp::Filter;
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
-
-    // Configure Exhibit
-    let config_path = std::env::args()
-        .nth(1)
-        .expect("Please provide a configuration file path");
-    let configuration = config::load_configuration(&config_path);
+    let configuration = config::load_configuration();
 
     // Probably the most important data structure in the whole application.
     // Stores all the presenters and clients for all active presentations
@@ -81,7 +77,7 @@ async fn main() {
         panic!("User message receiver was dropped?");
     });
 
-    let service_address: SocketAddr = configuration.service_address.parse().unwrap();
+    let service_address = SocketAddr::from_str(&format!("{}:{}",configuration.service_address, configuration.service_port)).unwrap();
 
     warp::serve(all_routes).run(service_address).await
 }
