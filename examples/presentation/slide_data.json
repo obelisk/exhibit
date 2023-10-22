@@ -1,0 +1,101 @@
+[
+    {
+        "_counter": 1,
+        "message": "Welcome To Exhibit!",
+        "emojis": [
+            "👋",
+            "😲",
+            "🙌",
+            "👏"
+        ]
+    },
+    {
+        "_counter": 2,
+        "message": "Presentations Have Graphs",
+        "emojis": [
+            "👍",
+            "📊"
+        ]
+    },
+    {
+        "_counter": 3,
+        "message": "Where's The Love?",
+        "emojis": [
+            "❤️",
+            "💗",
+            "💞",
+            "💕"
+        ]
+    },
+    {
+        "_counter": 4,
+        "message": "So That Graphs",
+        "emojis": [
+            "📊"
+        ]
+    },
+    {
+        "_counter": 5,
+        "message": "So That Graphs Have Love",
+        "emojis": [
+            "📊",
+            "❤️",
+            "💗",
+            "💞",
+            "💕"
+        ]
+    },
+    {
+        "_counter": 6,
+        "message": "Emojis. Emojis Are The Answer",
+        "emojis": [
+            "😎",
+            "🤯",
+            "🙏",
+            "🛠️",
+            "💩",
+            "🎉",
+            "📣",
+            "📸",
+            "📱",
+            "👏"
+        ]
+    },
+    {
+        "_counter": 7,
+        "message": "So We Go From This",
+        "emojis": []
+    },
+    {
+        "_counter": 8,
+        "message": "To This",
+        "emojis": [
+            "😎",
+            "🤯",
+            "🙏",
+            "🛠️",
+            "💩",
+            "🎉",
+            "📣",
+            "📸",
+            "📱",
+            "👏"
+        ]
+    },
+    {
+        "_counter": 9,
+        "message": "Thank You",
+        "emojis": [
+            "😎",
+            "🤯",
+            "🙏",
+            "🛠️",
+            "💩",
+            "🎉",
+            "📣",
+            "📸",
+            "📱",
+            "👏"
+        ]
+    }
+]

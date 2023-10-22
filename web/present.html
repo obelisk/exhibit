@@ -52,28 +52,53 @@
 </head>
 
 <script>
-    let emoji_stream = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/emoji_stream/" + Math.floor(Math.random() * 1000000000));
-    emoji_stream.addEventListener("message", (event) => {
-        console.log(event.data);
-        let new_reaction_data = JSON.parse(event.data);
-
-        // Spawn the emoji
-        var reaction = document.createElement('span');
-        reaction.innerText = new_reaction_data["emoji"];
-        if (new_reaction_data["size"] == 2) {
-            reaction.style = "font-size: 75px";
-        } else if (new_reaction_data["size"] == 1) {
-            reaction.style = "font-size: 50px";
-        } else {
-            reaction.style = "font-size: 35px";
+    function reset_websocket() {
+        // Save the token so we can reuse it if the connection dies
+        if (document.getElementById("registration_key").value != undefined) {
+            document.saved_token = document.getElementById("registration_key").value;
         }
 
-        reaction.className = "moving-emoji";
-        var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
-        reaction.style.transform = `translateY(${yOffset}px)`
-        setTimeout(() => { reaction.remove() }, 10000)
-        document.getElementById('reactions-container').appendChild(reaction);
-    });
+        fetch("/join", {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, *cors, same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: "same-origin", // include, *same-origin, omit
+            redirect: "follow", // manual, *follow, error
+            referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            body: document.saved_token,
+        }).then((data) => {
+            data.json().then((data) => {
+                console.log(data);
+                document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
+                document.socket.addEventListener("message", (event) => {
+                    console.log(event.data);
+                    let update = JSON.parse(event.data);
+
+                    if (update["Emoji"] !== undefined) {
+                        let new_reaction_data = update["Emoji"];
+                        // Spawn the emoji
+                        var reaction = document.createElement('span');
+                        reaction.innerText = new_reaction_data["emoji"];
+                        if (new_reaction_data["size"] == 2) {
+                            reaction.style = "font-size: 75px";
+                        } else if (new_reaction_data["size"] == 1) {
+                            reaction.style = "font-size: 50px";
+                        } else {
+                            reaction.style = "font-size: 35px";
+                        }
+
+                        reaction.className = "moving-emoji";
+                        var yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+                        reaction.style.transform = `translateY(${yOffset}px)`
+                        setTimeout(() => { reaction.remove() }, 10000)
+                        document.getElementById('reactions-container').appendChild(reaction);
+                    }
+
+                });
+            });
+        });
+    }
+
 
     function checkKey(e) {
 
@@ -86,7 +111,7 @@
             // down arrow
         }
         else if (e.keyCode == '37') {
-            document.slide_index = document.slide_index - 1;
+            document.slide_index = Math.max(document.slide_index - 1, 0);
             showSlide(document.files, document.slide_index);
         }
         else if (e.keyCode == '39') {
@@ -102,8 +127,8 @@
 <script>
     function showSlide(files, index) {
         // 0 is slide_data
-        if (index == 0) {
-            index = 1;
+        if (index <= 0) {
+            index = 0;
         }
 
         // Set slide display img element source to new slide image src
@@ -111,7 +136,7 @@
         slideView.src = URL.createObjectURL(document.files[index]);
 
         console.log("Showing slide " + index);
-        var slide_settings = document.slide_data[index - 1];
+        var slide_settings = document.slide_data[index];
 
         if (slide_settings == null) {
             slide_settings = {
@@ -121,18 +146,15 @@
         }
 
         let set_slide_msg = {
-            "NewSlide": {
-                "slide": document.slide_index,
-                "slide_settings": slide_settings
-            }
-        };
-        const response = fetch("/update", {
-            method: "POST", // or 'PUT'
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(set_slide_msg),
-        });
+            "Presenter": {
+                    "NewSlide": {
+                        "slide": document.slide_index,
+                        "slide_settings": slide_settings
+                    }
+                }
+            };
+
+        document.socket.send(JSON.stringify(set_slide_msg));
     }
 
     function onFileLoad(elementId, event) {
@@ -140,11 +162,11 @@
 
         document.slide_data = slide_data;
 
-        if (slide_data.length != document.files.length - 1) {
+        if (slide_data.length != document.files.length) {
             alert("Slide data count doesn't match slide image count!: " + slide_data.length + " vs " + (document.files.length - 1));
         }
 
-        document.slide_index = 1;
+        document.slide_index = 0;
         showSlide(document.files, document.slide_index);
     }
 
@@ -152,19 +174,23 @@
         let files = document.getElementById('slide_data').files;
         document.getElementById('slide_data').style.display = "none";
         var slide_data = null;
+
+        var slides = [];
         for (var i = 0; i < files.length; i++) {
             if (files[i].name.endsWith(".json")) {
                 slide_data = files[i];
-                break;
+            } else {
+                slides.push(files[i])
             }
         }
+
 
         if (slide_data == null) {
             alert("No Slide Configuration Data Found!");
             return;
         }
 
-        document.files = files;
+        document.files = slides;
 
         var reader = new FileReader();
         reader.onload = onLoadFileHandler;
@@ -173,6 +199,10 @@
 </script>
 
 <body>
+    <label for="registration_key">Registration Key:</label>
+    <input type="text" id="registration_key" name="registration_key"><br><br>
+    <button onclick="reset_websocket()">Start Presentation</button>
+
     <input type="file" id="slide_data" accept=".json, .png" multiple="multiple"
         onchange='onChooseFiles(event, onFileLoad.bind(this, "contents"))'>
 

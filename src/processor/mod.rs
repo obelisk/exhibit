@@ -1,13 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedReceiver;
 use warp::ws::Message;
 
+mod emoji;
+
 use crate::{
-    ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter, RatelimiterResponse},
-    ConfigurationMessage, EmojiMessage, IdentifiedUserMessage, Presenters, SlideSettings,
-    UserMessage,
+    ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Clients, IdentifiedIncomingMessage,
+    Presentation, Presentations, Presenters, OutgoingUserMessage, IncomingPresenterMessage, IncomingUserMessage, Client, IncomingMessage,
 };
 
 #[derive(Serialize)]
@@ -15,117 +16,102 @@ struct ClientRateLimitResponse {
     ratelimit_status: HashMap<String, String>,
 }
 
-pub async fn broadcast_to_presenters(message: EmojiMessage, presenters: Presenters) {
+pub async fn broadcast_to_presenters(message: OutgoingPresenterMessage, presenters: Presenters) {
     let event = serde_json::to_string(&message).unwrap();
-    presenters
-        .read()
-        .await
-        .iter()
-        .for_each(|(_, connected_presenter)| {
-            let _ = connected_presenter.sender.send(Ok(Message::text(&event)));
-        });
+    presenters.iter().for_each(|item| {
+        let connected_presenter = item.value();
+        if let Some(ref connected_presenter) = connected_presenter.sender {
+            let _ = connected_presenter.send(Ok(Message::text(&event)));
+        }
+    });
 }
 
-async fn handle_user_message(
-    mut rate_limiter: Ratelimiter,
-    presenters: Presenters,
-    slide_settings: Option<SlideSettings>,
-    user_message: IdentifiedUserMessage,
-) {
-    let identity = user_message.identity.clone();
-    // Check if the presentation has started
-    let slide_settings = if let Some(ref s) = slide_settings {
-        s
-    } else {
-        error!("{identity} sent a message but the presentation has not started");
-        return;
-    };
+pub async fn broadcast_to_clients(message: OutgoingPresenterMessage, clients: Clients) {
+    let event = serde_json::to_string(&message).unwrap();
+    clients.iter().for_each(|item| {
+        let connected_client = item.value();
+        if let Some(ref connected_client) = connected_client.sender {
+            let _ = connected_client.send(Ok(Message::text(&event)));
+        }
+    });
+}
 
-    let allowed_to_send = rate_limiter.check_allowed(&user_message);
+pub async fn handle_presenter_message_types(presenter_message: IncomingPresenterMessage, _client: Client, presentation: Presentation) {
+    match presenter_message {
+        IncomingPresenterMessage::NewSlide(msg) => {
+            let mut slide_settings = presentation.slide_settings.write().await;
+            *slide_settings = Some(msg.slide_settings.clone());
 
-    match user_message.user_message {
-        UserMessage::Emoji { slide, emoji, size } => {
-            // Check that they are sending a valid emoji for the current slide
-            if !slide_settings.emojis.contains(&emoji) {
-                error!("{identity} sent invalid {emoji} for slide {slide}");
-                return;
-            }
-
-            match allowed_to_send {
-                RatelimiterResponse::Allowed(ratelimit_responses) => {
-                    // Update the client on ratelimits
-                    let response = match serde_json::to_string(&ClientRateLimitResponse {
-                        ratelimit_status: ratelimit_responses,
-                    }) {
-                        Ok(text) => text,
-                        Err(e) => {
-                            error!(
-                                "Could not serialize ratelimit response for {identity} - {}: {e}",
-                                user_message.guid_identifier
-                            );
-                            return;
-                        }
-                    };
-                    if let Some(client) = user_message
-                        .clients
-                        .read()
-                        .await
-                        .get(&user_message.guid_identifier)
-                    {
-                        if let Some(ref sender) = client.sender {
-                            let text = sender.send(Ok(Message::text(response)));
-                        } else {
-                            error!(
-                                "{identity} sent a message from a guid that has no open connection?: {}",
-                                user_message.guid_identifier
-                            );
-                        }
-                    } else {
-                        error!(
-                            "{identity} sent a message from a guid not in the clients map: {}",
-                            user_message.guid_identifier
-                        )
-                    }
-
-                    // Send the emojis to the presenters
-                    info!("{identity} sent {emoji}");
-                    tokio::task::spawn(async move {
-                        broadcast_to_presenters(
-                            EmojiMessage {
-                                identity,
-                                slide,
-                                emoji,
-                                size,
-                            },
-                            presenters,
-                        )
-                        .await;
-                    });
-                }
-                RatelimiterResponse::Blocked(blocker) => {
-                    warn!("Ratelimiter {blocker} blocked from {identity} sending {emoji}");
-                }
-            }
+            broadcast_to_clients(
+                OutgoingPresenterMessage::NewSlide(msg.slide_settings),
+                presentation.clients,
+            )
+            .await;
         }
     };
 }
 
+pub async fn handle_user_message_types(user_message: IncomingUserMessage, client: Client, presentation: Presentation) {
+    // Run the ratelimiter check
+    let ratelimiter_response = presentation.ratelimiter.check_allowed(client.clone(), &user_message);
+
+    // If the connection is still open (should be almost always), send the response
+    if let Some(ref sender) = client.sender {
+        let response = OutgoingUserMessage::RatelimiterResponse(ratelimiter_response.clone()).json();
+        let _ = sender.send(Ok(Message::text(response)));
+    } else {
+        error!("{} sent a message from a guid that has no open connection. Dropping message: {user_message}", client.identity);
+        return;
+    }
+
+    // If something in the system blocked them, log it and stop
+    if let RatelimiterResponse::Blocked(name) = ratelimiter_response {
+        warn!(
+            "{} sent a message but was blocked by the ratelimiter: {name}",
+            client.identity
+        );
+        return;
+    }
+
+    match user_message {
+        IncomingUserMessage::Emoji(msg) => 
+            emoji::handle_user_emoji(
+                &presentation,
+                client.clone(),
+                msg,
+                presentation.presenters.clone(),
+            )
+            .await,
+    }
+}
+
+/// Handle a specific incoming user message. Each message is handled in it's own
+/// tokio task so we don't need to start any new ones to prevent blocking, only
+/// to achieve concurrency
+async fn handle_message(message: IdentifiedIncomingMessage, presentation: Presentation) {
+    // Is this a presenter message or a user message
+    match message.message {
+        IncomingMessage::Presenter(presenter_message) => {
+            // Check that the person sending this presenter message actually is the presenter
+            if message.client.identity == presentation.presenter_identity {
+                handle_presenter_message_types(presenter_message, message.client, presentation).await;
+            } else {
+                warn!(
+                    "{} attempted to send a presenter message but only {} is allowed to do that",
+                    message.client.identity, presentation.presenter_identity
+                );
+            }
+        },
+        IncomingMessage::User(user_message) => {
+            handle_user_message_types(user_message, message.client, presentation).await;
+        }
+    }
+}
+
 pub async fn handle_sent_messages(
-    mut user_message_receiver: UnboundedReceiver<IdentifiedUserMessage>,
-    mut configuration_receiver: UnboundedReceiver<ConfigurationMessage>,
-    presenters: Presenters,
+    mut user_message_receiver: UnboundedReceiver<IdentifiedIncomingMessage>,
+    presentations: Presentations,
 ) {
-    // What are the settings for the current slide
-    let mut settings: Option<SlideSettings> = None;
-
-    // Keep track of the last time a user sent an emoji to rate limit them
-    let mut rate_limiter = Ratelimiter::new();
-    rate_limiter.add_ratelimit("10s-limit".to_string(), Arc::new(TimeLimiter::new(10)));
-    rate_limiter.add_ratelimit(
-        "normal-big-huge".to_string(),
-        Arc::new(ValueLimiter::new(0, 5, 10, 1, 25)),
-    );
-
     loop {
         tokio::select! {
             msg = user_message_receiver.recv() => {
@@ -134,19 +120,12 @@ pub async fn handle_sent_messages(
                     None => break,
                 };
 
-                let rate_limiter = rate_limiter.clone();
-                let settings = settings.clone();
-                tokio::spawn({
-                    handle_user_message(rate_limiter, presenters.clone(), settings, msg)
-                });
-            }
-            config = configuration_receiver.recv() => {
-                match config {
-                    Some(ConfigurationMessage::NewSlide { slide_settings, .. }) => {
-                        info!("New slide set, Message: {}, Emojis: {}", slide_settings.message, slide_settings.emojis.join(","));
-                        settings = Some(slide_settings);
-                    },
-                    None => break,
+                if let Some(presentation) = presentations.get(&msg.client.presentation) {
+                    tokio::spawn({
+                        handle_message(msg, presentation.value().clone())
+                    });
+                } else {
+                    warn!("{} send a message for presentation {} which doesn't exist: {msg}", msg.client.identity, msg.client.presentation);
                 }
             }
         };

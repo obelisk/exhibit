@@ -1,163 +1,89 @@
-#[macro_use]
-extern crate log;
-
+use dashmap::DashMap;
+use exhibit::authentication::join_presentation;
 use exhibit::{
-    config, handler, processor, Clients, ConfigurationMessage, IdentifiedUserMessage, JwtClaims,
+    authentication::new_presentation, config, handler, processor, IdentifiedIncomingMessage,
+    Presentations,
 };
-use jsonwebtoken::{decode, DecodingKey};
-use std::convert::Infallible;
-use std::sync::Arc;
-use std::{collections::HashMap, net::SocketAddr};
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc::unbounded_channel;
+
+use std::net::SocketAddr;
+use std::{convert::Infallible, sync::Arc};
 use warp::Filter;
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
+    // Configure Exhibit
     let config_path = std::env::args()
         .nth(1)
         .expect("Please provide a configuration file path");
-
     let configuration = config::load_configuration(&config_path);
 
-    let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
-    let presenters = Arc::new(RwLock::new(HashMap::new()));
+    // Probably the most important data structure in the whole application.
+    // Stores all the presenters and clients for all active presentations
+    let presentations: Presentations = Arc::new(DashMap::new());
 
+    let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedIncomingMessage>();
+
+    // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
-
-    let (client_emoji_sender, client_emoji_receiver) =
-        mpsc::unbounded_channel::<IdentifiedUserMessage>();
-    let (configuration_sender, configuration_receiver) =
-        mpsc::unbounded_channel::<ConfigurationMessage>();
-
-    let client_ws_route = warp::path("ws")
+    let presentation_capture = presentations.clone();
+    let client_ws_route = warp::path!("ws" / String / String)
         .and(warp::ws())
-        .and(warp::path::param())
-        .and(with(clients.clone()))
-        .and_then(handler::client_ws_handler);
+        .and(with(presentation_capture.clone()))
+        .and(with(user_message_sender.clone()))
+        .and_then(handler::ws_handler);
 
-    let client_spa = warp::path::end().and(warp::fs::file("web/client.html"));
-
-    let base_route = warp::path("register");
-
-    let possible_routes = match configuration.authentication_configuration {
-        config::AuthenticationConfiguration::Header { header } => {
-            let register_route = base_route
-                .and(warp::get())
-                .and(with(header))
-                .and(warp::header::headers_cloned())
-                .and(with(clients.clone()))
-                .and(with(client_emoji_sender.clone()))
-                .and_then(handler::register_header_handler);
-
-            (
-                Some(
-                    health_route
-                        .or(register_route)
-                        .or(client_ws_route)
-                        .or(client_spa),
-                ),
-                None,
-            )
-        }
-        config::AuthenticationConfiguration::Jwt {
-            public_key,
-            audience,
-        } => {
-            let register_route = warp::path("register")
-                // Set maximum request size
-                .and(warp::body::content_length_limit(1024 * 2))
-                .and(warp::post())
-                .and(
-                    warp::body::bytes()
-                        .and_then(move |x| parse_jwt(x, public_key.clone(), audience.clone())),
-                )
-                .and(with(clients.clone()))
-                .and(with(client_emoji_sender.clone()))
-                .and_then(handler::register_jwt_handler);
-
-            (
-                None,
-                Some(
-                    health_route
-                        .or(register_route)
-                        .or(client_ws_route)
-                        .or(client_spa),
-                ),
-            )
-        }
-    };
-
-    // Admin/Presenter routes
-    let update = warp::path!("update")
+    let presentation_capture = presentations.clone();
+    let new_presentation = warp::path!("new")
         .and(warp::post())
-        .and(warp::body::json())
-        .and(with(clients.clone()))
-        .and(with(configuration_sender.clone()))
-        .and_then(handler::update_handler);
+        // Set maximum request size
+        .and(warp::body::content_length_limit(1024 * 4))
+        .and(warp::body::form().and_then(move |provided_token| {
+            new_presentation(
+                configuration.new_presentation_signing_key.clone(),
+                provided_token,
+                presentation_capture.clone(),
+            )
+        }))
+        .and(with(presentations.clone()))
+        .and_then(handler::new_presentation_hander);
 
-    let presenter_emoji_stream = warp::path("emoji_stream")
-        .and(warp::ws())
-        .and(warp::path::param())
-        .and(with(presenters.clone()))
-        .and_then(handler::presenter_ws_handler);
+    let presentation_capture = presentations.clone();
+    let join_route = warp::path!("join")
+        .and(warp::post())
+        // Set maximum request size
+        .and(warp::body::content_length_limit(1024 * 2))
+        .and(warp::body::bytes().and_then(move |provided_token| {
+            join_presentation(provided_token, presentation_capture.clone())
+        }))
+        .and(with(presentations.clone()))
+        .and_then(handler::join_jwt_handler);
 
+    // SPAs
+    let join_spa = warp::path::end().and(warp::fs::file("web/join.html"));
     let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
+    let new_spa = warp::path("new").and(warp::fs::file("web/new.html"));
 
-    let presenter_routes = update.or(presenter_emoji_stream).or(presenter_spa);
+    let all_routes = health_route
+        .or(new_presentation)
+        .or(join_route)
+        .or(client_ws_route)
+        .or(join_spa)
+        .or(presenter_spa)
+        .or(new_spa);
 
+    let presentations_clone = presentations.clone();
     tokio::task::spawn(async move {
-        processor::handle_sent_messages(client_emoji_receiver, configuration_receiver, presenters)
-            .await;
+        processor::handle_sent_messages(user_message_receiver, presentations_clone).await;
 
-        panic!("Emoji receiver was dropped?");
+        panic!("User message receiver was dropped?");
     });
 
-    let client_address: SocketAddr = configuration.client_server_address.parse().unwrap();
-    let presenter_address: SocketAddr = configuration.presentation_server_address.parse().unwrap();
+    let service_address: SocketAddr = configuration.service_address.parse().unwrap();
 
-    match possible_routes {
-        (None, Some(cr)) => tokio::join!(
-            warp::serve(cr).run(client_address),
-            warp::serve(presenter_routes).run(presenter_address)
-        ),
-        (Some(cr), None) => tokio::join!(
-            warp::serve(cr).run(client_address),
-            warp::serve(presenter_routes).run(presenter_address)
-        ),
-        _ => unreachable!(
-            "Configuration system is broken as authentication was not properly configured"
-        ),
-    };
-}
-
-async fn parse_jwt(
-    token: warp::hyper::body::Bytes,
-    private_key: String,
-    audience: Option<String>,
-) -> Result<JwtClaims, warp::reject::Rejection> {
-    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::ES256);
-
-    if let Some(audience) = audience {
-        validation.set_audience(&vec![audience]);
-    };
-
-    let token = String::from_utf8(token.to_vec()).map_err(|e| {
-        error!("User rejected due to non UTF8 JWT: {e}");
-        warp::reject::not_found()
-    })?;
-    let token = decode::<JwtClaims>(
-        &token,
-        &DecodingKey::from_ec_pem(private_key.as_bytes()).unwrap(),
-        &validation,
-    )
-    .map_err(|e| {
-        error!("User rejected due to JWT error: {e}");
-        warp::reject::not_found()
-    })?;
-
-    Ok(token.claims)
+    warp::serve(all_routes).run(service_address).await
 }
 
 fn with<T>(item: T) -> impl Filter<Extract = (T,), Error = Infallible> + Clone

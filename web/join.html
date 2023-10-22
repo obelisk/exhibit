@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Exhibit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #333;
+            background: #fdfdfd;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 1px 13px 13px #eee;
+        }
+
+        .title-group {
+            margin-bottom: 20px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .title-group>.title {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+       /*
+        .title-group>p {}
+        */
+
+        #slide-message {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 500;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .reaction-help {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        #reaction-container {
+            display: flex;
+            padding: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #reaction-container.disabled {
+            filter: brightness(0.90);
+            background: #fff;
+            pointer-events: none;
+        }
+
+        .reaction-button {
+            width: 20%;
+            height: 70px;
+            padding: 20px;
+            margin: 20px;
+            cursor: pointer;
+            background: #fafafa;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 55px;
+        }
+
+        .display-none {
+            display: none
+        }
+    </style>
+</head>
+<script>
+    function set_emojis(emojis, slide) {
+        // Clear the old emojis
+        var reactions = document.getElementById("reaction-container");
+        reactions.innerHTML = "";
+
+        // Add the new emojis
+        emojis.forEach(element => {
+            var reaction_button = document.createElement('div');
+            reaction_button.className = 'reaction-button';
+            reaction_button.innerText = element;
+            reaction_button.onclick = function () {
+                
+                let emoji_obj = { 
+                    "User" : {
+                        "Emoji": {
+                            "slide": slide,
+                            "emoji": element,
+                            "size": 0//parseInt(document.getElementById("emoji-size").value)
+                        }
+                    }
+                };
+                console.log("Sending emoji object: " + JSON.stringify(emoji_obj));
+                document.socket.send(JSON.stringify(emoji_obj));
+                setDisabled()
+            };
+
+            reactions.appendChild(reaction_button);
+        });
+    }
+
+    function reset_websocket() {
+        // Save the token so we can reuse it if the connection dies
+        if (document.getElementById("registration_key").value != undefined) {
+            document.saved_token = document.getElementById("registration_key").value;
+        }
+
+        fetch("/join", {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, *cors, same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: "same-origin", // include, *same-origin, omit
+            redirect: "follow", // manual, *follow, error
+            referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            body: document.saved_token,
+        }).then((data) => {
+            console.log(data.json().then((data) => {
+                if (document.socket != null) {
+                    document.socket.close();
+                    document.socket = null;
+                }
+                console.log(data);
+                document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
+
+                document.socket.addEventListener("close", (event) => {
+                    console.log("Socket closed. Waiting 5 seconds to reconnect.");
+                    // Wait 5 seconds
+                    window.setTimeout(() => {
+                        document.socket = null;
+                        reset_websocket();
+                    }, 5000);
+                });
+
+                document.socket.addEventListener("message", (event) => {
+                    console.log(event.data);
+                    let update = JSON.parse(event.data);
+
+                    // If this message is informing the client of a new slide
+                    // Data looks like:
+                    // {"NewSlide":{"message":"Welcome To Exhibit!","emojis":["👋","😲","🙌","👏"]}}
+                    if (update["NewSlide"] !== undefined) {
+                        let new_slide = update["NewSlide"];
+                        // Set the slide title
+                        document.getElementById("slide-message").innerText = new_slide["message"];
+                        // Set the emojis
+                        set_emojis(new_slide["emojis"], new_slide["slide"]);
+                    } else if (update["ratelimit_status"] !== undefined) {
+                        // This is informing the users of their ratelimits
+                        var rl_elem = document.getElementById("ratelimit_info");
+                        rl_elem.innerHTML = "";
+                        Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {
+                            const [key, value] = element;
+                            var li = document.createElement("li");
+                            li.appendChild(document.createTextNode(key + " - " + value));
+                            rl_elem.appendChild(li);
+                        });
+                    } else if (update["InitialPresentationData"] !== undefined) {
+                        // This is the initial presentation data
+                        // Set the presentation title
+                        let title = update["InitialPresentationData"]["title"];
+                        document.getElementById("title").innerText = title;
+
+                        // Set the slide message and emojis if presentation has started
+                        if (update["InitialPresentationData"]["settings"] !== null) {
+                            let slide_data = update["InitialPresentationData"]["settings"];
+                            document.getElementById("slide-message").innerText = slide_data["message"];
+
+                            // Set the emojis
+                            set_emojis(slide_data["emojis"], slide_data["slide"]);
+                        }
+                    } else {
+                        console.log("Unknown message type: " + event.data);
+                    }
+                });
+            }));
+        });
+    }
+
+    function setDisabled() {
+        document.getElementById("reaction-container").classList.add("disabled")
+        window.setTimeout(() => {
+            document.getElementById("reaction-container").classList.remove("disabled")
+        }, 10 * 1000)
+    }
+</script>
+
+<body>
+    <div class="container">
+        <div class="title-group">
+            <div class="title" id="title">Join A Presentation</div>
+            <ul id="ratelimit_info">
+            </ul>
+        </div>
+        <label for="registration_key">Registration Key:</label>
+        <input type="text" id="registration_key" name="registration_key"><br><br>
+        <button onclick="reset_websocket()">Join Presentation</button>
+        <!-- <div class="title-group">
+            <label for="emoji-size">Choose Emoji Size:</label>
+            <select name="emoji-size" id="emoji-size">
+                <option value=0>Normal</option>
+                <option value=1>Large</option>
+                <option value=2>Huge</option>
+            </select>
+        </div> -->
+
+        <div id="slide-message">
+            <!-- Dynamically add current slide message here -->
+        </div>
+
+        <div class="reaction-help">Send a reaction below (every 10s):</div>
+        <div id="reaction-container" class="">
+            <!-- Dynamically add reaction options here -->
+        </div>
+    </div>
+</body>
+
+</html>

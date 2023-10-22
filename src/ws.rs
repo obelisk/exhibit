@@ -1,14 +1,21 @@
-use crate::{Client, Clients, IdentifiedUserMessage, Presenter, Presenters, UserMessage};
+use crate::{Client, IdentifiedIncomingMessage, Presentation, IncomingMessage, OutgoingUserMessage};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
-pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mut client: Client) {
+pub async fn client_connection(
+    ws: WebSocket,
+    presentation: Presentation,
+    guid: String,
+    mut client: Client,
+    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
+    is_presenter: bool,
+) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
-    let emoji_sender = client.emoji_sender.clone();
     let identity = client.identity.clone();
+    let presentation_id = &presentation.id;
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);
     tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
@@ -17,24 +24,44 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
         }
     }));
 
-    {
-        client.sender = Some(client_sender);
-        let mut clients = clients.write().await;
+    // Upgrade the client with the sender
+    client.sender = Some(client_sender.clone());
 
-        let user_client = match clients.get_mut(&guid) {
-            Some(client) => client,
-            None => {
-                error!(
+    // TODO @obelisk: Come back and make this code better
+    // Create strict scoping here to release the lock
+    {
+        let mut upgrade_client = if is_presenter {
+            match presentation.presenters.get_mut(&guid) {
+                Some(client) => client,
+                None => {
+                    error!(
+                    "{identity} (as a presenter) could not upgrade their client because they have not registered"
+                );
+                    return;
+                }
+            }
+        } else {
+            match presentation.clients.get_mut(&guid) {
+                Some(client) => client,
+                None => {
+                    error!(
                     "{identity} could not upgrade their client because they have not registered"
                 );
-                return;
+                    return;
+                }
             }
         };
 
-        *user_client = client;
+        *upgrade_client = client.clone();
     }
 
-    info!("{identity} has new client with {guid}");
+    info!("{identity} has new client with {guid} for {presentation_id}");
+
+    // Send the initial presentation data including the current slide data
+    let _ = client_sender.send(Ok(Message::text(OutgoingUserMessage::InitialPresentationData {
+        title: presentation.presentation_data.title.clone(),
+        settings: presentation.slide_settings.read().await.clone()
+    }.json())));
 
     while let Some(result) = client_ws_rcv.next().await {
         let msg = match result {
@@ -48,26 +75,33 @@ pub async fn client_connection(ws: WebSocket, guid: String, clients: Clients, mu
                 break;
             }
         };
-        client_msg(&identity, &guid, msg, emoji_sender.clone(), clients.clone()).await;
+        client_msg(
+            &identity,
+            &guid,
+            msg,
+            user_message_sender.clone(),
+            client.clone(),
+        )
+        .await;
     }
 
-    if let Some(_) = clients.write().await.remove(&guid) {
-        info!("{identity} - {guid} disconnected");
+    if let Some(_) = presentation.clients.remove(&guid) {
+        info!("{identity} - {guid} disconnected from {presentation_id}");
     } else {
-        error!("{identity} - {guid} was already disconnected")
+        error!("{identity} - {guid} was already disconnected from {presentation_id}")
     }
 }
 
 async fn client_msg(
     identity: &str,
-    guid: &str,
+    _guid: &str,
     msg: Message,
-    sender: UnboundedSender<IdentifiedUserMessage>,
-    clients: Clients,
+    sender: UnboundedSender<IdentifiedIncomingMessage>,
+    client: Client,
 ) {
     info!("received message from {}: {:?}", identity, msg);
 
-    let user_message = match msg.to_str().map(|x| serde_json::from_str::<UserMessage>(x)) {
+    let message = match msg.to_str().map(|x| serde_json::from_str::<IncomingMessage>(x)) {
         Ok(Ok(m)) => m,
         _ => {
             error!("{identity} sent an invalid message");
@@ -75,37 +109,8 @@ async fn client_msg(
         }
     };
 
-    let _ = sender.send(IdentifiedUserMessage {
-        identity: identity.to_string(),
-        guid_identifier: guid.to_string(),
-        clients,
-        user_message,
+    let _ = sender.send(IdentifiedIncomingMessage {
+        client,
+        message,
     });
-}
-
-pub async fn presenter_connection(ws: WebSocket, guid: String, presenters: Presenters) {
-    let (presenter_ws_sender, mut presenter_ws_rcv) = ws.split();
-    let (presenter_sender, presenter_rcv) = mpsc::unbounded_channel();
-
-    presenters.write().await.insert(
-        guid.clone(),
-        Presenter {
-            sender: presenter_sender,
-        },
-    );
-
-    let presenter_rcv = UnboundedReceiverStream::new(presenter_rcv);
-    tokio::task::spawn(presenter_rcv.forward(presenter_ws_sender).map(|result| {
-        if let Err(e) = result {
-            error!("error sending websocket msg: {}", e);
-        }
-    }));
-
-    while let Some(_) = presenter_ws_rcv.next().await {}
-
-    if let Some(_) = presenters.write().await.remove(&guid) {
-        info!("Presenter {guid} - disconnected");
-    } else {
-        error!("Presenter {guid} - was already disconnected")
-    }
 }
