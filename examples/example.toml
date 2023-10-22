@@ -1,4 +1,4 @@
-service_address = "127.0.0.1"
+service_address = "0.0.0.0"
 service_port = 8000
 
 # Key from jwt.io
