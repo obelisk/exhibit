@@ -74,6 +74,16 @@
                     console.log(event.data);
                     let update = JSON.parse(event.data);
 
+                    document.socket.addEventListener("close", (event) => {
+                        console.log("Socket closed. Waiting 2 seconds to reconnect.");
+                        // Wait 5 seconds
+                        window.setTimeout(() => {
+                            document.socket = null;
+                            reset_websocket();
+                        }, 2000);
+                    });
+
+
                     if (update["Emoji"] !== undefined) {
                         let new_reaction_data = update["Emoji"];
                         // Spawn the emoji
