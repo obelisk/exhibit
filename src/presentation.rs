@@ -66,7 +66,7 @@ impl Presentation {
     pub fn new_poll(&self, name: impl Into<String>) -> Result<(), String> {
         let name = name.into();
         if self.presentation_data.polls.contains_key(&name) {
-            return Err(format!("Poll with name {} already exists", name));
+            Err(format!("Poll with name {} already exists", name))
         } else {
             self.presentation_data.polls.insert(name, DashMap::new());
             Ok(())

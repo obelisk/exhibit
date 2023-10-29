@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
 use warp::filters::ws::Message;
 
@@ -7,6 +9,7 @@ use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage};
 #[derive(Clone, Debug, Serialize)]
 pub enum OutgoingPresenterMessage {
     Emoji(EmojiMessage),
+    PollResults(HashMap<String, u64>),
     Error(String),
     //NewSlide(SlideSettings),
 }
@@ -35,11 +38,16 @@ pub struct NewPollMessage {
     pub options: Vec<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GetPollResultsMessage {
+    pub name: String,
+}
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
     NewPoll(NewPollMessage),
+    GetPollResults(GetPollResultsMessage),
     //AddRatelimiter
     //RemoveRatelimiter
 }
@@ -56,7 +64,8 @@ impl std::fmt::Display for IncomingPresenterMessage {
                 f,
                 "New poll: {} with options {:?}",
                 poll.name, poll.options
-            )
+            ),
+            Self::GetPollResults(poll) => write!(f, "Get results for poll {}", poll.name),
         }
     }
 }

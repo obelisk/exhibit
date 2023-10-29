@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use serde::Serialize;
 use warp::ws::Message;
 
 mod emoji;
@@ -9,11 +6,6 @@ use crate::{
     ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Users,
     Presentation, Presenters, OutgoingUserMessage, IncomingPresenterMessage, IncomingUserMessage, Presenter, User,
 };
-
-#[derive(Serialize)]
-struct ClientRateLimitResponse {
-    ratelimit_status: HashMap<String, String>,
-}
 
 pub async fn broadcast_to_presenters(message: OutgoingPresenterMessage, presenters: Presenters) {
     let event = serde_json::to_string(&message).unwrap();
@@ -48,13 +40,13 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             .await;
         }
         IncomingPresenterMessage::NewPoll(poll) => {
-            if let Err(msg) = presentation.new_poll(&poll.name) {
+            if let Err(msg) = presentation.new_poll(poll.name) {
                 warn!("{msg}");
                 presenter.send_ignore_fail(OutgoingPresenterMessage::Error(msg));
-                return;
             }
         }
-    };
+        IncomingPresenterMessage::GetPollResults(_) => todo!(),
+    }
 }
 
 pub async fn handle_user_message_types(user_message: IncomingUserMessage, user: User, presentation: Presentation) {

@@ -27,7 +27,7 @@ pub type Presenters = Arc<DashMap<String, Presenter>>;
 pub type Presentations = Arc<DashMap<String, Presentation>>;
 
 #[derive(Debug, Clone)]
-pub struct Client<T> where T: Clone {
+pub struct Client<T> where T: OutgoingMessage {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
     pub closer: Option<mpsc::UnboundedSender<()>>,
     pub identity: String,
@@ -97,6 +97,12 @@ pub struct Users {
     client_mapping: Arc<DashMap<String, String>>,
     /// Maps the guid provided by the client to the client connection
     guid_mapping: Arc<DashMap<String, User>>,
+}
+
+impl Default for Users {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Users {
