@@ -46,9 +46,15 @@ pub struct Ratelimiter {
     global_data: DashMap<String, u64>,
 }
 
+impl Default for Ratelimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ratelimiter {
     pub fn new() -> Self {
-        return Self {
+        Self {
             // Contains all the configured limiters
             limiters: DashMap::default(),
 
@@ -61,7 +67,7 @@ impl Ratelimiter {
             // data that is useful to many limiters such as last time a message
             // was successfully sent
             global_data: DashMap::default(),
-        };
+        }
     }
 
     /// Adds a ratelimit to the ratelimiter. If a ratelimit with that name
@@ -97,7 +103,7 @@ impl Ratelimiter {
             let update = item.value().check_allowed(
                 last_message_time,
                 current_time,
-                &item.key(),
+                item.key(),
                 &self.limiter_data,
                 &client,
                 message,

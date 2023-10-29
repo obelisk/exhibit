@@ -26,7 +26,7 @@ pub async fn handle_user_emoji(
     let emoji = &emoji_message.emoji;
     let identity = &client.identity;
     // Check that they are sending a valid emoji for the current slide
-    if !slide_settings.emojis.contains(&emoji) {
+    if !slide_settings.emojis.contains(emoji) {
         error!("{identity} sent invalid {emoji} for current slide");
         return;
     }

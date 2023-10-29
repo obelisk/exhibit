@@ -46,7 +46,10 @@ pub struct NewSlideMessage {
 
 impl std::fmt::Display for IncomingMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self}")
+        match self {
+            IncomingMessage::Presenter(x) => write!(f, "{x}"),
+            IncomingMessage::User(x) => write!(f, "{x}"),
+        }
     }
 }
 

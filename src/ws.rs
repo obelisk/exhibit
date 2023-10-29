@@ -85,7 +85,7 @@ pub async fn client_connection(
         .await;
     }
 
-    if let Some(_) = presentation.clients.remove(&guid) {
+    if presentation.clients.remove(&guid).is_some() {
         info!("{identity} - {guid} disconnected from {presentation_id}");
     } else {
         error!("{identity} - {guid} was already disconnected from {presentation_id}")
@@ -101,7 +101,7 @@ async fn client_msg(
 ) {
     info!("received message from {}: {:?}", identity, msg);
 
-    let message = match msg.to_str().map(|x| serde_json::from_str::<IncomingMessage>(x)) {
+    let message = match msg.to_str().map(serde_json::from_str::<IncomingMessage>) {
         Ok(Ok(m)) => m,
         _ => {
             error!("{identity} sent an invalid message");
