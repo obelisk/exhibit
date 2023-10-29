@@ -70,12 +70,12 @@ async fn main() {
         .or(presenter_spa)
         .or(new_spa);
 
-    let presentations_clone = presentations.clone();
-    tokio::task::spawn(async move {
-        processor::handle_sent_messages(user_message_receiver, presentations_clone).await;
+    //let presentations_clone = presentations.clone();
+    // tokio::task::spawn(async move {
+    //     processor::handle_sent_messages(user_message_receiver, presentations_clone).await;
 
-        panic!("User message receiver was dropped?");
-    });
+    //     panic!("User message receiver was dropped?");
+    // });
 
     let service_address = SocketAddr::from_str(&format!("{}:{}",configuration.service_address, configuration.service_port)).unwrap();
 

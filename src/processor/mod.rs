@@ -44,7 +44,7 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
 
             broadcast_to_clients(
                 OutgoingUserMessage::NewSlide(msg.slide_settings),
-                presentation.clients,
+                presentation.users,
             )
             .await;
         }
@@ -115,26 +115,26 @@ async fn handle_message<T>(message: IdentifiedIncomingMessage<T>, presentation: 
     }
 }
 
-pub async fn handle_sent_messages<T>(
-    mut user_message_receiver: UnboundedReceiver<IdentifiedIncomingMessage<T>>,
-    presentations: Presentations,
-) {
-    loop {
-        tokio::select! {
-            msg = user_message_receiver.recv() => {
-                let msg = match msg {
-                    Some(m) => m,
-                    None => break,
-                };
+// pub async fn handle_sent_messages<T>(
+//     mut user_message_receiver: UnboundedReceiver<IdentifiedIncomingMessage<T>>,
+//     presentations: Presentations,
+// ) {
+//     loop {
+//         tokio::select! {
+//             msg = user_message_receiver.recv() => {
+//                 let msg = match msg {
+//                     Some(m) => m,
+//                     None => break,
+//                 };
 
-                if let Some(presentation) = presentations.get(&msg.client.presentation) {
-                    tokio::spawn({
-                        handle_message(msg, presentation.value().clone())
-                    });
-                } else {
-                    warn!("{} send a message for presentation {} which doesn't exist: {msg}", msg.client.identity, msg.client.presentation);
-                }
-            }
-        };
-    }
-}
+//                 if let Some(presentation) = presentations.get(&msg.client.presentation) {
+//                     tokio::spawn({
+//                         handle_message(msg, presentation.value().clone())
+//                     });
+//                 } else {
+//                     warn!("{} send a message for presentation {} which doesn't exist: {msg}", msg.client.identity, msg.client.presentation);
+//                 }
+//             }
+//         };
+//     }
+// }

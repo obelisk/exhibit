@@ -18,7 +18,7 @@ pub async fn join_handler(
     user_auth_data: ClientJoinPresentationData,
     presentations: Presentations,
 ) -> Result<impl Reply> {
-    debug!("Got user joining call");
+    debug!("Got joining call");
 
     let presentation = presentations
         .get(&user_auth_data.presentation)
@@ -55,7 +55,7 @@ pub async fn join_handler(
     }))
 }
 
-pub async fn ws_handler<T>(
+pub async fn ws_handler<T: Clone>(
     presentation_id: String,
     guid: String,
     ws: warp::ws::Ws,
@@ -70,12 +70,11 @@ pub async fn ws_handler<T>(
     let presentation = presentation.value().to_owned();
 
     // Is there a registered user for this guid
-    let is_user =  presentation.users.get_by_guid(&guid).map(|x| x.clone()).is_some();
+    let is_user = presentation.users.contains_guid(&guid);
     // Is there a registered presenter for this guid
-    let is_presenter =  presentation
+    let is_presenter = presentation
         .presenters
-        .get(&guid)
-        .map(|x| x.value().clone()).is_some();
+        .contains_key(&guid);
 
     // If there is neither
     if !is_user && !is_presenter {
@@ -86,7 +85,7 @@ pub async fn ws_handler<T>(
     Ok(ws
         .max_message_size(1024 * 4) // Set max message size to 4KiB
         .on_upgrade(move |socket| {
-            ws::client_connection(
+            ws::new_connection(
                 socket,
                 presentation,
                 guid,

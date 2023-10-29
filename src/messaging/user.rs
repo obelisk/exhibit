@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage};
+use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage, OutgoingMessage};
 
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +27,8 @@ pub enum OutgoingUserMessage {
     NewSlide(SlideSettings),
     Disconnected(String),
 }
+
+impl OutgoingMessage for OutgoingUserMessage {}
 
 impl OutgoingUserMessage {
     pub fn json(&self) -> String {

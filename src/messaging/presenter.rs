@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use warp::filters::ws::Message;
 
-use crate::{EmojiMessage, NewSlideMessage};
+use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage};
 
 
 #[derive(Clone, Debug, Serialize)]
@@ -10,6 +10,8 @@ pub enum OutgoingPresenterMessage {
     Error(String),
     //NewSlide(SlideSettings),
 }
+
+impl OutgoingMessage for OutgoingPresenterMessage {}
 
 impl OutgoingPresenterMessage {
     pub fn json(&self) -> String {

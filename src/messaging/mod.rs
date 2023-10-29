@@ -8,6 +8,8 @@ pub mod user;
 pub use presenter::*;
 pub use user::*;
 
+pub trait OutgoingMessage: Clone {}
+
 #[derive(Debug, Deserialize)]
 pub enum IncomingMessage {
     Presenter(presenter::IncomingPresenterMessage),
@@ -15,7 +17,7 @@ pub enum IncomingMessage {
 }
 
 #[derive(Debug)]
-pub struct IdentifiedIncomingMessage<T> {
+pub struct IdentifiedIncomingMessage<T: OutgoingMessage> {
     pub client: T,
     pub message: IncomingMessage,
 }

@@ -107,6 +107,10 @@ impl Users {
         }
     }
 
+    pub fn contains_guid(&self, guid: &str) -> bool {
+        self.guid_mapping.contains_key(guid)
+    }
+
     pub fn get_by_guid(&self, guid: &str) -> Option<User> {
         let guid_mapping = self.guid_mapping.get(guid)?;
         //let client = self.client_connections.get(guid_mapping.as_str())?;
