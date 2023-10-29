@@ -18,15 +18,11 @@ pub use messaging::*;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-use warp::{Rejection, filters::ws::Message};
+use warp::filters::ws::Message;
 
-// A user can be connected on multiple devices so we have a hashmap
-// linking their identity to another hashmap of their connected
-// devices
 pub type Clients = Arc<DashMap<String, Client>>;
 pub type Presenters = Arc<DashMap<String, Client>>;
 pub type Presentations = Arc<DashMap<String, Presentation>>;
-pub type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, Clone)]
 pub struct Client {

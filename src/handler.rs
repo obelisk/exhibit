@@ -1,11 +1,14 @@
 use crate::{
     ws, Client, ClientJoinPresentationData, Clients, IdentifiedIncomingMessage,
-    Presentation, Presentations, Presenters, Result,
+    Presentation, Presentations, Presenters,
 };
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
-use warp::{http::StatusCode, reply::json, Reply};
+use warp::{http::StatusCode, reply::json, Reply, reject::Rejection};
+
+
+type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Serialize, Debug)]
 pub struct RegisterResponse {

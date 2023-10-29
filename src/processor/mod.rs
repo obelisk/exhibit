@@ -26,7 +26,7 @@ pub async fn broadcast_to_presenters(message: OutgoingPresenterMessage, presente
     });
 }
 
-pub async fn broadcast_to_clients(message: OutgoingPresenterMessage, clients: Clients) {
+pub async fn broadcast_to_clients(message: OutgoingUserMessage, clients: Clients) {
     let event = serde_json::to_string(&message).unwrap();
     clients.iter().for_each(|item| {
         let connected_client = item.value();
@@ -43,7 +43,7 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             *slide_settings = Some(msg.slide_settings.clone());
 
             broadcast_to_clients(
-                OutgoingPresenterMessage::NewSlide(msg.slide_settings),
+                OutgoingUserMessage::NewSlide(msg.slide_settings),
                 presentation.clients,
             )
             .await;

@@ -8,7 +8,21 @@ use crate::{Clients, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter},
 
 #[derive(Clone)]
 pub struct PresentationData {
+    /// The title of the presentation. Typically this is only
+    /// sent to clients when they first connect.
     pub title: String,
+    /// Created poles in the presentation. The key is the name of the pole.
+    /// the value is map from user identity to what their answer was.
+    pub poles: Arc<DashMap<String, DashMap<String, u32>>>,
+}
+
+impl PresentationData {
+    pub fn new(title: String) -> Self {
+        Self {
+            title,
+            poles: Arc::new(DashMap::new()),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -32,7 +46,7 @@ impl Presentation {
         authentication_key: DecodingKey,
         title: String,
     ) -> Self {
-        // Create a default 10s ratelimiter
+        // Create a default 15s ratelimiter
         let ratelimiter = Arc::new(Ratelimiter::new());
         ratelimiter.add_ratelimit("15s".to_string(), Arc::new(TimeLimiter::new(15)));
 
@@ -45,7 +59,7 @@ impl Presentation {
             ratelimiter,
             slide_settings: Arc::new(None.into()),
             encrypted,
-            presentation_data: PresentationData { title }
+            presentation_data: PresentationData::new(title),
         }
     }
 }

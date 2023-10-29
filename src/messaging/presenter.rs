@@ -1,18 +1,24 @@
 use serde::{Serialize, Deserialize};
 
-use crate::{EmojiMessage, SlideSettings, NewSlideMessage};
+use crate::{EmojiMessage, NewSlideMessage};
 
 
 #[derive(Debug, Serialize)]
 pub enum OutgoingPresenterMessage {
     Emoji(EmojiMessage),
-    NewSlide(SlideSettings),
+    //NewSlide(SlideSettings),
 }
+
+// pub struct CreatePoleMessage {
+//     pub name: String,
+//     pub options: Vec<String>,
+// }
 
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
+    //CreatePole(CreatePoleMessage),
 }
 
 impl std::fmt::Display for IncomingPresenterMessage {
