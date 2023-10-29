@@ -23,6 +23,7 @@ use warp::filters::ws::Message;
 pub type Presenters = Arc<DashMap<String, Client>>;
 pub type Presentations = Arc<DashMap<String, Presentation>>;
 
+// TODO @obelisk: Add generic type here to disambiguate presenter and users
 #[derive(Debug, Clone)]
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
@@ -38,6 +39,12 @@ impl Client {
             let _ = sender.send(());
             self.sender = None;
             self.closer = None;
+        }
+    }
+
+    pub fn send_ignore_fail(&self, message: Message) {
+        if let Some(ref sender) = self.sender {
+            let _ = sender.send(Ok(message));
         }
     }
 }

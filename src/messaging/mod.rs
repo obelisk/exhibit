@@ -8,7 +8,6 @@ pub mod user;
 pub use presenter::*;
 pub use user::*;
 
-
 #[derive(Debug, Deserialize)]
 pub enum IncomingMessage {
     Presenter(presenter::IncomingPresenterMessage),

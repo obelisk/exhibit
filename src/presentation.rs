@@ -11,16 +11,16 @@ pub struct PresentationData {
     /// The title of the presentation. Typically this is only
     /// sent to clients when they first connect.
     pub title: String,
-    /// Created poles in the presentation. The key is the name of the pole.
-    /// the value is map from user identity to what their answer was.
-    pub poles: Arc<DashMap<String, DashMap<String, u32>>>,
+    /// Created poll in the presentation. The key is the name of the poll.
+    /// The value is map from user identity to what their answer was.
+    pub polls: Arc<DashMap<String, DashMap<String, u32>>>,
 }
 
 impl PresentationData {
     pub fn new(title: String) -> Self {
         Self {
             title,
-            poles: Arc::new(DashMap::new()),
+            polls: Arc::new(DashMap::new()),
         }
     }
 }
@@ -35,7 +35,7 @@ pub struct Presentation {
     pub ratelimiter: Arc<Ratelimiter>,
     pub slide_settings: Arc<RwLock<Option<SlideSettings>>>,
     pub encrypted: bool,
-    pub presentation_data: PresentationData,
+    presentation_data: PresentationData,
 }
 
 impl Presentation {
@@ -61,5 +61,19 @@ impl Presentation {
             encrypted,
             presentation_data: PresentationData::new(title),
         }
+    }
+
+    pub fn new_poll(&self, name: impl Into<String>) -> Result<(), String> {
+        let name = name.into();
+        if self.presentation_data.polls.contains_key(&name) {
+            return Err(format!("Poll with name {} already exists", name));
+        } else {
+            self.presentation_data.polls.insert(name, DashMap::new());
+            Ok(())
+        }
+    }
+
+    pub fn get_title(&self) -> String {
+        self.presentation_data.title.clone()
     }
 }

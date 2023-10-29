@@ -62,7 +62,7 @@ pub async fn client_connection(
 
     // Send the initial presentation data including the current slide data
     let _ = client_sender.send(Ok(Message::text(OutgoingUserMessage::InitialPresentationData {
-        title: presentation.presentation_data.title.clone(),
+        title: presentation.get_title(),
         settings: presentation.slide_settings.read().await.clone()
     }.json())));
 

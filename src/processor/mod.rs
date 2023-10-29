@@ -36,7 +36,7 @@ pub async fn broadcast_to_clients(message: OutgoingUserMessage, clients: Clients
     });
 }
 
-pub async fn handle_presenter_message_types(presenter_message: IncomingPresenterMessage, _client: Client, presentation: Presentation) {
+pub async fn handle_presenter_message_types(presenter_message: IncomingPresenterMessage, client: Client, presentation: Presentation) {
     match presenter_message {
         IncomingPresenterMessage::NewSlide(msg) => {
             let mut slide_settings = presentation.slide_settings.write().await;
@@ -47,6 +47,13 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
                 presentation.clients,
             )
             .await;
+        }
+        IncomingPresenterMessage::NewPoll(poll) => {
+            if let Err(msg) = presentation.new_poll(&poll.name) {
+                warn!("{msg}");
+                client.send_ignore_fail(OutgoingPresenterMessage::Error(msg).to_sendable_message());
+                return;
+            }
         }
     };
 }
