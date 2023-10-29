@@ -18,6 +18,8 @@ pub enum OutgoingPresenterMessage {
 #[derive(Debug, Deserialize)]
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
+    //AddRatelimiter
+    //RemoveRatelimiter
     //CreatePole(CreatePoleMessage),
 }
 

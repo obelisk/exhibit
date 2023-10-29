@@ -53,7 +53,7 @@ impl Presentation {
         Self {
             id: presentation_id,
             presenter_identity,
-            clients: Arc::new(DashMap::new()),
+            clients: Clients::new(),
             presenters: Arc::new(DashMap::new()),
             authentication_key,
             ratelimiter,

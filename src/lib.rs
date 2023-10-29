@@ -15,23 +15,80 @@ use std::sync::Arc;
 pub use presentation::Presentation;
 pub use messaging::*;
 
-use dashmap::DashMap;
+use dashmap::{DashMap, mapref::multiple::RefMulti};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use warp::filters::ws::Message;
 
-pub type Clients = Arc<DashMap<String, Client>>;
 pub type Presenters = Arc<DashMap<String, Client>>;
 pub type Presentations = Arc<DashMap<String, Presentation>>;
 
 #[derive(Debug, Clone)]
 pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
+    pub closer: Option<mpsc::UnboundedSender<()>>,
     pub identity: String,
     pub guid: String,
     pub presentation: String,
 }
 
+impl Client {
+    pub fn close(&mut self) {
+        if let Some(sender) = self.closer.clone() {
+            let _ = sender.send(());
+            self.sender = None;
+            self.closer = None;
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Clients {
+    /// Maps the identifier provided by the authentication
+    /// layer to the current websocket guid
+    client_mapping: Arc<DashMap<String, String>>,
+    /// Maps the guid provided by the client to the client connection
+    guid_mapping: Arc<DashMap<String, Client>>,
+}
+
+impl Clients {
+    pub fn new() -> Self {
+        Self {
+            client_mapping: Arc::new(DashMap::new()),
+            guid_mapping: Arc::new(DashMap::new()),
+        }
+    }
+
+    pub fn get_by_guid(&self, guid: &str) -> Option<Client> {
+        let guid_mapping = self.guid_mapping.get(guid)?;
+        //let client = self.client_connections.get(guid_mapping.as_str())?;
+        Some(guid_mapping.value().clone())
+    }
+
+    pub fn insert(&self, client: Client) {
+        debug!("inserting client with guid: {}", client.guid);
+        // Clear the old session if it exists first
+        if let Some(old_guid) = self.client_mapping.remove(client.identity.as_str()).map(|x| x.1) {
+            debug!("There exists a previous connection for this client: [{}]. Closing it.", old_guid);
+            if let Some(mut client) = self.guid_mapping.remove(&old_guid) {
+                client.1.close();
+            }
+        }
+
+        self.guid_mapping.insert(client.guid.clone(), client.clone());
+        self.client_mapping.insert(client.identity.clone(), client.guid.clone());
+    }
+
+    pub fn remove(&self, client: &Client) -> bool {
+        debug!("Removing client with guid: {}", client.guid);
+        self.client_mapping.remove(&client.identity);
+        self.guid_mapping.remove(&client.guid).is_some()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = RefMulti<String, Client>> {
+        self.guid_mapping.iter()
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SlideSettings {

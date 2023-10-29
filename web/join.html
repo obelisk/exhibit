@@ -121,6 +121,7 @@
         if (document.getElementById("registration_key").value != undefined) {
             document.saved_token = document.getElementById("registration_key").value;
         }
+        document.intentional_disconnect = false;
 
         fetch("/join", {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
@@ -140,12 +141,14 @@
                 document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
 
                 document.socket.addEventListener("close", (event) => {
-                    console.log("Socket closed. Waiting 5 seconds to reconnect.");
-                    // Wait 5 seconds
-                    window.setTimeout(() => {
-                        document.socket = null;
-                        reset_websocket();
-                    }, 5000);
+                    // Wait 5 seconds if we were not intentionally disconnected
+                    if (document.intentional_disconnect != true) {
+                        console.log("Socket closed. Waiting 5 seconds to reconnect.");
+                        window.setTimeout(() => {
+                            document.socket = null;
+                            reset_websocket();
+                        }, 5000);
+                    }
                 });
 
                 document.socket.addEventListener("message", (event) => {
@@ -161,11 +164,11 @@
                         document.getElementById("slide-message").innerText = new_slide["message"];
                         // Set the emojis
                         set_emojis(new_slide["emojis"], new_slide["slide"]);
-                    } else if (update["ratelimit_status"] !== undefined) {
+                    } else if (update["RatelimiterResponse"] !== undefined) {
                         // This is informing the users of their ratelimits
                         var rl_elem = document.getElementById("ratelimit_info");
                         rl_elem.innerHTML = "";
-                        Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {
+                        Object.entries(update["RatelimiterResponse"]).forEach(element => {
                             const [key, value] = element;
                             var li = document.createElement("li");
                             li.appendChild(document.createTextNode(key + " - " + value));
@@ -185,6 +188,13 @@
                             // Set the emojis
                             set_emojis(slide_data["emojis"], slide_data["slide"]);
                         }
+                    } else if (update["Disconnected"] !== undefined) {
+                        // This is informing the client that they have been disconnected,
+                        // likely because they connected from a different device, tab, or similar
+                        // and the server has disconnected the old connection
+                        console.log("Disconnected from server, will not attempt to reconnect.");
+                        document.getElementById("title").innerText = "Disconnected because another tab or device connected.";
+                        document.intentional_disconnect = true;
                     } else {
                         console.log("Unknown message type: " + event.data);
                     }

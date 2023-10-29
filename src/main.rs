@@ -55,7 +55,7 @@ async fn main() {
             join_presentation(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))
-        .and_then(handler::join_jwt_handler);
+        .and_then(handler::join_handler);
 
     // SPAs
     let join_spa = warp::path::end().and(warp::fs::file("web/join.html"));
