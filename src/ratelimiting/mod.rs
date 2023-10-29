@@ -4,7 +4,7 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use serde::Serialize;
 
-use crate::{Client, IncomingUserMessage};
+use crate::{Client, IncomingUserMessage, OutgoingUserMessage, User};
 
 pub mod time;
 pub mod value;
@@ -34,7 +34,7 @@ pub trait Limiter: Send + Sync {
         current_time: u64,
         data_prefix: &str,
         data: &DashMap<String, u64>,
-        client: &Client,
+        user: &User,
         message: &IncomingUserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
@@ -81,7 +81,7 @@ impl Ratelimiter {
         self.limiters.remove(name);
     }
 
-    pub fn check_allowed(&self, client: Client, message: &IncomingUserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(&self, client: Client<OutgoingUserMessage>, message: &IncomingUserMessage) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event

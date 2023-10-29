@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 
-use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IncomingUserMessage, Client};
+use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IncomingUserMessage, Client, User};
 
 use super::{Limiter, LimiterUpdate};
 
@@ -38,10 +38,10 @@ impl Limiter for ValueLimiter {
         current_time: u64,
         data_prefix: &str,
         data: &DashMap<String, u64>,
-        client: &Client,
+        user: &User,
         message: &IncomingUserMessage,
     ) -> Result<LimiterUpdate, String> {
-        let identity = &client.identity;
+        let identity = &user.identity;
         let message_cost = match &message {
             IncomingUserMessage::Emoji(EmojiMessage { size: 0, .. }) => self.small_cost, // Normal
             IncomingUserMessage::Emoji(EmojiMessage { size: 1, .. }) => self.large_cost, // Large

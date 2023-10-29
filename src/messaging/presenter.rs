@@ -4,7 +4,7 @@ use warp::filters::ws::Message;
 use crate::{EmojiMessage, NewSlideMessage};
 
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub enum OutgoingPresenterMessage {
     Emoji(EmojiMessage),
     Error(String),

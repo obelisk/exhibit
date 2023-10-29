@@ -4,13 +4,11 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
-pub async fn client_connection(
+pub async fn client_connection<T>(
     ws: WebSocket,
     presentation: Presentation,
     guid: String,
-    mut client: Client,
-    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
-    is_presenter: bool,
+    user_message_sender: UnboundedSender<IdentifiedIncomingMessage<T>>,
 ) {
     // Take the web socket and split it into a sender and receiver. The sender and receiver here
     // are not directly connected. The sender sends messages to the client, and receiver receives
@@ -122,12 +120,12 @@ pub async fn client_connection(
     }
 }
 
-async fn client_msg(
+async fn client_msg<T: Clone>(
     identity: &str,
     _guid: &str,
     msg: Message,
-    sender: UnboundedSender<IdentifiedIncomingMessage>,
-    client: Client,
+    sender: UnboundedSender<IdentifiedIncomingMessage<T>>,
+    client: Client<T>,
 ) {
     info!("received message from {}: {:?}", identity, msg);
 

@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use jsonwebtoken::DecodingKey;
 use tokio::sync::RwLock;
 
-use crate::{Clients, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter}, SlideSettings};
+use crate::{Users, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter}, SlideSettings};
 
 #[derive(Clone)]
 pub struct PresentationData {
@@ -29,7 +29,7 @@ impl PresentationData {
 pub struct Presentation {
     pub id: String,
     pub presenter_identity: String,
-    pub clients: Clients,
+    pub users: Users,
     pub presenters: Presenters,
     pub authentication_key: DecodingKey,
     pub ratelimiter: Arc<Ratelimiter>,
@@ -53,7 +53,7 @@ impl Presentation {
         Self {
             id: presentation_id,
             presenter_identity,
-            clients: Clients::new(),
+            users: Users::new(),
             presenters: Arc::new(DashMap::new()),
             authentication_key,
             ratelimiter,

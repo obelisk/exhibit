@@ -1,10 +1,9 @@
 use crate::{
-    ws, Client, ClientJoinPresentationData, IdentifiedIncomingMessage,
-    Presentation, Presentations,
+    ws, ClientJoinPresentationData, IdentifiedIncomingMessage,
+    Presentation, Presentations, Presenter, User,
 };
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedSender;
-use uuid::Uuid;
 use warp::{http::StatusCode, reply::json, Reply, reject::Rejection};
 
 
@@ -20,7 +19,6 @@ pub async fn join_handler(
     presentations: Presentations,
 ) -> Result<impl Reply> {
     debug!("Got user joining call");
-    let guid = Uuid::new_v4().as_simple().to_string();
 
     let presentation = presentations
         .get(&user_auth_data.presentation)
@@ -30,24 +28,25 @@ pub async fn join_handler(
     let presentation_id = &presentation.id;
     let identity = user_auth_data.claims.sub.as_str();
 
-    let new_client = Client {
-        sender: None,
-        closer: None,
-        identity: identity.to_owned(),
-        guid: guid.clone(),
-        presentation: user_auth_data.presentation.clone(),
-    };
-
-    if presentation.presenter_identity == identity {
+    let guid = if presentation.presenter_identity == identity {
         debug!("Registering presenter for [{presentation_id}]");
-        presentation.presenters.insert(guid.clone(), new_client);
+        let new_presenter = Presenter::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_presenter.guid.clone();
+        presentation.presenters.insert(guid.clone(), new_presenter);
+
+        guid
     } else {
         debug!(
-            "Registering client [{}] for presentation [{}]",
+            "Registering user [{}] for presentation [{}]",
             user_auth_data.claims.sub, user_auth_data.presentation
         );
-        presentation.clients.insert(new_client);
-    }
+
+        let new_user = User::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_user.guid.clone();
+        presentation.users.insert(new_user);
+
+        guid
+    };
 
     info!("{identity} is preparing to upgrade connection in [{presentation_id}] with guid [{guid}]");
 
@@ -56,12 +55,12 @@ pub async fn join_handler(
     }))
 }
 
-pub async fn ws_handler(
+pub async fn ws_handler<T>(
     presentation_id: String,
     guid: String,
     ws: warp::ws::Ws,
     presentations: Presentations,
-    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
+    user_message_sender: UnboundedSender<IdentifiedIncomingMessage<T>>,
 ) -> Result<impl Reply> {
     trace!("Got websocket call for presentation: {presentation_id}!");
     let presentation = presentations
@@ -70,22 +69,19 @@ pub async fn ws_handler(
 
     let presentation = presentation.value().to_owned();
 
-    // There is no registered client or presenter for this websocket
-    let (client, is_presenter) = match (
-        presentation.clients.get_by_guid(&guid).map(|x| x.clone()),
-        presentation
-            .presenters
-            .get(&guid)
-            .map(|x| x.value().clone()),
-    ) {
-        (None, None) => {
-            warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
-            return Err(warp::reject::not_found())
-        },
+    // Is there a registered user for this guid
+    let is_user =  presentation.users.get_by_guid(&guid).map(|x| x.clone()).is_some();
+    // Is there a registered presenter for this guid
+    let is_presenter =  presentation
+        .presenters
+        .get(&guid)
+        .map(|x| x.value().clone()).is_some();
 
-        (Some(x), _) => (x, false),
-        (_, Some(x)) => (x, true),
-    };
+    // If there is neither
+    if !is_user && !is_presenter {
+            warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
+            return Err(warp::reject::not_found());
+    }
 
     Ok(ws
         .max_message_size(1024 * 4) // Set max message size to 4KiB
@@ -94,9 +90,7 @@ pub async fn ws_handler(
                 socket,
                 presentation,
                 guid,
-                client,
                 user_message_sender,
-                is_presenter,
             )
         }))
 }
