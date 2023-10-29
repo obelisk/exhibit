@@ -1,9 +1,8 @@
 use crate::{
-    ws, ClientJoinPresentationData, IdentifiedIncomingMessage,
+    ws, ClientJoinPresentationData,
     Presentation, Presentations, Presenter, User,
 };
 use serde::Serialize;
-use tokio::sync::mpsc::UnboundedSender;
 use warp::{http::StatusCode, reply::json, Reply, reject::Rejection};
 
 
@@ -55,12 +54,11 @@ pub async fn join_handler(
     }))
 }
 
-pub async fn ws_handler<T: Clone>(
+pub async fn ws_handler(
     presentation_id: String,
     guid: String,
     ws: warp::ws::Ws,
     presentations: Presentations,
-    user_message_sender: UnboundedSender<IdentifiedIncomingMessage<T>>,
 ) -> Result<impl Reply> {
     trace!("Got websocket call for presentation: {presentation_id}!");
     let presentation = presentations
@@ -89,7 +87,6 @@ pub async fn ws_handler<T: Clone>(
                 socket,
                 presentation,
                 guid,
-                user_message_sender,
             )
         }))
 }

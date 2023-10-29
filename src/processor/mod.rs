@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
 use serde::Serialize;
-use tokio::sync::mpsc::UnboundedReceiver;
 use warp::ws::Message;
 
 mod emoji;
 
 use crate::{
-    ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Users, IdentifiedIncomingMessage,
-    Presentation, Presentations, Presenters, OutgoingUserMessage, IncomingPresenterMessage, IncomingUserMessage, IncomingMessage, Presenter, User,
+    ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Users,
+    Presentation, Presenters, OutgoingUserMessage, IncomingPresenterMessage, IncomingUserMessage, Presenter, User,
 };
 
 #[derive(Serialize)]
@@ -91,50 +90,3 @@ pub async fn handle_user_message_types(user_message: IncomingUserMessage, user: 
             .await,
     }
 }
-
-/// Handle a specific incoming user message. Each message is handled in it's own
-/// tokio task so we don't need to start any new ones to prevent blocking, only
-/// to achieve concurrency
-async fn handle_message<T>(message: IdentifiedIncomingMessage<T>, presentation: Presentation) {
-    // Is this a presenter message or a user message
-    match message.message {
-        IncomingMessage::Presenter(presenter_message) => {
-            // Check that the person sending this presenter message actually is the presenter
-            if message.client.identity == presentation.presenter_identity {
-                handle_presenter_message_types(presenter_message, message.client, presentation).await;
-            } else {
-                warn!(
-                    "{} attempted to send a presenter message but only {} is allowed to do that",
-                    message.client.identity, presentation.presenter_identity
-                );
-            }
-        },
-        IncomingMessage::User(user_message) => {
-            handle_user_message_types(user_message, message.client, presentation).await;
-        }
-    }
-}
-
-// pub async fn handle_sent_messages<T>(
-//     mut user_message_receiver: UnboundedReceiver<IdentifiedIncomingMessage<T>>,
-//     presentations: Presentations,
-// ) {
-//     loop {
-//         tokio::select! {
-//             msg = user_message_receiver.recv() => {
-//                 let msg = match msg {
-//                     Some(m) => m,
-//                     None => break,
-//                 };
-
-//                 if let Some(presentation) = presentations.get(&msg.client.presentation) {
-//                     tokio::spawn({
-//                         handle_message(msg, presentation.value().clone())
-//                     });
-//                 } else {
-//                     warn!("{} send a message for presentation {} which doesn't exist: {msg}", msg.client.identity, msg.client.presentation);
-//                 }
-//             }
-//         };
-//     }
-// }

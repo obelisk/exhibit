@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 
-use crate::{IncomingUserMessage, Client, OutgoingUserMessage, User};
+use crate::{IncomingUserMessage, User};
 
 use super::{Limiter, LimiterUpdate};
 

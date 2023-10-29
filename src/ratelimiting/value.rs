@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 
-use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IncomingUserMessage, Client, User};
+use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IncomingUserMessage, User};
 
 use super::{Limiter, LimiterUpdate};
 

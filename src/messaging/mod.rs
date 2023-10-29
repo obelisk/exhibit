@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{SlideSettings, Presenter, User};
+use crate::SlideSettings;
 
 pub mod presenter;
 pub mod user;
@@ -15,33 +15,6 @@ pub enum IncomingMessage {
     Presenter(presenter::IncomingPresenterMessage),
     User(user::IncomingUserMessage),
 }
-
-#[derive(Debug)]
-pub struct IdentifiedIncomingMessage<T: OutgoingMessage> {
-    pub client: T,
-    pub message: IncomingMessage,
-}
-
-impl std::fmt::Display for IdentifiedIncomingMessage<Presenter> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} ({}): {}",
-            self.client.identity, self.client.guid, self.message
-        )
-    }
-}
-
-impl std::fmt::Display for IdentifiedIncomingMessage<User> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} ({}): {}",
-            self.client.identity, self.client.guid, self.message
-        )
-    }
-}
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct EmojiMessage {

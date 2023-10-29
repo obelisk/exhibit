@@ -1,6 +1,6 @@
-use crate::{Client, IdentifiedIncomingMessage, Presentation, IncomingMessage, OutgoingUserMessage, OutgoingMessage, Presenter, User};
+use crate::{Presentation, IncomingMessage, OutgoingUserMessage, Presenter, User, processor};
 use futures::{FutureExt, StreamExt, stream::SplitStream};
-use tokio::sync::mpsc::{self, UnboundedSender, UnboundedReceiver};
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
@@ -18,7 +18,21 @@ async fn handle_presenter_messages(presenter: Presenter, presentation: Presentat
                         if msg.is_close() {
                             break;
                         }
-                        handle_msg(identity, msg, sender, client).await;
+                        let message = match msg.to_str().map(serde_json::from_str::<IncomingMessage>) {
+                            Ok(Ok(m)) => m,
+                            _ => {
+                                error!("{identity} sent an invalid message");
+                                return;
+                            }
+                        };
+                        match message {
+                            IncomingMessage::Presenter(presenter_message) => processor::handle_presenter_message_types(presenter_message, presenter.clone(), presentation.clone()).await,
+                            _ => {
+                                error!("{identity} sent an invalid message");
+                                continue;
+                            }
+                        }
+                        
                     },
                     Some(Err(e)) => {
                         error!("error receiving ws message for id: [{guid}]: {e}");
@@ -55,6 +69,21 @@ async fn handle_user_messages(user: User, presentation: Presentation, mut client
                             break;
                         }
 
+                        let message = match msg.to_str().map(serde_json::from_str::<IncomingMessage>) {
+                            Ok(Ok(m)) => m,
+                            _ => {
+                                error!("{identity} sent an invalid message");
+                                return;
+                            }
+                        };
+                        match message {
+                            IncomingMessage::User(user_message) => processor::handle_user_message_types(user_message, user.clone(), presentation.clone()).await,
+                            _ => {
+                                error!("{identity} sent an invalid message");
+                                continue;
+                            }
+                        }
+
                     },
                     Some(Err(e)) => {
                         error!("error receiving ws message for id: [{guid}]: {e}");
@@ -86,23 +115,22 @@ async fn handle_user_messages(user: User, presentation: Presentation, mut client
     }
 }
 
-pub async fn new_connection<T: OutgoingMessage>(
+pub async fn new_connection(
     ws: WebSocket,
     presentation: Presentation,
     guid: String,
-    user_message_sender: UnboundedSender<IdentifiedIncomingMessage<T>>,
 ) {
     // Take the web socket and split it into a sender and receiver. The sender and receiver here
     // are not directly connected. The sender sends messages to the client, and receiver receives
     // responses which may or may not be related to those messages.
-    let (client_ws_sender, mut client_ws_rcv) = ws.split();
+    let (client_ws_sender, client_ws_rcv) = ws.split();
 
     // Create a channel to send messages to the client that is easier to pass around without polluting
     // the entire codebase with websocket types.
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
     // Create an internal messaging channel to close the connection when we drop the client
-    let (closer, mut closer_rcv) = mpsc::unbounded_channel::<()>();
+    let (closer, closer_rcv) = mpsc::unbounded_channel::<()>();
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);
     tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
@@ -117,7 +145,7 @@ pub async fn new_connection<T: OutgoingMessage>(
 
     if is_presenter {
         // If they are the presenter, then we add them to the presenters data structure
-        let presenter = if let Some(presenter) = presentation.presenters.get(&guid) {
+        let mut presenter = if let Some(presenter) = presentation.presenters.get(&guid) {
             presenter.value().to_owned()
         } else {
             error!("A presenter could not upgrade their client because they have not registered");
@@ -127,12 +155,12 @@ pub async fn new_connection<T: OutgoingMessage>(
         // Add the channels to complete the connection
         presenter.sender = Some(client_sender.clone());
         presenter.closer = Some(closer);
-        presentation.presenters.insert(guid.clone(), presenter);
+        presentation.presenters.insert(guid.clone(), presenter.clone());
 
         handle_presenter_messages(presenter, presentation, client_ws_rcv, closer_rcv).await;
     } else {
         // If they are a user, then we add them to the users data structure
-        let user = if let Some(user) = presentation.users.get_by_guid(&guid) {
+        let mut user = if let Some(user) = presentation.users.get_by_guid(&guid) {
             user
         } else {
             warn!("{guid} could not upgrade their client because they have not registered");
@@ -142,7 +170,7 @@ pub async fn new_connection<T: OutgoingMessage>(
         // Add the channels to complete the connection
         user.sender = Some(client_sender.clone());
         user.closer = Some(closer);
-        presentation.users.insert(user);
+        presentation.users.insert(user.clone());
 
         // Send the initial presentation data including the current slide data
         let _ = client_sender.send(Ok(Message::text(OutgoingUserMessage::InitialPresentationData {
@@ -152,26 +180,4 @@ pub async fn new_connection<T: OutgoingMessage>(
         
         handle_user_messages(user, presentation, client_ws_rcv, closer_rcv).await;
     }
-}
-
-async fn handle_msg(
-    identity: &str,
-    msg: Message,
-    sender: UnboundedSender<IdentifiedIncomingMessage<impl OutgoingMessage>>,
-    client: Client<impl OutgoingMessage>,
-) {
-    info!("received message from {}: {:?}", identity, msg);
-
-    let message = match msg.to_str().map(serde_json::from_str::<IncomingMessage>) {
-        Ok(Ok(m)) => m,
-        _ => {
-            error!("{identity} sent an invalid message");
-            return;
-        }
-    };
-
-    let _ = sender.send(IdentifiedIncomingMessage {
-        client,
-        message,
-    });
 }
