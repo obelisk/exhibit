@@ -7,9 +7,7 @@ use jsonwebtoken::DecodingKey;
 use tokio::sync::RwLock;
 
 use crate::{Users, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter}, SlideSettings};
-
-use self::poll::Polls;
-pub use self::poll::{Poll, Vote, VoteType};
+pub use self::poll::{*};
 
 #[derive(Clone)]
 pub struct PresentationData {

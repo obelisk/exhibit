@@ -1,4 +1,4 @@
-use std::{sync::Arc, collections::{HashSet, HashMap}, fmt::Display, f32::consts::E};
+use std::{sync::Arc, collections::{HashSet, HashMap}, fmt::Display};
 
 use dashmap::DashMap;
 use serde::Deserialize;
@@ -23,8 +23,8 @@ pub struct Vote {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct IdentifiedVote {
-    identity: String,
-    vote: Vote,
+    pub identity: String,
+    pub vote: Vote,
 }
 
 #[derive(Clone)]

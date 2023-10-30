@@ -31,7 +31,8 @@ pub enum OutgoingUserMessage {
     InitialPresentationData {title: String, settings: Option<SlideSettings>},
     RatelimiterResponse(RatelimiterResponse),
     NewSlide(SlideSettings),
-    //Error(String),
+    Success(String),
+    Error(String),
     Disconnected(String),
 }
 
