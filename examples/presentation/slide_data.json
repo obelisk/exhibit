@@ -84,18 +84,26 @@
     },
     {
         "_counter": 9,
-        "message": "Thank You",
+        "message": "Polls!",
         "emojis": [
-            "😎",
-            "🤯",
-            "🙏",
-            "🛠️",
-            "💩",
-            "🎉",
-            "📣",
-            "📸",
-            "📱",
-            "👏"
-        ]
+            "📊",
+            "📈",
+            "📉",
+            "💹"
+        ],
+        "poll": {
+            "name": "What's Your Favorite Emoji?",
+            "options": [
+                "📊",
+                "📈",
+                "📉",
+                "💹"
+            ],
+            "vote_type": {
+                "SingleBinary": {
+                    "choice": ""
+                }
+            }
+        }
     }
 ]

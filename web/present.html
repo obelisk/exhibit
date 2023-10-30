@@ -136,7 +136,6 @@
 
 <script>
     function showSlide(files, index) {
-        // 0 is slide_data
         if (index <= 0) {
             index = 0;
         }
@@ -155,7 +154,7 @@
             }
         }
 
-        let set_slide_msg = {
+        let set_slide_emojis_msg = {
             "Presenter": {
                     "NewSlide": {
                         "slide": document.slide_index,
@@ -164,7 +163,21 @@
                 }
             };
 
-        document.socket.send(JSON.stringify(set_slide_msg));
+        document.socket.send(JSON.stringify(set_slide_emojis_msg));
+
+        // Does the slide have a poll
+        if (slide_settings["poll"] != undefined) {
+            console.log("Slide has a poll!");
+            let set_slide_poll_msg = {
+            "Presenter": {
+                    "NewPoll": slide_settings["poll"]
+                }
+            };
+
+            console.log(JSON.stringify(set_slide_poll_msg));
+
+            document.socket.send(JSON.stringify(set_slide_poll_msg));
+        }
     }
 
     function onFileLoad(elementId, event) {

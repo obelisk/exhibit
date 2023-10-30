@@ -29,6 +29,7 @@ pub async fn broadcast_to_clients(message: OutgoingUserMessage, users: Users) {
 }
 
 pub async fn handle_presenter_message_types(presenter_message: IncomingPresenterMessage, presenter: Presenter, presentation: Presentation) {
+    info!("Got presenter message: {presenter_message}");
     match presenter_message {
         IncomingPresenterMessage::NewSlide(msg) => {
             let mut slide_settings = presentation.slide_settings.write().await;
@@ -41,9 +42,13 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             .await;
         }
         IncomingPresenterMessage::NewPoll(poll) => {
-            if let Err(msg) = presentation.get_poles().new_poll(poll.name, &poll.options, poll.vote_type) {
-                warn!("{msg}");
-                presenter.send_ignore_fail(OutgoingPresenterMessage::Error(msg));
+            if let Err(existing_poll) = presentation.get_poles().new_poll(poll.clone()) {
+                let warn = format!("Presenter tried to create poll that already exists: {:?}", &existing_poll);
+                warn!("{warn}");
+                presenter.send_ignore_fail(OutgoingPresenterMessage::Error(warn));
+                broadcast_to_clients(OutgoingUserMessage::NewPoll(existing_poll), presentation.users).await;
+            } else {
+                broadcast_to_clients(OutgoingUserMessage::NewPoll(poll), presentation.users).await;
             }
         }
         IncomingPresenterMessage::GetPollResults(_) => todo!(),

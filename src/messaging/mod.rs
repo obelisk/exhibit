@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::SlideSettings;
+use crate::{SlideSettings, VoteType};
 
 pub mod presenter;
 pub mod user;
@@ -20,6 +20,14 @@ pub enum IncomingMessage {
 pub struct EmojiMessage {
     pub emoji: String,
     pub size: u8,
+}
+
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct NewPollMessage {
+    pub name: String,
+    pub options: Vec<String>,
+    pub vote_type: VoteType,
 }
 
 #[derive(Debug, Deserialize)]

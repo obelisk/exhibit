@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage, OutgoingMessage, Vote};
+use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage, OutgoingMessage, Vote, NewPollMessage};
 
 
 #[derive(Debug, Deserialize)]
@@ -31,6 +31,7 @@ pub enum OutgoingUserMessage {
     InitialPresentationData {title: String, settings: Option<SlideSettings>},
     RatelimiterResponse(RatelimiterResponse),
     NewSlide(SlideSettings),
+    NewPoll(NewPollMessage),
     Success(String),
     Error(String),
     Disconnected(String),

@@ -1,9 +1,11 @@
 use std::{sync::Arc, collections::{HashSet, HashMap}, fmt::Display};
 
 use dashmap::DashMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize)]
+use crate::NewPollMessage;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum VoteType {
     /// Someone can vote for one option with a value of 1
     SingleBinary{choice: String},
@@ -52,6 +54,7 @@ impl Poll {
     pub fn vote(&self, vote: IdentifiedVote) -> bool {
         // If the user has already voted, don't let them do so again
         if self.votes.contains_key(vote.identity.as_str()) {
+            warn!("[{}] already voted for in [{}]", vote.identity, vote.vote.poll_name);
             return false;
         }
 
@@ -64,10 +67,11 @@ impl Poll {
                     return false;
                 }
 
-                self.votes.insert(vote.identity, vote.vote.vote_type.clone());
+                self.votes.insert(vote.identity.clone(), vote.vote.vote_type.clone());
                 // This is possible to deadlock if we ever hold other references.
                 // So let's never do that.
                 self.totals.alter(choice, |_, x| x + 1);
+                info!("[{}] voted for [{}] in [{}]", vote.identity, choice, vote.vote.poll_name);
             },
             (VoteType::MultipleBinary{..}, VoteType::MultipleBinary{choices}) => {
                 for choice in choices.iter() {
@@ -111,12 +115,12 @@ impl Polls {
         }
     }
 
-    pub fn new_poll(&self, name: impl Display, choices: &[impl Display], vote_type: VoteType) -> Result<(), String> {
-        let name = name.to_string();
-        if self.polls.contains_key(&name) {
-            Err(format!("Poll with name {} already exists", name))
+    pub fn new_poll(&self, pole: NewPollMessage) -> Result<(), NewPollMessage> {
+        if let Some(existing_pole) = self.polls.get(&pole.name) {
+            let existing_pole = existing_pole.value().clone();
+            Err(NewPollMessage { name: pole.name.clone(), options: existing_pole.choices.into_iter().collect(), vote_type: existing_pole.vote_type })
         } else {
-            self.polls.insert(name, Poll::new(choices, vote_type));
+            self.polls.insert(pole.name, Poll::new(&pole.options, pole.vote_type));
             Ok(())
         }
     }
