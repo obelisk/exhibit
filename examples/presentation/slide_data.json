@@ -104,6 +104,14 @@
                     "choice": ""
                 }
             }
+        },
+        "poll_render": {
+            "refresh_interval": 1,
+            "type": "pie",
+            "x": 30,
+            "y": 30,
+            "width": 30,
+            "height": 30
         }
     }
 ]

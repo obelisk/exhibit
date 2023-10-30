@@ -16,7 +16,7 @@ pub async fn handle_user_vote(
         vote,
     };
 
-    match presentation.get_poles().vote_in_pole(identified_vote) {
+    match presentation.get_polls().vote_in_poll(identified_vote) {
         Ok(_) => user.send_ignore_fail(crate::OutgoingUserMessage::Success(String::from("Vote recorded"))),
         Err(e) => user.send_ignore_fail(crate::OutgoingUserMessage::Error(e)),
     }

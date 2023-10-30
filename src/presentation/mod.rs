@@ -66,7 +66,7 @@ impl Presentation {
         }
     }
 
-    pub fn get_poles(&self) -> Polls {
+    pub fn get_polls(&self) -> Polls {
         self.presentation_data.polls.clone()
     }
 

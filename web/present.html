@@ -135,6 +135,24 @@
 </script>
 
 <script>
+    function refreshPollData(name, interval, slide_index) {
+        let poll_data_msg = {
+            "Presenter": {
+                "GetPollTotals": {
+                    "name": name
+                }
+            }
+        };
+
+        document.socket.send(JSON.stringify(poll_data_msg));
+
+        if (document.slide_index == slide_index) {
+            window.setTimeout(() => {
+                refreshPollData(name, interval, slide_index);
+            }, interval * 1000);
+        }
+    }
+
     function showSlide(files, index) {
         if (index <= 0) {
             index = 0;
@@ -143,6 +161,7 @@
         // Set slide display img element source to new slide image src
         const slideView = document.getElementById('slide-img');
         slideView.src = URL.createObjectURL(document.files[index]);
+        document.slide_index = index;
 
         console.log("Showing slide " + index);
         var slide_settings = document.slide_data[index];
@@ -175,8 +194,12 @@
             };
 
             console.log(JSON.stringify(set_slide_poll_msg));
-
             document.socket.send(JSON.stringify(set_slide_poll_msg));
+
+            // Poll render needs to exist when poll is set
+            let poll_render = slide_settings["poll_render"];
+            console.log("Bootstrap");
+            refreshPollData(slide_settings["poll"]["name"], poll_render["refresh_interval"], document.slide_index);
         }
     }
 

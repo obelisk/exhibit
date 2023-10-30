@@ -33,7 +33,7 @@ impl OutgoingPresenterMessage {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GetPollResultsMessage {
+pub struct GetPollTotalsMessage {
     pub name: String,
 }
 
@@ -41,7 +41,7 @@ pub struct GetPollResultsMessage {
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
     NewPoll(NewPollMessage),
-    GetPollResults(GetPollResultsMessage),
+    GetPollTotals(GetPollTotalsMessage),
     //AddRatelimiter
     //RemoveRatelimiter
 }
@@ -59,7 +59,7 @@ impl std::fmt::Display for IncomingPresenterMessage {
                 "New poll: {} with options {:?}",
                 poll.name, poll.options
             ),
-            Self::GetPollResults(poll) => write!(f, "Get results for poll {}", poll.name),
+            Self::GetPollTotals(poll) => write!(f, "Get results for poll [{}]", poll.name),
         }
     }
 }

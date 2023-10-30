@@ -42,7 +42,7 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             .await;
         }
         IncomingPresenterMessage::NewPoll(poll) => {
-            if let Err(existing_poll) = presentation.get_poles().new_poll(poll.clone()) {
+            if let Err(existing_poll) = presentation.get_polls().new_poll(poll.clone()) {
                 let warn = format!("Presenter tried to create poll that already exists: {:?}", &existing_poll);
                 warn!("{warn}");
                 presenter.send_ignore_fail(OutgoingPresenterMessage::Error(warn));
@@ -51,7 +51,17 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
                 broadcast_to_clients(OutgoingUserMessage::NewPoll(poll), presentation.users).await;
             }
         }
-        IncomingPresenterMessage::GetPollResults(_) => todo!(),
+        IncomingPresenterMessage::GetPollTotals(poll) => {
+            let results = presentation.get_polls().get_poll_totals(&poll.name);
+            if let Some(results) = results {
+                presenter.send_ignore_fail(OutgoingPresenterMessage::PollResults(results));
+            } else {
+                let warn = format!("Presenter requested poll results for a poll that does not exist: {}", poll.name);
+                warn!("{warn}");
+                presenter.send_ignore_fail(OutgoingPresenterMessage::Error(warn));
+            }
+        
+        },
     }
 }
 

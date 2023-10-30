@@ -70,7 +70,11 @@ impl Poll {
                 self.votes.insert(vote.identity.clone(), vote.vote.vote_type.clone());
                 // This is possible to deadlock if we ever hold other references.
                 // So let's never do that.
-                self.totals.alter(choice, |_, x| x + 1);
+                if self.totals.contains_key(choice) {
+                    self.totals.alter(choice, |_, x| x + 1);
+                } else {
+                    self.totals.insert(choice.clone(), 1);
+                }
                 info!("[{}] voted for [{}] in [{}]", vote.identity, choice, vote.vote.poll_name);
             },
             (VoteType::MultipleBinary{..}, VoteType::MultipleBinary{choices}) => {
@@ -85,7 +89,11 @@ impl Poll {
                 // This is possible to deadlock if we ever hold other references.
                 // So let's never do that.
                 for choice in choices {
-                    self.totals.alter(choice, |_, x| x + 1);
+                    if self.totals.contains_key(choice) {
+                        self.totals.alter(choice, |_, x| x + 1);
+                    } else {
+                        self.totals.insert(choice.clone(), 1);
+                    }
                 }
             },
             // TODO @obelisk: Implement the rest of these
@@ -125,7 +133,7 @@ impl Polls {
         }
     }
 
-    pub fn vote_in_pole(&self, vote: IdentifiedVote) -> Result<(), String> {
+    pub fn vote_in_poll(&self, vote: IdentifiedVote) -> Result<(), String> {
         let vote_name = vote.vote.poll_name.clone();
         let identity = vote.identity.clone();
         match self.polls.get(&vote.vote.poll_name).map(|poll| {
@@ -135,5 +143,11 @@ impl Polls {
             Some(false) => Err(format!("{} could not vote in {}", identity, &vote_name)),
             Some(true) => Ok(()),
         }
+    }
+
+    pub fn get_poll_totals(&self, pole_name: &str) -> Option<HashMap<String, u64>> {
+        self.polls.get(pole_name).map(|poll| {
+            poll.value().totals.iter().map(|x| (x.key().to_string(), *x.value())).collect()
+        })
     }
 }
