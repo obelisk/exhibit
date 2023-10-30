@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use warp::filters::ws::Message;
 
-use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage};
+use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage, VoteType};
 
 
 #[derive(Clone, Debug, Serialize)]
@@ -36,6 +36,7 @@ impl OutgoingPresenterMessage {
 pub struct NewPollMessage {
     pub name: String,
     pub options: Vec<String>,
+    pub vote_type: VoteType,
 }
 
 #[derive(Debug, Deserialize)]

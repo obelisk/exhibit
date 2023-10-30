@@ -1,3 +1,5 @@
+mod poll;
+
 use std::sync::Arc;
 
 use dashmap::DashMap;
@@ -6,6 +8,9 @@ use tokio::sync::RwLock;
 
 use crate::{Users, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter}, SlideSettings};
 
+use self::poll::Polls;
+pub use self::poll::{Poll, Vote, VoteType};
+
 #[derive(Clone)]
 pub struct PresentationData {
     /// The title of the presentation. Typically this is only
@@ -13,14 +18,14 @@ pub struct PresentationData {
     pub title: String,
     /// Created poll in the presentation. The key is the name of the poll.
     /// The value is map from user identity to what their answer was.
-    pub polls: Arc<DashMap<String, DashMap<String, u32>>>,
+    pub polls: Polls,
 }
 
 impl PresentationData {
     pub fn new(title: String) -> Self {
         Self {
             title,
-            polls: Arc::new(DashMap::new()),
+            polls: Polls::new(),
         }
     }
 }
@@ -63,14 +68,8 @@ impl Presentation {
         }
     }
 
-    pub fn new_poll(&self, name: impl Into<String>) -> Result<(), String> {
-        let name = name.into();
-        if self.presentation_data.polls.contains_key(&name) {
-            Err(format!("Poll with name {} already exists", name))
-        } else {
-            self.presentation_data.polls.insert(name, DashMap::new());
-            Ok(())
-        }
+    pub fn get_poles(&self) -> Polls {
+        self.presentation_data.polls.clone()
     }
 
     pub fn get_title(&self) -> String {

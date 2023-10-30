@@ -12,7 +12,7 @@ pub mod ws;
 
 use std::sync::Arc;
 
-pub use presentation::Presentation;
+pub use presentation::{Presentation, Vote, VoteType};
 pub use messaging::*;
 
 use dashmap::{DashMap, mapref::multiple::RefMulti};

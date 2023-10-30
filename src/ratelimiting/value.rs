@@ -49,6 +49,9 @@ impl Limiter for ValueLimiter {
             IncomingUserMessage::Emoji(EmojiMessage { size, .. }) => {
                 return Err(format!("{identity} sent emoji with invalid size: {size}"))
             }
+            // Value limiter does not care about votes because ideally everyone votes
+            // #democracy
+            IncomingUserMessage::Vote(_) => return Ok(LimiterUpdate::default()),
         };
         // If they've never sent a message then it's whatever their starting balance is
         let existing_balance = data

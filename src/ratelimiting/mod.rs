@@ -20,6 +20,7 @@ pub struct LimiterDataUpdate {
     pub value: u64,
 }
 
+#[derive(Default)]
 pub struct LimiterUpdate {
     pub client_message: String,
     pub limiter_data_update: Option<LimiterDataUpdate>,

@@ -1,6 +1,7 @@
 use warp::ws::Message;
 
 mod emoji;
+mod vote;
 
 use crate::{
     ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Users,
@@ -40,7 +41,7 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             .await;
         }
         IncomingPresenterMessage::NewPoll(poll) => {
-            if let Err(msg) = presentation.new_poll(poll.name) {
+            if let Err(msg) = presentation.get_poles().new_poll(poll.name, &poll.options, poll.vote_type) {
                 warn!("{msg}");
                 presenter.send_ignore_fail(OutgoingPresenterMessage::Error(msg));
             }
@@ -80,5 +81,11 @@ pub async fn handle_user_message_types(user_message: IncomingUserMessage, user: 
                 presentation.presenters.clone(),
             )
             .await,
+        IncomingUserMessage::Vote(vote) => vote::handle_user_vote(
+            &presentation,
+            user.clone(),
+            vote,
+            presentation.presenters.clone(),
+        ).await,
     }
 }
