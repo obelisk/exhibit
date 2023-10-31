@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{SlideSettings, Client};
+use crate::{SlideSettings, VoteType};
 
 pub mod presenter;
 pub mod user;
@@ -8,6 +8,7 @@ pub mod user;
 pub use presenter::*;
 pub use user::*;
 
+pub trait OutgoingMessage: Clone {}
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingMessage {
@@ -15,27 +16,18 @@ pub enum IncomingMessage {
     User(user::IncomingUserMessage),
 }
 
-#[derive(Debug)]
-pub struct IdentifiedIncomingMessage {
-    pub client: Client,
-    pub message: IncomingMessage,
-}
-
-impl std::fmt::Display for IdentifiedIncomingMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} ({}): {}",
-            self.client.identity, self.client.guid, self.message
-        )
-    }
-}
-
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct EmojiMessage {
     pub emoji: String,
     pub size: u8,
+}
+
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct NewPollMessage {
+    pub name: String,
+    pub options: Vec<String>,
+    pub vote_type: VoteType,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,7 +38,10 @@ pub struct NewSlideMessage {
 
 impl std::fmt::Display for IncomingMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self}")
+        match self {
+            IncomingMessage::Presenter(x) => write!(f, "{x}"),
+            IncomingMessage::User(x) => write!(f, "{x}"),
+        }
     }
 }
 

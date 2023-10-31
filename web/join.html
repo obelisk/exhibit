@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Exhibit</title>
+    <title>Exhibit v0.2.1</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
@@ -121,6 +121,7 @@
         if (document.getElementById("registration_key").value != undefined) {
             document.saved_token = document.getElementById("registration_key").value;
         }
+        document.intentional_disconnect = false;
 
         fetch("/join", {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
@@ -140,12 +141,14 @@
                 document.socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + data["url"]);
 
                 document.socket.addEventListener("close", (event) => {
-                    console.log("Socket closed. Waiting 5 seconds to reconnect.");
-                    // Wait 5 seconds
-                    window.setTimeout(() => {
-                        document.socket = null;
-                        reset_websocket();
-                    }, 5000);
+                    // Wait 5 seconds if we were not intentionally disconnected
+                    if (document.intentional_disconnect != true) {
+                        console.log("Socket closed. Waiting 5 seconds to reconnect.");
+                        window.setTimeout(() => {
+                            document.socket = null;
+                            reset_websocket();
+                        }, 5000);
+                    }
                 });
 
                 document.socket.addEventListener("message", (event) => {
@@ -156,16 +159,18 @@
                     // Data looks like:
                     // {"NewSlide":{"message":"Welcome To Exhibit!","emojis":["👋","😲","🙌","👏"]}}
                     if (update["NewSlide"] !== undefined) {
+                        let poll_container = document.getElementById("poll-container");
+                        poll_container.hidden = true;
                         let new_slide = update["NewSlide"];
                         // Set the slide title
                         document.getElementById("slide-message").innerText = new_slide["message"];
                         // Set the emojis
                         set_emojis(new_slide["emojis"], new_slide["slide"]);
-                    } else if (update["ratelimit_status"] !== undefined) {
+                    } else if (update["RatelimiterResponse"] !== undefined) {
                         // This is informing the users of their ratelimits
                         var rl_elem = document.getElementById("ratelimit_info");
                         rl_elem.innerHTML = "";
-                        Object.entries(new_slide_data["ratelimit_status"]).forEach(element => {
+                        Object.entries(update["RatelimiterResponse"]).forEach(element => {
                             const [key, value] = element;
                             var li = document.createElement("li");
                             li.appendChild(document.createTextNode(key + " - " + value));
@@ -184,6 +189,69 @@
 
                             // Set the emojis
                             set_emojis(slide_data["emojis"], slide_data["slide"]);
+                        }
+                    } else if (update["Disconnected"] !== undefined) {
+                        // This is informing the client that they have been disconnected,
+                        // likely because they connected from a different device, tab, or similar
+                        // and the server has disconnected the old connection
+                        console.log("Disconnected from server, will not attempt to reconnect.");
+                        document.getElementById("title").innerText = "Disconnected because another tab or device connected.";
+                        document.intentional_disconnect = true;
+                    } else if (update["NewPoll"] !== undefined) {
+                        let poll_container = document.getElementById("poll-container");
+                        let poll_options = document.getElementById("poll-options");
+                        poll_container.hidden = false;
+                        // This is informing the client of a new poll
+                        // Data looks like:
+                        // {"NewPoll":{"name":"What's Your Favorite Emoji?","options":["📊","📈","📉","💹"],"vote_type":{"SingleBinary":{"choice":""}}}}
+                        let new_poll = update["NewPoll"];
+                        // Set the slide title
+                        document.getElementById("poll-message").innerText = new_poll["name"];
+                        let options = new_poll["options"];
+                        let vote_type = new_poll["vote_type"];
+
+                        if (vote_type["SingleBinary"] !== undefined) {
+                            // Create html set of radio buttons
+
+                            poll_options.innerHTML = "";
+                            options.forEach(element => {
+                                var radio_button = document.createElement('input');
+                                radio_button.type = "radio";
+                                radio_button.name = "poll";
+                                radio_button.value = element;
+                                radio_button.id = element;
+
+                                var label = document.createElement('label')
+                                label.htmlFor = element;
+                                label.appendChild(document.createTextNode(element));
+
+                                poll_options.appendChild(radio_button);
+                                poll_options.appendChild(label);
+                                poll_options.appendChild(document.createElement('br'));
+                            });
+                            let vote_button = document.createElement('button');
+                            vote_button.innerText = "Submit Vote";
+                            vote_button.onclick = function () {
+                                let vote_obj = {
+                                    "User": {
+                                        "Vote": {
+                                            "poll_name": new_poll["name"],
+                                            "vote_type": {
+                                                "SingleBinary": {
+                                                    "choice": document.querySelector('input[name="poll"]:checked').value
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+                                console.log("Sending vote object: " + JSON.stringify(vote_obj));
+                                document.socket.send(JSON.stringify(vote_obj));
+                            };
+                            poll_options.appendChild(vote_button);
+                        } else if (vote_type["MultipleBinary"] !== undefined) {
+
+                        } else {
+                            console.log("Unknown vote type: " + vote_type);
                         }
                     } else {
                         console.log("Unknown message type: " + event.data);
@@ -219,11 +287,17 @@
                 <option value=2>Huge</option>
             </select>
         </div> -->
-
+        <div id="poll-container" hidden>
+            <div id="poll-message">
+                <!-- Dynamically add current slide message here -->
+            </div>
+            <div id="poll-options" class="">
+                <!-- Dynamically add poll options here -->
+            </div>
+        </div>
         <div id="slide-message">
             <!-- Dynamically add current slide message here -->
         </div>
-
         <div class="reaction-help">Send a reaction below (every 10s):</div>
         <div id="reaction-container" class="">
             <!-- Dynamically add reaction options here -->

@@ -1,5 +1,5 @@
 use crate::{
-    OutgoingPresenterMessage, Client, EmojiMessage, Presentation, Presenters
+    OutgoingPresenterMessage, EmojiMessage, Presentation, Presenters, User
 };
 
 /// Called from the processor system. Only one processor should be called per user message
@@ -7,7 +7,7 @@ use crate::{
 /// to unblock processesing of further user messages.
 pub async fn handle_user_emoji(
     presentation: &Presentation,
-    client: Client,
+    user: User,
     emoji_message: EmojiMessage,
     presenters: Presenters,
 ) {
@@ -18,15 +18,15 @@ pub async fn handle_user_emoji(
     } else {
         error!(
             "{} sent a message but the presentation has not started",
-            client.identity
+            user.identity
         );
         return;
     };
 
     let emoji = &emoji_message.emoji;
-    let identity = &client.identity;
+    let identity = &user.identity;
     // Check that they are sending a valid emoji for the current slide
-    if !slide_settings.emojis.contains(&emoji) {
+    if !slide_settings.emojis.contains(emoji) {
         error!("{identity} sent invalid {emoji} for current slide");
         return;
     }
@@ -34,7 +34,7 @@ pub async fn handle_user_emoji(
     // Send the emojis to the presenters
     info!(
         "{identity} sent {emoji} to presentation {}",
-        client.presentation
+        user.presentation
     );
 
     super::broadcast_to_presenters(OutgoingPresenterMessage::Emoji(emoji_message), presenters).await;

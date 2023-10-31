@@ -1,11 +1,12 @@
 use serde::{Serialize, Deserialize};
 
-use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage};
+use crate::{ratelimiting::RatelimiterResponse, SlideSettings, EmojiMessage, OutgoingMessage, Vote, NewPollMessage};
 
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingUserMessage {
     Emoji(EmojiMessage),
+    Vote(Vote),
 }
 
 impl std::fmt::Display for IncomingUserMessage {
@@ -15,17 +16,28 @@ impl std::fmt::Display for IncomingUserMessage {
                 f,
                 "{} with size {}",
                 emoji.emoji, emoji.size
-            )
+            ),
+            Self::Vote(vote) => write!(
+                f,
+                "Vote for {:?}",
+                vote
+            ),
         }
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub enum OutgoingUserMessage {
     InitialPresentationData {title: String, settings: Option<SlideSettings>},
     RatelimiterResponse(RatelimiterResponse),
     NewSlide(SlideSettings),
+    NewPoll(NewPollMessage),
+    Success(String),
+    Error(String),
+    Disconnected(String),
 }
+
+impl OutgoingMessage for OutgoingUserMessage {}
 
 impl OutgoingUserMessage {
     pub fn json(&self) -> String {

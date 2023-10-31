@@ -1,18 +1,49 @@
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
+use warp::filters::ws::Message;
 
-use crate::{EmojiMessage, SlideSettings, NewSlideMessage};
+use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage, NewPollMessage};
 
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub enum OutgoingPresenterMessage {
     Emoji(EmojiMessage),
-    NewSlide(SlideSettings),
+    PollResults(HashMap<String, u64>),
+    Error(String),
+    //NewSlide(SlideSettings),
 }
 
+impl OutgoingMessage for OutgoingPresenterMessage {}
+
+impl OutgoingPresenterMessage {
+    pub fn json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(text) => text,
+            Err(e) => {
+                error!("Could not serialize outgoing user message: {e}");
+                String::new()
+            }
+        }
+    }
+
+    pub fn to_sendable_message(&self) -> Message {
+        Message::text(self.json())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetPollTotalsMessage {
+    pub name: String,
+}
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
+    NewPoll(NewPollMessage),
+    GetPollTotals(GetPollTotalsMessage),
+    //AddRatelimiter
+    //RemoveRatelimiter
 }
 
 impl std::fmt::Display for IncomingPresenterMessage {
@@ -23,6 +54,12 @@ impl std::fmt::Display for IncomingPresenterMessage {
                 "New settings for slide {}: {}",
                 slide.slide, slide.slide_settings
             ),
+            Self::NewPoll(poll) => write!(
+                f,
+                "New poll: {} with options {:?}",
+                poll.name, poll.options
+            ),
+            Self::GetPollTotals(poll) => write!(f, "Get results for poll [{}]", poll.name),
         }
     }
 }

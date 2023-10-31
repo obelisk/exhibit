@@ -1,10 +1,9 @@
 use dashmap::DashMap;
 use exhibit::authentication::join_presentation;
 use exhibit::{
-    authentication::new_presentation, config, handler, processor, IdentifiedIncomingMessage,
+    authentication::new_presentation, config, handler,
     Presentations,
 };
-use tokio::sync::mpsc::unbounded_channel;
 
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -20,15 +19,12 @@ async fn main() {
     // Stores all the presenters and clients for all active presentations
     let presentations: Presentations = Arc::new(DashMap::new());
 
-    let (user_message_sender, user_message_receiver) = unbounded_channel::<IdentifiedIncomingMessage>();
-
     // APIs
     let health_route = warp::path!("health").and_then(handler::health_handler);
     let presentation_capture = presentations.clone();
     let client_ws_route = warp::path!("ws" / String / String)
         .and(warp::ws())
         .and(with(presentation_capture.clone()))
-        .and(with(user_message_sender.clone()))
         .and_then(handler::ws_handler);
 
     let presentation_capture = presentations.clone();
@@ -55,7 +51,7 @@ async fn main() {
             join_presentation(provided_token, presentation_capture.clone())
         }))
         .and(with(presentations.clone()))
-        .and_then(handler::join_jwt_handler);
+        .and_then(handler::join_handler);
 
     // SPAs
     let join_spa = warp::path::end().and(warp::fs::file("web/join.html"));
@@ -69,13 +65,6 @@ async fn main() {
         .or(join_spa)
         .or(presenter_spa)
         .or(new_spa);
-
-    let presentations_clone = presentations.clone();
-    tokio::task::spawn(async move {
-        processor::handle_sent_messages(user_message_receiver, presentations_clone).await;
-
-        panic!("User message receiver was dropped?");
-    });
 
     let service_address = SocketAddr::from_str(&format!("{}:{}",configuration.service_address, configuration.service_port)).unwrap();
 

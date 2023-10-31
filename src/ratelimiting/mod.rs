@@ -4,7 +4,7 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use serde::Serialize;
 
-use crate::{Client, IncomingUserMessage};
+use crate::{Client, IncomingUserMessage, OutgoingUserMessage, User};
 
 pub mod time;
 pub mod value;
@@ -20,6 +20,7 @@ pub struct LimiterDataUpdate {
     pub value: u64,
 }
 
+#[derive(Default)]
 pub struct LimiterUpdate {
     pub client_message: String,
     pub limiter_data_update: Option<LimiterDataUpdate>,
@@ -34,7 +35,7 @@ pub trait Limiter: Send + Sync {
         current_time: u64,
         data_prefix: &str,
         data: &DashMap<String, u64>,
-        client: &Client,
+        user: &User,
         message: &IncomingUserMessage,
     ) -> Result<LimiterUpdate, String>;
 }
@@ -46,9 +47,15 @@ pub struct Ratelimiter {
     global_data: DashMap<String, u64>,
 }
 
+impl Default for Ratelimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ratelimiter {
     pub fn new() -> Self {
-        return Self {
+        Self {
             // Contains all the configured limiters
             limiters: DashMap::default(),
 
@@ -61,7 +68,7 @@ impl Ratelimiter {
             // data that is useful to many limiters such as last time a message
             // was successfully sent
             global_data: DashMap::default(),
-        };
+        }
     }
 
     /// Adds a ratelimit to the ratelimiter. If a ratelimit with that name
@@ -75,7 +82,7 @@ impl Ratelimiter {
         self.limiters.remove(name);
     }
 
-    pub fn check_allowed(&self, client: Client, message: &IncomingUserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(&self, client: Client<OutgoingUserMessage>, message: &IncomingUserMessage) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event
@@ -97,7 +104,7 @@ impl Ratelimiter {
             let update = item.value().check_allowed(
                 last_message_time,
                 current_time,
-                &item.key(),
+                item.key(),
                 &self.limiter_data,
                 &client,
                 message,

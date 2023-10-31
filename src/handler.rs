@@ -1,23 +1,23 @@
 use crate::{
-    ws, Client, ClientJoinPresentationData, Clients, IdentifiedIncomingMessage,
-    Presentation, Presentations, Presenters, Result,
+    ws, ClientJoinPresentationData,
+    Presentation, Presentations, Presenter, User,
 };
 use serde::Serialize;
-use tokio::sync::mpsc::UnboundedSender;
-use uuid::Uuid;
-use warp::{http::StatusCode, reply::json, Reply};
+use warp::{http::StatusCode, reply::json, Reply, reject::Rejection};
+
+
+type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Serialize, Debug)]
 pub struct RegisterResponse {
     url: String,
 }
 
-pub async fn join_jwt_handler(
+pub async fn join_handler(
     user_auth_data: ClientJoinPresentationData,
     presentations: Presentations,
 ) -> Result<impl Reply> {
-    debug!("Got user joining call");
-    let guid = Uuid::new_v4().as_simple().to_string();
+    debug!("Got joining call");
 
     let presentation = presentations
         .get(&user_auth_data.presentation)
@@ -25,63 +25,33 @@ pub async fn join_jwt_handler(
 
     let presentation = presentation.value();
     let presentation_id = &presentation.id;
+    let identity = user_auth_data.claims.sub.as_str();
 
-    if presentation.presenter_identity == user_auth_data.claims.sub {
+    let guid = if presentation.presenter_identity == identity {
         debug!("Registering presenter for [{presentation_id}]");
-        register_presenter(
-            guid.clone(),
-            user_auth_data.claims.sub,
-            presentation.presenters.clone(),
-            user_auth_data.presentation,
-        )
-        .await;
+        let new_presenter = Presenter::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_presenter.guid.clone();
+        presentation.presenters.insert(guid.clone(), new_presenter);
+
+        guid
     } else {
         debug!(
-            "Registering client [{}] via JWT for presentation [{}]",
+            "Registering user [{}] for presentation [{}]",
             user_auth_data.claims.sub, user_auth_data.presentation
         );
 
-        register_client(
-            guid.clone(),
-            user_auth_data.claims.sub,
-            presentation.clients.clone(),
-            user_auth_data.presentation,
-        )
-        .await;
-    }
+        let new_user = User::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_user.guid.clone();
+        presentation.users.insert(new_user);
+
+        guid
+    };
+
+    info!("{identity} is preparing to upgrade connection in [{presentation_id}] with guid [{guid}]");
 
     Ok(json(&RegisterResponse {
         url: format!("/ws/{presentation_id}/{guid}"),
     }))
-}
-
-async fn register_client(guid: String, identity: String, clients: Clients, presentation: String) {
-    clients.insert(
-        guid.clone(),
-        Client {
-            sender: None,
-            identity,
-            guid,
-            presentation,
-        },
-    );
-}
-
-async fn register_presenter(
-    guid: String,
-    identity: String,
-    presenters: Presenters,
-    presentation: String,
-) {
-    presenters.insert(
-        guid.clone(),
-        Client {
-            sender: None,
-            identity,
-            guid,
-            presentation,
-        },
-    );
 }
 
 pub async fn ws_handler(
@@ -89,7 +59,6 @@ pub async fn ws_handler(
     guid: String,
     ws: warp::ws::Ws,
     presentations: Presentations,
-    user_message_sender: UnboundedSender<IdentifiedIncomingMessage>,
 ) -> Result<impl Reply> {
     trace!("Got websocket call for presentation: {presentation_id}!");
     let presentation = presentations
@@ -98,30 +67,26 @@ pub async fn ws_handler(
 
     let presentation = presentation.value().to_owned();
 
-    // There is no registered client or presenter for this websocket
-    let (client, is_presenter) = match (
-        presentation.clients.get(&guid).map(|x| x.value().clone()),
-        presentation
-            .presenters
-            .get(&guid)
-            .map(|x| x.value().clone()),
-    ) {
-        (None, None) => return Err(warp::reject::not_found()),
+    // Is there a registered user for this guid
+    let is_user = presentation.users.contains_guid(&guid);
+    // Is there a registered presenter for this guid
+    let is_presenter = presentation
+        .presenters
+        .contains_key(&guid);
 
-        (Some(x), _) => (x, false),
-        (_, Some(x)) => (x, true),
-    };
+    // If there is neither
+    if !is_user && !is_presenter {
+            warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
+            return Err(warp::reject::not_found());
+    }
 
     Ok(ws
         .max_message_size(1024 * 4) // Set max message size to 4KiB
         .on_upgrade(move |socket| {
-            ws::client_connection(
+            ws::new_connection(
                 socket,
                 presentation,
                 guid,
-                client,
-                user_message_sender,
-                is_presenter,
             )
         }))
 }
