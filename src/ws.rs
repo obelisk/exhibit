@@ -57,6 +57,7 @@ async fn handle_presenter_messages(presenter: Presenter, presentation: Presentat
 async fn handle_user_messages(user: User, presentation: Presentation, mut client_ws_rcv: SplitStream<WebSocket>, mut closer_rcv: UnboundedReceiver<()>) {
     let guid = &user.guid;
     let identity = &user.identity;
+    debug!("Handling user messages for [{identity}] on guid [{guid}]");
     // Handle all messages from the client as well as if we indend on closing the connection
     // from the server. This happens when the client is removed from the list of active clients
     loop {

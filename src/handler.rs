@@ -76,8 +76,8 @@ pub async fn ws_handler(
 
     // If there is neither
     if !is_user && !is_presenter {
-            warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
-            return Err(warp::reject::not_found());
+        warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
+        return Err(warp::reject::not_found());
     }
 
     Ok(ws

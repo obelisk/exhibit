@@ -1,4 +1,4 @@
-module Join exposing (..)
+port module Join exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, input, label, text, ul)
@@ -8,6 +8,13 @@ import Http exposing (..)
 import Json.Decode exposing (Decoder, map, field, string)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onInput)
+import String exposing (join)
+
+-- Ports
+port socketConnect : String -> Cmd msg
+port sendMessage : String -> Cmd msg
+port messageReceived : (String -> msg) -> Sub msg
+port socketDisconnected : (String -> msg) -> Sub msg
 
 
 main =
@@ -16,7 +23,8 @@ main =
 type State
   = Disconnected
   | Joining
-  | Success JoinPresentationResponse
+  | Authenticated JoinPresentationResponse
+  | Joined
 
 
 type alias Model =
@@ -31,32 +39,50 @@ init _ =
 type alias JoinPresentationResponse = { url : String }
 
 type Msg
-    = JoinPresentation
+    = AuthenticateToPresentation
+    | JoinPresentation String
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
+    | Recv String
+    | SocketDisconnected String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        JoinPresentation ->
+        -- Take in the user's registration key
+        ChangeRegistrationKey newRegistrationKey ->
+          ({ model | registration_key = newRegistrationKey }, Cmd.none)
+        -- Authenticate to the presentation
+        AuthenticateToPresentation ->
               (model, Http.post
                 { url = "/join"
                 , body = (Http.stringBody "application/text" model.registration_key)
                 , expect = Http.expectJson GotWebsocketAddress joinPresentationResponseDecoder
                 })
+        -- Handle the authentication response from the server with the WebSocket address
         GotWebsocketAddress response ->
             case response of
+                -- We successfully authenticated to the presentation,
+                -- open the websocket via the port
                 Ok joinPresentationResponse ->
-                    ({model | state = Success joinPresentationResponse}, Cmd.none)
+                    update (JoinPresentation joinPresentationResponse.url) {model | state = Authenticated joinPresentationResponse}
 
                 Err _ ->
                     (model, Cmd.none)
-        ChangeRegistrationKey newRegistrationKey ->
-          ({ model | registration_key = newRegistrationKey }, Cmd.none)
+
+        JoinPresentation url ->
+          (model, Cmd.batch [socketConnect url, sendMessage "Hello"])
+        Recv message ->
+          (model, Cmd.none)
+        SocketDisconnected message ->
+          (model, Cmd.none)
+
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none
+subscriptions _ = Sub.batch [
+    messageReceived Recv
+  , socketDisconnected SocketDisconnected
+  ]
 
 view : Model -> Html Msg
 view model =
@@ -67,7 +93,7 @@ view model =
             ]
         , label [ for "registration_key" ] [ text "Registration Key:" ]
         , input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey ] []
-        , button [ onClick JoinPresentation ] [ text "Join Presentation" ]
+        , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
         , div [ id "poll-container" ]
             [ div [ id "poll-message" ] []
             , div [ id "poll-options" ] []
