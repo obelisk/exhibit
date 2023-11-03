@@ -27,7 +27,7 @@ fn main() {
             .arg(format!("src/{file}.elm"))
             .arg("--output")
             .arg(format!("../static/{file}.js"))
-            //.arg("--optimize")
+            .arg("--optimize")
             .output() {
                 println!("cargo:warning={:?}", e);
             }
