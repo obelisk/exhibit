@@ -21,13 +21,16 @@ fn main() {
     file.write(result.as_bytes()).unwrap();
 
     for file in ELM_FILES {
-        Command::new("elm")
-            .current_dir(Path::new("web"))
-            .arg(format!("elm/src/{file}.elm"))
+        if let Err(e) =  Command::new("elm")
+            .current_dir(Path::new("web/elm"))
+            .arg("make")
+            .arg(format!("src/{file}.elm"))
             .arg("--output")
-            .arg(format!("static/{file}"))
-            .arg("--yes")
-            .output().unwrap();
+            .arg(format!("../static/{file}.js"))
+            //.arg("--optimize")
+            .output() {
+                println!("cargo:warning={:?}", e);
+            }
     }
 
 }
