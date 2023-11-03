@@ -1,7 +1,8 @@
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Exhibit v0.2.1</title>
+  <title>Exhibit v0.2.2</title>
   <script src="/static/join.js"></script>
   <link rel="stylesheet" href="/static/join.css">
 </head>
@@ -23,17 +24,20 @@
 		// When a command goes to the `sendMessage` port, we pass the message
 		// along to the WebSocket.
 		app.ports.sendMessage.subscribe(function(message) {
+			console.log("Sending message:  " + message);
 			socket.send(message);
 		});
 
 		// When a message comes into our WebSocket, we pass the message along
 		// to the `messageReceiver` port.
 		socket.addEventListener("message", function(event) {
+			console.log("Message received: " + event.data);
 			app.ports.messageReceived.send(event.data);
 		});
 
 		socket.addEventListener("close", (event) => {
-			app.ports.socketDisconnected.send(event.data);
+			console.log("Socket closed");
+			app.ports.socketDisconnected.send("");
 		});
 	});
 

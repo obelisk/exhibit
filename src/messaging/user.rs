@@ -34,7 +34,7 @@ pub enum OutgoingUserMessage {
     NewPoll(NewPollMessage),
     Success(String),
     Error(String),
-    Disconnected(String),
+    Disconnect(String),
 }
 
 impl OutgoingMessage for OutgoingUserMessage {}

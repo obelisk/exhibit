@@ -1,6 +1,6 @@
 [package]
 name = "exhibit"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Mitchell Grenier <mitchell@confurious.io>"]
 edition = "2021"
 build = "build.rs"
@@ -20,6 +20,9 @@ serde_json = "1"
 futures = { version = "0.3", default-features = false }
 uuid = { version = "1", features = ["serde", "v4"] }
 zeroize = "1"
+
+[build-dependencies]
+regex = "1" 
 
 [[bin]]
 name = "exhibit"

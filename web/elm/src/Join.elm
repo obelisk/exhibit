@@ -3,12 +3,11 @@ port module Join exposing (..)
 import Browser
 import Html exposing (Html, button, div, input, label, text, ul)
 import Html.Attributes exposing (class, for, id, type_)
-import Html.Events exposing (on, onClick)
+import Html.Events exposing (onClick)
 import Http exposing (..)
 import Json.Decode exposing (Decoder, map, field, string)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onInput)
-import String exposing (join)
 
 -- Ports
 port socketConnect : String -> Cmd msg
@@ -36,7 +35,15 @@ init : () -> (Model, Cmd Msg)
 init _ =
   ({registration_key = "", state = Disconnected}, Cmd.none)
 
+-- REST response from the server when we authenticate to the presentation
+-- that tells us where our websocket is
 type alias JoinPresentationResponse = { url : String }
+
+type alias SlideSettings = {message : String, emojis : List String}
+-- Message from the server when a new slide is shown. This needs to mirror
+-- the rust type variation OutgoingUserMessage::NewSlide
+type alias NewSlideMessage = { url : String }
+
 
 type Msg
     = AuthenticateToPresentation
@@ -45,6 +52,13 @@ type Msg
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | Recv String
     | SocketDisconnected String
+  
+type ServerMsg
+    = NewSlide
+    | RatelimiterResponse
+    | InitialPresentationData
+    | Disconnect
+    | NewPoll
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -54,11 +68,14 @@ update msg model =
           ({ model | registration_key = newRegistrationKey }, Cmd.none)
         -- Authenticate to the presentation
         AuthenticateToPresentation ->
+          if model.state == Disconnected then
               (model, Http.post
                 { url = "/join"
                 , body = (Http.stringBody "application/text" model.registration_key)
                 , expect = Http.expectJson GotWebsocketAddress joinPresentationResponseDecoder
                 })
+            else
+              (model, Cmd.none)
         -- Handle the authentication response from the server with the WebSocket address
         GotWebsocketAddress response ->
             case response of
@@ -74,8 +91,8 @@ update msg model =
           (model, Cmd.batch [socketConnect url, sendMessage "Hello"])
         Recv message ->
           (model, Cmd.none)
-        SocketDisconnected message ->
-          (model, Cmd.none)
+        SocketDisconnected _ ->
+          ({model | state = Disconnected}, Cmd.none)
 
 
 subscriptions : Model -> Sub Msg
@@ -107,4 +124,9 @@ view model =
 joinPresentationResponseDecoder : Decoder JoinPresentationResponse
 joinPresentationResponseDecoder =
   map JoinPresentationResponse
+    (field "url" string)
+
+newSlideMessageDecoder : Decoder NewSlideMessage
+newSlideMessageDecoder =
+  map NewSlideMessage
     (field "url" string)

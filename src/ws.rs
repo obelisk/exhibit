@@ -99,7 +99,7 @@ async fn handle_user_messages(user: User, presentation: Presentation, mut client
             _ = closer_rcv.recv() => {
                 info!("{identity} - is switching to a new device for {}", presentation.id);
                 // Internal request to close the connection
-                user.send_ignore_fail(OutgoingUserMessage::Disconnected(String::new()));
+                user.send_ignore_fail(OutgoingUserMessage::Disconnect(String::new()));
                 break;
             }
         }

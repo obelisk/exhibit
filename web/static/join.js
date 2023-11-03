@@ -784,11 +784,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.I.y === region.P.y)
+	if (region.J.y === region.P.y)
 	{
-		return 'on line ' + region.I.y;
+		return 'on line ' + region.J.y;
 	}
-	return 'on lines ' + region.I.y + ' through ' + region.P.y;
+	return 'on lines ' + region.J.y + ' through ' + region.P.y;
 }
 
 
@@ -2721,7 +2721,7 @@ var _VirtualDom_mapEventRecord = F2(function(func, record)
 	return {
 		n: func(record.n),
 		K: record.K,
-		G: record.G
+		H: record.H
 	}
 });
 
@@ -2993,7 +2993,7 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.K;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.G) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.H) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3983,7 +3983,7 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 		impl.aQ,
 		impl.aN,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.H && impl.H(sendToApp)
+			var divertHrefToApp = impl.I && impl.I(sendToApp)
 			var view = impl.aR;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
@@ -4058,7 +4058,7 @@ function _Browser_application(impl)
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		H: function(sendToApp)
+		I: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -5333,7 +5333,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Join$init = function (_v0) {
 	return _Utils_Tuple2(
-		{z: '', J: $author$project$Join$Disconnected},
+		{z: '', A: $author$project$Join$Disconnected},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Join$Recv = function (a) {
@@ -6174,14 +6174,14 @@ var $author$project$Join$update = F2(
 							{z: newRegistrationKey}),
 						$elm$core$Platform$Cmd$none);
 				case 0:
-					return _Utils_Tuple2(
+					return _Utils_eq(model.A, $author$project$Join$Disconnected) ? _Utils_Tuple2(
 						model,
 						$elm$http$Http$post(
 							{
 								au: A2($elm$http$Http$stringBody, 'application/text', model.z),
 								ay: A2($elm$http$Http$expectJson, $author$project$Join$GotWebsocketAddress, $author$project$Join$joinPresentationResponseDecoder),
 								L: '/join'
-							}));
+							})) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 3:
 					var response = msg.a;
 					if (!response.$) {
@@ -6190,7 +6190,7 @@ var $author$project$Join$update = F2(
 							$temp$model = _Utils_update(
 							model,
 							{
-								J: $author$project$Join$Authenticated(joinPresentationResponse)
+								A: $author$project$Join$Authenticated(joinPresentationResponse)
 							});
 						msg = $temp$msg;
 						model = $temp$model;
@@ -6213,7 +6213,11 @@ var $author$project$Join$update = F2(
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				default:
 					var message = msg.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{A: $author$project$Join$Disconnected}),
+						$elm$core$Platform$Cmd$none);
 			}
 		}
 	});
