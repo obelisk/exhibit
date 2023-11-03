@@ -5,9 +5,10 @@ import Html exposing (Html, button, div, input, label, text, ul)
 import Html.Attributes exposing (class, for, id, type_)
 import Html.Events exposing (onClick)
 import Http exposing (..)
-import Json.Decode exposing (Decoder, map, field, string)
+import Json.Decode exposing (Decoder, map, map2, field, string)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onInput)
+import Json.Decode exposing (oneOf)
 
 -- Ports
 port socketConnect : String -> Cmd msg
@@ -42,23 +43,21 @@ type alias JoinPresentationResponse = { url : String }
 type alias SlideSettings = {message : String, emojis : List String}
 -- Message from the server when a new slide is shown. This needs to mirror
 -- the rust type variation OutgoingUserMessage::NewSlide
-type alias NewSlideMessage = { url : String }
-
 
 type Msg
     = AuthenticateToPresentation
     | JoinPresentation String
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
-    | Recv String
+    | ReceivedWebsocketMessage String
     | SocketDisconnected String
   
-type ServerMsg
-    = NewSlide
-    | RatelimiterResponse
-    | InitialPresentationData
-    | Disconnect
-    | NewPoll
+type ReceivedMessage
+    = NewSlide SlideSettings
+    --| RatelimiterResponse
+    --| InitialPresentationData
+    --| Disconnect
+    --| NewPoll
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -89,15 +88,19 @@ update msg model =
 
         JoinPresentation url ->
           (model, Cmd.batch [socketConnect url, sendMessage "Hello"])
-        Recv message ->
-          (model, Cmd.none)
+        ReceivedWebsocketMessage message ->
+          case Json.Decode.decodeString receivedWebsocketMessageDecorder message of
+              Ok (NewSlide slideSettings) ->
+                ({model | state = Joined}, Cmd.none)
+              Err _ ->
+                  (model, Cmd.none)
         SocketDisconnected _ ->
           ({model | state = Disconnected}, Cmd.none)
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.batch [
-    messageReceived Recv
+    messageReceived ReceivedWebsocketMessage
   , socketDisconnected SocketDisconnected
   ]
 
@@ -120,13 +123,22 @@ view model =
         , div [ id "reaction-container" ] []
         ]
 
-
+-- REST Decoders
 joinPresentationResponseDecoder : Decoder JoinPresentationResponse
 joinPresentationResponseDecoder =
   map JoinPresentationResponse
     (field "url" string)
 
-newSlideMessageDecoder : Decoder NewSlideMessage
+-- WebSocket Decoders
+receivedWebsocketMessageDecorder : Decoder ReceivedMessage
+receivedWebsocketMessageDecorder =
+    Json.Decode.oneOf
+        [ Json.Decode.map NewSlide newSlideMessageDecoder
+        ]
+
+
+newSlideMessageDecoder : Decoder SlideSettings
 newSlideMessageDecoder =
-  map NewSlideMessage
-    (field "url" string)
+  map2 SlideSettings
+    (field "message" string)
+    (field "emojis" (Json.Decode.list string))
