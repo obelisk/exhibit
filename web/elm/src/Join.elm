@@ -5,39 +5,23 @@ import Html exposing (Html, button, div, input, label, text, ul)
 import Html.Attributes exposing (class, for, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
-import Json.Decode exposing (Decoder, field, map, map2, string)
 
 import UserMessageTypes exposing (..)
+import ServerMessageTypes exposing (..)
+import Json.Decode
 
 
 
 -- Ports
-
-
 port socketConnect : String -> Cmd msg
-
-
 port sendMessage : String -> Cmd msg
-
-
 port messageReceived : (String -> msg) -> Sub msg
-
-
 port socketDisconnected : (String -> msg) -> Sub msg
 
 
 main =
     Browser.element { init = init, update = update, subscriptions = subscriptions, view = view }
 
-
-type alias SlideSettings =
-    { message : String
-    , emojis : List String
-    }
-
-
-type alias Poll =
-    {}
 
 
 type alias InputView =
@@ -66,24 +50,6 @@ init _ =
     ( { registration_key = "", title = "Please Join A Presentation", error = "", state = Disconnected }, Cmd.none )
 
 
-
--- REST response from the server when we authenticate to the presentation
--- that tells us where our websocket is
-
-
-type alias JoinPresentationResponse =
-    { url : String }
-
-
-type alias InitialPresentationData =
-    { title : String, settings : Maybe SlideSettings }
-
-
-
--- Message from the server when a new slide is shown. This needs to mirror
--- the rust type variation OutgoingUserMessage::NewSlide
-
-
 type Msg
     -- Handle messages around connections and general
     -- house keeping
@@ -99,17 +65,6 @@ type Msg
     | NewSlideEvent SlideSettings
     -- Handle messages around user actions like sending a reaction
     | SendEmoji String Int
-
-
-type ReceivedMessage
-    = NewSlideMessage SlideSettings
-    | InitialPresentationDataMessage InitialPresentationData
-
-
-
---| RatelimiterResponse
---| Disconnect
---| NewPoll
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -153,7 +108,7 @@ update msg model =
         -- On the websocket being disconnected, we need to update the UI
         -- to tell the user this so they can decide what they want to do.
         SocketDisconnected _ ->
-            ( { model | state = Disconnected }, Cmd.none )
+            ( { model | state = Disconnected, title = "Disconnected" }, Cmd.none )
 
         -- Handle all message types from the websocket and route to the
         -- appropriate handler
@@ -164,6 +119,9 @@ update msg model =
 
                 Ok (NewSlideMessage slideSettings) ->
                     update (NewSlideEvent slideSettings) model
+                  
+                Ok (DisconnectMessage m) ->
+                    update (SocketDisconnected m) model
 
                 Err err ->
                     ( { model | error = Json.Decode.errorToString err }, Cmd.none )
@@ -226,51 +184,3 @@ view model =
             _ ->
                 div [ id "full-reactions-container" ] []
         ]
-
-
-
--- REST Decoders
-
-
-joinPresentationResponseDecoder : Decoder JoinPresentationResponse
-joinPresentationResponseDecoder =
-    map JoinPresentationResponse
-        (field "url" string)
-
-
-
--- WebSocket Decoders
-
-
-receivedWebsocketMessageDecorder : Decoder ReceivedMessage
-receivedWebsocketMessageDecorder =
-    Json.Decode.oneOf
-        [ Json.Decode.map NewSlideMessage newSlideMessageDecoder
-        , Json.Decode.map InitialPresentationDataMessage initialPresentationDataMessageDecoder
-        ]
-
-
-nestWebsocketMessageDecoder : String -> Decoder a -> Decoder a
-nestWebsocketMessageDecoder nest decoder =
-    field nest decoder
-
-
-newSlideMessageDecoder : Decoder SlideSettings
-newSlideMessageDecoder =
-    nestWebsocketMessageDecoder "NewSlide" slideSettingDecoder
-
-
-slideSettingDecoder : Decoder SlideSettings
-slideSettingDecoder =
-    map2 SlideSettings
-        (field "message" string)
-        (field "emojis" (Json.Decode.list string))
-
-
-initialPresentationDataMessageDecoder : Decoder InitialPresentationData
-initialPresentationDataMessageDecoder =
-    nestWebsocketMessageDecoder "InitialPresentationData"
-        (map2 InitialPresentationData
-            (field "title" string)
-            (field "settings" (Json.Decode.maybe slideSettingDecoder))
-        )

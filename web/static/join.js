@@ -784,11 +784,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.L.z === region.S.z)
+	if (region.L.z === region.Q.z)
 	{
 		return 'on line ' + region.L.z;
 	}
-	return 'on lines ' + region.L.z + ' through ' + region.S.z;
+	return 'on lines ' + region.L.z + ' through ' + region.Q.z;
 }
 
 
@@ -1858,8 +1858,8 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 		flagDecoder,
 		args,
 		impl.aF,
-		impl.aV,
-		impl.aT,
+		impl.aU,
+		impl.aS,
 		function() { return function() {} }
 	);
 });
@@ -3944,10 +3944,10 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 		flagDecoder,
 		args,
 		impl.aF,
-		impl.aV,
-		impl.aT,
+		impl.aU,
+		impl.aS,
 		function(sendToApp, initialModel) {
-			var view = impl.aX;
+			var view = impl.aW;
 			/**/
 			var domNode = args['node'];
 			//*/
@@ -3980,11 +3980,11 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 		flagDecoder,
 		args,
 		impl.aF,
-		impl.aV,
-		impl.aT,
+		impl.aU,
+		impl.aS,
 		function(sendToApp, initialModel) {
 			var divertHrefToApp = impl.K && impl.K(sendToApp)
-			var view = impl.aX;
+			var view = impl.aW;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -4074,9 +4074,9 @@ function _Browser_application(impl)
 					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.af === next.af
-							&& curr.X === next.X
-							&& curr.ac.a === next.ac.a
+							&& curr.ad === next.ad
+							&& curr.V === next.V
+							&& curr.aa.a === next.aa.a
 						)
 							? $elm$browser$Browser$Internal(next)
 							: $elm$browser$Browser$External(href)
@@ -4088,9 +4088,9 @@ function _Browser_application(impl)
 		{
 			return A3(impl.aF, flags, _Browser_getUrl(), key);
 		},
-		aX: impl.aX,
-		aV: impl.aV,
-		aT: impl.aT
+		aW: impl.aW,
+		aU: impl.aU,
+		aS: impl.aS
 	});
 }
 
@@ -4247,12 +4247,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		al: _Browser_getScene(),
+		aj: _Browser_getScene(),
 		ap: {
 			ar: _Browser_window.pageXOffset,
 			as: _Browser_window.pageYOffset,
 			aq: _Browser_doc.documentElement.clientWidth,
-			W: _Browser_doc.documentElement.clientHeight
+			U: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4263,7 +4263,7 @@ function _Browser_getScene()
 	var elem = _Browser_doc.documentElement;
 	return {
 		aq: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		W: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		U: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4286,15 +4286,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			al: {
+			aj: {
 				aq: node.scrollWidth,
-				W: node.scrollHeight
+				U: node.scrollHeight
 			},
 			ap: {
 				ar: node.scrollLeft,
 				as: node.scrollTop,
 				aq: node.clientWidth,
-				W: node.clientHeight
+				U: node.clientHeight
 			}
 		};
 	});
@@ -4324,18 +4324,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			al: _Browser_getScene(),
+			aj: _Browser_getScene(),
 			ap: {
 				ar: x,
 				as: y,
 				aq: _Browser_doc.documentElement.clientWidth,
-				W: _Browser_doc.documentElement.clientHeight
+				U: _Browser_doc.documentElement.clientHeight
 			},
 			az: {
 				ar: x + rect.left,
 				as: y + rect.top,
 				aq: rect.width,
-				W: rect.height
+				U: rect.height
 			}
 		};
 	});
@@ -4387,12 +4387,12 @@ var _Http_toTask = F3(function(router, toTask, request)
 		xhr.addEventListener('error', function() { done($elm$http$Http$NetworkError_); });
 		xhr.addEventListener('timeout', function() { done($elm$http$Http$Timeout_); });
 		xhr.addEventListener('load', function() { done(_Http_toResponse(request.aB.b, xhr)); });
-		$elm$core$Maybe$isJust(request.ao) && _Http_track(router, xhr, request.ao.a);
+		$elm$core$Maybe$isJust(request.an) && _Http_track(router, xhr, request.an.a);
 
 		try {
-			xhr.open(request.aH, request.N, true);
+			xhr.open(request.aH, request.ao, true);
 		} catch (e) {
-			return done($elm$http$Http$BadUrl_(request.N));
+			return done($elm$http$Http$BadUrl_(request.ao));
 		}
 
 		_Http_configureRequest(xhr, request);
@@ -4409,11 +4409,11 @@ var _Http_toTask = F3(function(router, toTask, request)
 
 function _Http_configureRequest(xhr, request)
 {
-	for (var headers = request.V; headers.b; headers = headers.b) // WHILE_CONS
+	for (var headers = request.T; headers.b; headers = headers.b) // WHILE_CONS
 	{
 		xhr.setRequestHeader(headers.a.a, headers.a.b);
 	}
-	xhr.timeout = request.aU.a || 0;
+	xhr.timeout = request.aT.a || 0;
 	xhr.responseType = request.aB.d;
 	xhr.withCredentials = request.au;
 }
@@ -4436,10 +4436,10 @@ function _Http_toResponse(toBody, xhr)
 function _Http_toMetadata(xhr)
 {
 	return {
-		N: xhr.responseURL,
-		aR: xhr.status,
-		aS: xhr.statusText,
-		V: _Http_parseHeaders(xhr.getAllResponseHeaders())
+		ao: xhr.responseURL,
+		aQ: xhr.status,
+		aR: xhr.statusText,
+		T: _Http_parseHeaders(xhr.getAllResponseHeaders())
 	};
 }
 
@@ -4535,14 +4535,14 @@ function _Http_track(router, xhr, tracker)
 		if (xhr.c) { return; }
 		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Sending({
 			aP: event.loaded,
-			aQ: event.total
+			ak: event.total
 		}))));
 	});
 	xhr.addEventListener('progress', function(event) {
 		if (xhr.c) { return; }
 		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Receiving({
 			aN: event.loaded,
-			aQ: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
+			ak: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
 		}))));
 	});
 }var $elm$core$Basics$EQ = 1;
@@ -5049,7 +5049,7 @@ var $elm$url$Url$Http = 0;
 var $elm$url$Url$Https = 1;
 var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {U: fragment, X: host, aa: path, ac: port_, af: protocol, ag: query};
+		return {S: fragment, V: host, Z: path, aa: port_, ad: protocol, ae: query};
 	});
 var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
@@ -5333,7 +5333,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Join$init = function (_v0) {
 	return _Utils_Tuple2(
-		{G: '', A: '', l: $author$project$Join$Disconnected, w: 'Please Join A Presentation'},
+		{F: '', A: '', l: $author$project$Join$Disconnected, w: 'Please Join A Presentation'},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Join$ReceivedWebsocketMessage = function (a) {
@@ -5365,7 +5365,7 @@ var $author$project$Join$InitialPresentationDataEvent = function (a) {
 };
 var $author$project$Join$InputView = F2(
 	function (settings, poll) {
-		return {aM: poll, B: settings};
+		return {aM: poll, G: settings};
 	});
 var $author$project$Join$JoinPresentation = function (a) {
 	return {$: 1, a: a};
@@ -6017,7 +6017,7 @@ var $elm$http$Http$resolve = F2(
 			case 3:
 				var metadata = response.a;
 				return $elm$core$Result$Err(
-					$elm$http$Http$BadStatus(metadata.aR));
+					$elm$http$Http$BadStatus(metadata.aQ));
 			default:
 				var body = response.b;
 				return A2(
@@ -6039,20 +6039,20 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
-var $author$project$Join$JoinPresentationResponse = function (url) {
-	return {N: url};
+var $author$project$ServerMessageTypes$JoinPresentationResponse = function (url) {
+	return {ao: url};
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
-var $author$project$Join$joinPresentationResponseDecoder = A2(
+var $author$project$ServerMessageTypes$joinPresentationResponseDecoder = A2(
 	$elm$json$Json$Decode$map,
-	$author$project$Join$JoinPresentationResponse,
+	$author$project$ServerMessageTypes$JoinPresentationResponse,
 	A2($elm$json$Json$Decode$field, 'url', $elm$json$Json$Decode$string));
 var $elm$http$Http$Request = function (a) {
 	return {$: 1, a: a};
 };
 var $elm$http$Http$State = F2(
 	function (reqs, subs) {
-		return {ai: reqs, am: subs};
+		return {ag: reqs, al: subs};
 	});
 var $elm$http$Http$init = $elm$core$Task$succeed(
 	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
@@ -6096,7 +6096,7 @@ var $elm$http$Http$updateReqs = F3(
 					return A2(
 						$elm$core$Task$andThen,
 						function (pid) {
-							var _v4 = req.ao;
+							var _v4 = req.an;
 							if (_v4.$ === 1) {
 								return A3($elm$http$Http$updateReqs, router, otherCmds, reqs);
 							} else {
@@ -6126,7 +6126,7 @@ var $elm$http$Http$onEffects = F4(
 				return $elm$core$Task$succeed(
 					A2($elm$http$Http$State, reqs, subs));
 			},
-			A3($elm$http$Http$updateReqs, router, cmds, state.ai));
+			A3($elm$http$Http$updateReqs, router, cmds, state.ag));
 	});
 var $elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
@@ -6169,7 +6169,7 @@ var $elm$http$Http$onSelfMsg = F3(
 				A2(
 					$elm$core$List$filterMap,
 					A3($elm$http$Http$maybeSend, router, tracker, progress),
-					state.am)));
+					state.al)));
 	});
 var $elm$http$Http$Cancel = function (a) {
 	return {$: 0, a: a};
@@ -6186,11 +6186,11 @@ var $elm$http$Http$cmdMap = F2(
 					au: r.au,
 					aw: r.aw,
 					aB: A2(_Http_mapExpect, func, r.aB),
-					V: r.V,
+					T: r.T,
 					aH: r.aH,
-					aU: r.aU,
-					ao: r.ao,
-					N: r.N
+					aT: r.aT,
+					an: r.an,
+					ao: r.ao
 				});
 		}
 	});
@@ -6213,21 +6213,25 @@ var $elm$http$Http$subscription = _Platform_leaf('Http');
 var $elm$http$Http$request = function (r) {
 	return $elm$http$Http$command(
 		$elm$http$Http$Request(
-			{au: false, aw: r.aw, aB: r.aB, V: r.V, aH: r.aH, aU: r.aU, ao: r.ao, N: r.N}));
+			{au: false, aw: r.aw, aB: r.aB, T: r.T, aH: r.aH, aT: r.aT, an: r.an, ao: r.ao}));
 };
 var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
-		{aw: r.aw, aB: r.aB, V: _List_Nil, aH: 'POST', aU: $elm$core$Maybe$Nothing, ao: $elm$core$Maybe$Nothing, N: r.N});
+		{aw: r.aw, aB: r.aB, T: _List_Nil, aH: 'POST', aT: $elm$core$Maybe$Nothing, an: $elm$core$Maybe$Nothing, ao: r.ao});
 };
-var $author$project$Join$InitialPresentationDataMessage = function (a) {
+var $author$project$ServerMessageTypes$DisconnectMessage = function (a) {
+	return {$: 2, a: a};
+};
+var $author$project$ServerMessageTypes$InitialPresentationDataMessage = function (a) {
 	return {$: 1, a: a};
 };
-var $author$project$Join$NewSlideMessage = function (a) {
+var $author$project$ServerMessageTypes$NewSlideMessage = function (a) {
 	return {$: 0, a: a};
 };
-var $author$project$Join$InitialPresentationData = F2(
+var $author$project$ServerMessageTypes$disconnectMessageDecoder = A2($elm$json$Json$Decode$field, 'Disconnect', $elm$json$Json$Decode$string);
+var $author$project$ServerMessageTypes$InitialPresentationData = F2(
 	function (title, settings) {
-		return {B: settings, w: title};
+		return {G: settings, w: title};
 	});
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$maybe = function (decoder) {
@@ -6238,40 +6242,41 @@ var $elm$json$Json$Decode$maybe = function (decoder) {
 				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
 			]));
 };
-var $author$project$Join$nestWebsocketMessageDecoder = F2(
+var $author$project$ServerMessageTypes$nestWebsocketMessageDecoder = F2(
 	function (nest, decoder) {
 		return A2($elm$json$Json$Decode$field, nest, decoder);
 	});
-var $author$project$Join$SlideSettings = F2(
+var $author$project$ServerMessageTypes$SlideSettings = F2(
 	function (message, emojis) {
-		return {R: emojis, aG: message};
+		return {aA: emojis, aG: message};
 	});
 var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$Join$slideSettingDecoder = A3(
+var $author$project$ServerMessageTypes$slideSettingDecoder = A3(
 	$elm$json$Json$Decode$map2,
-	$author$project$Join$SlideSettings,
+	$author$project$ServerMessageTypes$SlideSettings,
 	A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string),
 	A2(
 		$elm$json$Json$Decode$field,
 		'emojis',
 		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
-var $author$project$Join$initialPresentationDataMessageDecoder = A2(
-	$author$project$Join$nestWebsocketMessageDecoder,
+var $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder = A2(
+	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
 	'InitialPresentationData',
 	A3(
 		$elm$json$Json$Decode$map2,
-		$author$project$Join$InitialPresentationData,
+		$author$project$ServerMessageTypes$InitialPresentationData,
 		A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
 		A2(
 			$elm$json$Json$Decode$field,
 			'settings',
-			$elm$json$Json$Decode$maybe($author$project$Join$slideSettingDecoder))));
-var $author$project$Join$newSlideMessageDecoder = A2($author$project$Join$nestWebsocketMessageDecoder, 'NewSlide', $author$project$Join$slideSettingDecoder);
-var $author$project$Join$receivedWebsocketMessageDecorder = $elm$json$Json$Decode$oneOf(
+			$elm$json$Json$Decode$maybe($author$project$ServerMessageTypes$slideSettingDecoder))));
+var $author$project$ServerMessageTypes$newSlideMessageDecoder = A2($author$project$ServerMessageTypes$nestWebsocketMessageDecoder, 'NewSlide', $author$project$ServerMessageTypes$slideSettingDecoder);
+var $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
-			A2($elm$json$Json$Decode$map, $author$project$Join$NewSlideMessage, $author$project$Join$newSlideMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$Join$InitialPresentationDataMessage, $author$project$Join$initialPresentationDataMessageDecoder)
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewSlideMessage, $author$project$ServerMessageTypes$newSlideMessageDecoder),
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$InitialPresentationDataMessage, $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder),
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$DisconnectMessage, $author$project$ServerMessageTypes$disconnectMessageDecoder)
 		]));
 var $author$project$Join$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
 var $author$project$Join$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
@@ -6294,14 +6299,14 @@ var $author$project$Join$update = F2(
 						$elm$http$Http$post(
 							{
 								aw: A2($elm$http$Http$stringBody, 'application/text', model.A),
-								aB: A2($elm$http$Http$expectJson, $author$project$Join$GotWebsocketAddress, $author$project$Join$joinPresentationResponseDecoder),
-								N: '/join'
+								aB: A2($elm$http$Http$expectJson, $author$project$Join$GotWebsocketAddress, $author$project$ServerMessageTypes$joinPresentationResponseDecoder),
+								ao: '/join'
 							})) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 3:
 					var response = msg.a;
 					if (!response.$) {
 						var joinPresentationResponse = response.a;
-						var $temp$msg = $author$project$Join$JoinPresentation(joinPresentationResponse.N),
+						var $temp$msg = $author$project$Join$JoinPresentation(joinPresentationResponse.ao),
 							$temp$model = _Utils_update(
 							model,
 							{
@@ -6327,26 +6332,34 @@ var $author$project$Join$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{l: $author$project$Join$Disconnected}),
+							{l: $author$project$Join$Disconnected, w: 'Disconnected'}),
 						$elm$core$Platform$Cmd$none);
 				case 4:
 					var message = msg.a;
-					var _v2 = A2($elm$json$Json$Decode$decodeString, $author$project$Join$receivedWebsocketMessageDecorder, message);
+					var _v2 = A2($elm$json$Json$Decode$decodeString, $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder, message);
 					if (!_v2.$) {
-						if (_v2.a.$ === 1) {
-							var initialPresentationData = _v2.a.a;
-							var $temp$msg = $author$project$Join$InitialPresentationDataEvent(initialPresentationData),
-								$temp$model = model;
-							msg = $temp$msg;
-							model = $temp$model;
-							continue update;
-						} else {
-							var slideSettings = _v2.a.a;
-							var $temp$msg = $author$project$Join$NewSlideEvent(slideSettings),
-								$temp$model = model;
-							msg = $temp$msg;
-							model = $temp$model;
-							continue update;
+						switch (_v2.a.$) {
+							case 1:
+								var initialPresentationData = _v2.a.a;
+								var $temp$msg = $author$project$Join$InitialPresentationDataEvent(initialPresentationData),
+									$temp$model = model;
+								msg = $temp$msg;
+								model = $temp$model;
+								continue update;
+							case 0:
+								var slideSettings = _v2.a.a;
+								var $temp$msg = $author$project$Join$NewSlideEvent(slideSettings),
+									$temp$model = model;
+								msg = $temp$msg;
+								model = $temp$model;
+								continue update;
+							default:
+								var m = _v2.a.a;
+								var $temp$msg = $author$project$Join$SocketDisconnected(m),
+									$temp$model = model;
+								msg = $temp$msg;
+								model = $temp$model;
+								continue update;
 						}
 					} else {
 						var err = _v2.a;
@@ -6354,14 +6367,14 @@ var $author$project$Join$update = F2(
 							_Utils_update(
 								model,
 								{
-									G: $elm$json$Json$Decode$errorToString(err)
+									F: $elm$json$Json$Decode$errorToString(err)
 								}),
 							$elm$core$Platform$Cmd$none);
 					}
 				case 6:
 					var initialPresentationData = msg.a;
 					var _v3 = _Utils_Tuple2(
-						initialPresentationData.B,
+						initialPresentationData.G,
 						_Utils_update(
 							model,
 							{w: initialPresentationData.w}));
@@ -6390,7 +6403,7 @@ var $author$project$Join$update = F2(
 									l: $author$project$Join$Viewing(
 										_Utils_update(
 											inputView,
-											{B: slideSettings}))
+											{G: slideSettings}))
 								}),
 							$elm$core$Platform$Cmd$none);
 					} else {
@@ -6521,7 +6534,7 @@ var $author$project$Join$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text(model.G)
+								$elm$html$Html$text(model.F)
 							])),
 						A2(
 						$elm$html$Html$ul,
@@ -6635,7 +6648,7 @@ var $author$project$Join$view = function (model) {
 													$elm$html$Html$text(emoji)
 												]));
 									},
-									inputView.B.R))
+									inputView.G.aA))
 							]));
 				} else {
 					return A2(
@@ -6650,6 +6663,6 @@ var $author$project$Join$view = function (model) {
 			]));
 };
 var $author$project$Join$main = $elm$browser$Browser$element(
-	{aF: $author$project$Join$init, aT: $author$project$Join$subscriptions, aV: $author$project$Join$update, aX: $author$project$Join$view});
+	{aF: $author$project$Join$init, aS: $author$project$Join$subscriptions, aU: $author$project$Join$update, aW: $author$project$Join$view});
 _Platform_export({'Join':{'init':$author$project$Join$main(
 	$elm$json$Json$Decode$succeed(0))(0)}});}(this));
