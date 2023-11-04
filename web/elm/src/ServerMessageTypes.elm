@@ -4,6 +4,7 @@ import Json.Decode exposing (field)
 import Json.Decode exposing (map2)
 import Json.Decode exposing (string)
 import Json.Decode exposing (map)
+import Dict exposing (Dict)
 
 
 
@@ -17,7 +18,7 @@ type ReceivedMessage
     = NewSlideMessage SlideSettings
     | InitialPresentationDataMessage InitialPresentationData
     | DisconnectMessage String
---| RatelimiterResponse
+    | RatelimiterResponseMessage RatelimiterResponse
 --| Disconnect
 --| NewPoll
 
@@ -33,6 +34,9 @@ type alias SlideSettings =
 type alias Poll =
     {}
 
+type RatelimiterResponse = 
+      Allowed (Dict String String)
+    | Blocked String
 
 
 type alias InitialPresentationData =
@@ -52,7 +56,8 @@ receivedWebsocketMessageDecorder =
     Json.Decode.oneOf
         [ Json.Decode.map NewSlideMessage newSlideMessageDecoder
         , Json.Decode.map InitialPresentationDataMessage initialPresentationDataMessageDecoder
-        , Json.Decode.map DisconnectMessage disconnectMessageDecoder
+        , Json.Decode.map DisconnectMessage (simpleMessageDecoder "Disconnect")
+        , Json.Decode.map RatelimiterResponseMessage ratelimiterResponseMessageDecoder
         ]
 
 
@@ -81,6 +86,18 @@ initialPresentationDataMessageDecoder =
             (field "settings" (Json.Decode.maybe slideSettingDecoder))
         )
 
-disconnectMessageDecoder : Decoder String
-disconnectMessageDecoder =
-    field "Disconnect" string
+simpleMessageDecoder : String -> Decoder String
+simpleMessageDecoder key =
+    field key string
+
+dictMessageDecoder : String -> Decoder (Dict String String)
+dictMessageDecoder key =
+    field key (Json.Decode.dict string)
+
+ratelimiterResponseMessageDecoder: Decoder RatelimiterResponse
+ratelimiterResponseMessageDecoder = 
+  nestWebsocketMessageDecoder "RatelimiterResponse"
+    (Json.Decode.oneOf
+        [ Json.Decode.map Allowed (dictMessageDecoder "Allowed")
+        , Json.Decode.map Blocked (simpleMessageDecoder "Blocked")
+        ])

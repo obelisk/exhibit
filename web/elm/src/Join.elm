@@ -1,7 +1,7 @@
 port module Join exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, input, label, text, ul)
+import Html exposing (Html, button, div, input, label, text, ul, li)
 import Html.Attributes exposing (class, for, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
@@ -9,6 +9,7 @@ import Http exposing (..)
 import UserMessageTypes exposing (..)
 import ServerMessageTypes exposing (..)
 import Json.Decode
+import Dict exposing (Dict)
 
 
 
@@ -40,14 +41,15 @@ type State
 type alias Model =
     { registration_key : String
     , title : String
-    , error : String
+    , error : Maybe String
+    , response : Maybe RatelimiterResponse
     , state : State
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { registration_key = "", title = "Please Join A Presentation", error = "", state = Disconnected }, Cmd.none )
+    ( { registration_key = "", title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, Cmd.none )
 
 
 type Msg
@@ -122,9 +124,12 @@ update msg model =
                   
                 Ok (DisconnectMessage m) ->
                     update (SocketDisconnected m) model
+                
+                Ok(RatelimiterResponseMessage m) ->
+                    ({model | response = Just m}, Cmd.none)
 
                 Err err ->
-                    ( { model | error = Json.Decode.errorToString err }, Cmd.none )
+                    ( { model | error = Just (Json.Decode.errorToString err) }, Cmd.none )
 
         InitialPresentationDataEvent initialPresentationData ->
             case ( initialPresentationData.settings, { model | title = initialPresentationData.title } ) of
@@ -162,8 +167,15 @@ view model =
     div [ class "container" ]
         [ div [ class "title-group" ]
             [ div [ class "title", id "title" ] [ text model.title ]
-            , div [] [ text model.error ]
-            , ul [ id "ratelimit-info" ] []
+            , case model.error of
+                Just err -> div [] [ text err ]
+                Nothing -> div [] [] 
+            , case model.response of
+                    Just (Allowed responses) -> ul [ id "ratelimit-info" ] 
+                        (List.map (\response -> li [class "ratelimiter-response"] [text ((Tuple.first response) ++ ": " ++ (Tuple.second response))] ) (Dict.toList responses))
+                    
+                    Just (Blocked response) -> div [class "warning"] [text ("Message was not sent: " ++ response)]
+                    Nothing -> div [] []
             ]
         , label [ for "registration_key" ] [ text "Registration Key:" ]
         , input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey ] []
