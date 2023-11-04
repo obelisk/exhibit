@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Exhibit v0.2.3</title>
+  <title>Exhibit v0.2.4</title>
   <script src="/static/join.js"></script>
   <link rel="stylesheet" href="/static/join.css">
 </head>
@@ -24,7 +24,7 @@
 		// When a command goes to the `sendMessage` port, we pass the message
 		// along to the WebSocket.
 		app.ports.sendMessage.subscribe(function(message) {
-			console.log("Sending message:  " + message);
+			console.log("Sending message: " + message);
 			socket.send(message);
 		});
 

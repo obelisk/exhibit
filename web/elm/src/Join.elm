@@ -5,7 +5,9 @@ import Html exposing (Html, button, div, input, label, text, ul)
 import Html.Attributes exposing (class, for, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
-import Json.Decode exposing (Decoder, field, map, map2, oneOf, string)
+import Json.Decode exposing (Decoder, field, map, map2, string)
+
+import UserMessageTypes exposing (..)
 
 
 
@@ -29,18 +31,20 @@ main =
 
 
 type alias SlideSettings =
-    {
-      message : String
+    { message : String
     , emojis : List String
     }
-  
-type alias Poll = {}
+
+
+type alias Poll =
+    {}
+
 
 type alias InputView =
-    {
-      settings: SlideSettings
-    , poll: Maybe Poll
+    { settings : SlideSettings
+    , poll : Maybe Poll
     }
+
 
 type State
     = Disconnected
@@ -70,28 +74,39 @@ init _ =
 type alias JoinPresentationResponse =
     { url : String }
 
+
 type alias InitialPresentationData =
     { title : String, settings : Maybe SlideSettings }
+
+
 
 -- Message from the server when a new slide is shown. This needs to mirror
 -- the rust type variation OutgoingUserMessage::NewSlide
 
 
 type Msg
+    -- Handle messages around connections and general
+    -- house keeping
     = AuthenticateToPresentation
     | JoinPresentation String
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | ReceivedWebsocketMessage String
     | SocketDisconnected String
-    -- Handle updating the model when new messages are successfully
-    -- parsed
+      -- Handle updating the model when new messages are successfully
+      -- parsed
     | InitialPresentationDataEvent InitialPresentationData
     | NewSlideEvent SlideSettings
+    -- Handle messages around user actions like sending a reaction
+    | SendEmoji String Int
+
 
 type ReceivedMessage
     = NewSlideMessage SlideSettings
     | InitialPresentationDataMessage InitialPresentationData
+
+
+
 --| RatelimiterResponse
 --| Disconnect
 --| NewPoll
@@ -144,14 +159,22 @@ update msg model =
         -- appropriate handler
         ReceivedWebsocketMessage message ->
             case Json.Decode.decodeString receivedWebsocketMessageDecorder message of
-                Ok (InitialPresentationDataMessage initialPresentationData) -> update (InitialPresentationDataEvent initialPresentationData) model
-                Ok (NewSlideMessage slideSettings) -> update (NewSlideEvent slideSettings) model
-                Err err -> ( {model | error = Json.Decode.errorToString err}, Cmd.none )
+                Ok (InitialPresentationDataMessage initialPresentationData) ->
+                    update (InitialPresentationDataEvent initialPresentationData) model
+
+                Ok (NewSlideMessage slideSettings) ->
+                    update (NewSlideEvent slideSettings) model
+
+                Err err ->
+                    ( { model | error = Json.Decode.errorToString err }, Cmd.none )
 
         InitialPresentationDataEvent initialPresentationData ->
-            case (initialPresentationData.settings, {model | title = initialPresentationData.title}) of
-              (Just settings, mdl) -> update (NewSlideEvent settings) mdl
-              (Nothing, mdl) -> (mdl, Cmd.none)
+            case ( initialPresentationData.settings, { model | title = initialPresentationData.title } ) of
+                ( Just settings, mdl ) ->
+                    update (NewSlideEvent settings) mdl
+
+                ( Nothing, mdl ) ->
+                    ( mdl, Cmd.none )
 
         -- If we receive this message, the Websocket must be open and working
         -- so we switch to the viewing state
@@ -160,10 +183,12 @@ update msg model =
                 -- If we're already in the viewing state, don't erase the other
                 -- state data like the poll
                 Viewing inputView ->
-                    ({model | state = Viewing { inputView | settings = slideSettings }}, Cmd.none )
+                    ( { model | state = Viewing { inputView | settings = slideSettings } }, Cmd.none )
 
                 _ ->
-                    ( {model | state = Viewing (InputView slideSettings Nothing)}, Cmd.none )
+                    ( { model | state = Viewing (InputView slideSettings Nothing) }, Cmd.none )
+        SendEmoji emoji size ->
+            (model, sendMessage (encodeEmojiReaction emoji size))
 
 
 subscriptions : Model -> Sub Msg
@@ -190,14 +215,16 @@ view model =
             , div [ id "poll-options" ] []
             ]
         , case model.state of
-              Viewing inputView ->
-                div [ id "full-reactions-container"] [
-                  div [ id "slide-message" ] []
-                , div [ id "reaction-help" ] [ text "Send a reaction below" ]
-                , div [ id "reaction-container" ]
-                  (List.map (\emoji -> (div [ class "reaction-button" ] [text emoji]) ) inputView.settings.emojis)
-                ]
-              _ -> div [ id "full-reactions-container"] []
+            Viewing inputView ->
+                div [ id "full-reactions-container" ]
+                    [ div [ id "slide-message" ] []
+                    , div [ id "reaction-help" ] [ text "Send a reaction below" ]
+                    , div [ id "reaction-container" ]
+                        (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
+                    ]
+
+            _ ->
+                div [ id "full-reactions-container" ] []
         ]
 
 
@@ -222,13 +249,16 @@ receivedWebsocketMessageDecorder =
         , Json.Decode.map InitialPresentationDataMessage initialPresentationDataMessageDecoder
         ]
 
+
 nestWebsocketMessageDecoder : String -> Decoder a -> Decoder a
 nestWebsocketMessageDecoder nest decoder =
     field nest decoder
 
+
 newSlideMessageDecoder : Decoder SlideSettings
 newSlideMessageDecoder =
-  nestWebsocketMessageDecoder "NewSlide" slideSettingDecoder
+    nestWebsocketMessageDecoder "NewSlide" slideSettingDecoder
+
 
 slideSettingDecoder : Decoder SlideSettings
 slideSettingDecoder =
@@ -236,9 +266,11 @@ slideSettingDecoder =
         (field "message" string)
         (field "emojis" (Json.Decode.list string))
 
+
 initialPresentationDataMessageDecoder : Decoder InitialPresentationData
 initialPresentationDataMessageDecoder =
     nestWebsocketMessageDecoder "InitialPresentationData"
-      (map2 InitialPresentationData
-        (field "title" string)
-        (field "settings" (Json.Decode.maybe slideSettingDecoder)))
+        (map2 InitialPresentationData
+            (field "title" string)
+            (field "settings" (Json.Decode.maybe slideSettingDecoder))
+        )
