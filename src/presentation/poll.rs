@@ -1,4 +1,8 @@
-use std::{sync::Arc, collections::{HashSet, HashMap}, fmt::Display};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    sync::Arc,
+};
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -8,13 +12,13 @@ use crate::NewPollMessage;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum VoteType {
     /// Someone can vote for one option with a value of 1
-    SingleBinary{choice: String},
+    SingleBinary { choice: String },
     /// Someone can vote for multiple choices with a value of 1
-    MultipleBinary{choices: HashSet<String>},
+    MultipleBinary { choices: HashMap<String, bool> },
     /// Someone can vote for one option with a value between 0 and 255
-    SingleValue{choice: String, value: u8},
+    SingleValue { choice: String, value: u8 },
     /// Someone can vote for multiple choices with values between 0 and 255
-    MultipleValue{choices: HashMap<String, u8>},
+    MultipleValue { choices: HashMap<String, u8> },
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -54,20 +58,27 @@ impl Poll {
     pub fn vote(&self, vote: IdentifiedVote) -> bool {
         // If the user has already voted, don't let them do so again
         if self.votes.contains_key(vote.identity.as_str()) {
-            warn!("[{}] already voted for in [{}]", vote.identity, vote.vote.poll_name);
+            warn!(
+                "[{}] already voted for in [{}]",
+                vote.identity, vote.vote.poll_name
+            );
             return false;
         }
 
         // Ensure vote type is correct
         // is there a better way to do this?
         match (&self.vote_type, &vote.vote.vote_type) {
-            (VoteType::SingleBinary{..}, VoteType::SingleBinary{choice}) => {
+            (VoteType::SingleBinary { .. }, VoteType::SingleBinary { choice }) => {
                 if !self.choices.contains(choice) {
-                    warn!("[{}] tried to vote in poll with an invalid choice: [{}]", vote.identity, choice);
+                    warn!(
+                        "[{}] tried to vote in poll with an invalid choice: [{}]",
+                        vote.identity, choice
+                    );
                     return false;
                 }
 
-                self.votes.insert(vote.identity.clone(), vote.vote.vote_type.clone());
+                self.votes
+                    .insert(vote.identity.clone(), vote.vote.vote_type.clone());
                 // This is possible to deadlock if we ever hold other references.
                 // So let's never do that.
                 if self.totals.contains_key(choice) {
@@ -75,41 +86,49 @@ impl Poll {
                 } else {
                     self.totals.insert(choice.clone(), 1);
                 }
-                info!("[{}] voted for [{}] in [{}]", vote.identity, choice, vote.vote.poll_name);
-            },
-            (VoteType::MultipleBinary{..}, VoteType::MultipleBinary{choices}) => {
+                info!(
+                    "[{}] voted for [{}] in [{}]",
+                    vote.identity, choice, vote.vote.poll_name
+                );
+            }
+            (VoteType::MultipleBinary { .. }, VoteType::MultipleBinary { choices }) => {
                 for choice in choices.iter() {
-                    if !self.choices.contains(choice) {
-                        warn!("[{}] tried to vote in poll with an invalid choice: [{}]", vote.identity, choice);
+                    if !self.choices.contains(choice.0) {
+                        warn!(
+                            "[{}] tried to vote in poll with an invalid choice: [{}]",
+                            vote.identity, choice.0
+                        );
                         return false;
                     }
                 }
 
-                self.votes.insert(vote.identity, vote.vote.vote_type.clone());
+                self.votes
+                    .insert(vote.identity, vote.vote.vote_type.clone());
                 // This is possible to deadlock if we ever hold other references.
                 // So let's never do that.
-                for choice in choices {
+                for (choice, _) in choices.into_iter().filter(|(_, picked)| **picked) {
                     if self.totals.contains_key(choice) {
                         self.totals.alter(choice, |_, x| x + 1);
                     } else {
                         self.totals.insert(choice.clone(), 1);
                     }
                 }
-            },
+            }
             // TODO @obelisk: Implement the rest of these
-            (VoteType::SingleValue{..}, VoteType::SingleValue{..}) => return false,
-            (VoteType::MultipleValue{..}, VoteType::MultipleValue{..}) => return false,
+            (VoteType::SingleValue { .. }, VoteType::SingleValue { .. }) => return false,
+            (VoteType::MultipleValue { .. }, VoteType::MultipleValue { .. }) => return false,
             _ => {
-                warn!("{} tried to vote for a poll with the wrong vote type: [{:?}] vs [{:?}]", vote.identity, self.vote_type, vote.vote.vote_type);
-                return false
-            },
+                warn!(
+                    "{} tried to vote for a poll with the wrong vote type: [{:?}] vs [{:?}]",
+                    vote.identity, self.vote_type, vote.vote.vote_type
+                );
+                return false;
+            }
         };
 
-        
         true
     }
 }
-
 
 #[derive(Clone)]
 pub struct Polls {
@@ -126,9 +145,14 @@ impl Polls {
     pub fn new_poll(&self, pole: NewPollMessage) -> Result<(), NewPollMessage> {
         if let Some(existing_pole) = self.polls.get(&pole.name) {
             let existing_pole = existing_pole.value().clone();
-            Err(NewPollMessage { name: pole.name.clone(), options: existing_pole.choices.into_iter().collect(), vote_type: existing_pole.vote_type })
+            Err(NewPollMessage {
+                name: pole.name.clone(),
+                options: existing_pole.choices.into_iter().collect(),
+                vote_type: existing_pole.vote_type,
+            })
         } else {
-            self.polls.insert(pole.name, Poll::new(&pole.options, pole.vote_type));
+            self.polls
+                .insert(pole.name, Poll::new(&pole.options, pole.vote_type));
             Ok(())
         }
     }
@@ -136,9 +160,11 @@ impl Polls {
     pub fn vote_in_poll(&self, vote: IdentifiedVote) -> Result<(), String> {
         let vote_name = vote.vote.poll_name.clone();
         let identity = vote.identity.clone();
-        match self.polls.get(&vote.vote.poll_name).map(|poll| {
-            poll.vote(vote)
-        }) {
+        match self
+            .polls
+            .get(&vote.vote.poll_name)
+            .map(|poll| poll.vote(vote))
+        {
             None => Err(format!("No poll with name {} exists", &vote_name)),
             Some(false) => Err(format!("{} could not vote in {}", identity, &vote_name)),
             Some(true) => Ok(()),
@@ -147,7 +173,11 @@ impl Polls {
 
     pub fn get_poll_totals(&self, pole_name: &str) -> Option<HashMap<String, u64>> {
         self.polls.get(pole_name).map(|poll| {
-            poll.value().totals.iter().map(|x| (x.key().to_string(), *x.value())).collect()
+            poll.value()
+                .totals
+                .iter()
+                .map(|x| (x.key().to_string(), *x.value()))
+                .collect()
         })
     }
 }

@@ -5,6 +5,7 @@ import Json.Decode exposing (map2)
 import Json.Decode exposing (string)
 import Json.Decode exposing (map)
 import Dict exposing (Dict)
+import Json.Decode exposing (map3)
 
 
 
@@ -19,8 +20,7 @@ type ReceivedMessage
     | InitialPresentationDataMessage InitialPresentationData
     | DisconnectMessage String
     | RatelimiterResponseMessage RatelimiterResponse
---| Disconnect
---| NewPoll
+    | NewPollMessage Poll
 
 
 -- Message from the server when a new slide is shown. This needs to mirror
@@ -30,9 +30,23 @@ type alias SlideSettings =
     , emojis : List String
     }
 
+type VoteType
+    -- A single selected choice (radio buttons)
+    = SingleBinary String
+    -- Multiple selected choices (check boxes)
+    | MultipleBinary (Dict String Bool)
+    -- Single choice with slider
+    --| SingleValue String Int
+    -- Multiple selected choices with sliders
+    --| MultipleValue (Dict String Int)
+
 
 type alias Poll =
-    {}
+    {
+      name: String
+    , options: List String
+    , vote_type: VoteType
+    }
 
 type RatelimiterResponse = 
       Allowed (Dict String String)
@@ -58,6 +72,7 @@ receivedWebsocketMessageDecorder =
         , Json.Decode.map InitialPresentationDataMessage initialPresentationDataMessageDecoder
         , Json.Decode.map DisconnectMessage (simpleMessageDecoder "Disconnect")
         , Json.Decode.map RatelimiterResponseMessage ratelimiterResponseMessageDecoder
+        , Json.Decode.map NewPollMessage newPollMessageDecoder
         ]
 
 
@@ -101,3 +116,22 @@ ratelimiterResponseMessageDecoder =
         [ Json.Decode.map Allowed (dictMessageDecoder "Allowed")
         , Json.Decode.map Blocked (simpleMessageDecoder "Blocked")
         ])
+
+-- {"NewPoll":{"name":"What's Your Favorite Emoji?","options":["📊","📈","📉","💹"],"vote_type":{"SingleBinary":{"choice":""}}}} localhost:8000:34:12
+
+newPollMessageDecoder : Decoder Poll
+newPollMessageDecoder = 
+    nestWebsocketMessageDecoder "NewPoll"
+        (map3 Poll
+            (field "name" string)
+            (field "options" (Json.Decode.list string))
+            (field "vote_type" voteTypeDecoder)
+        )
+
+voteTypeDecoder : Decoder VoteType
+voteTypeDecoder = 
+    (Json.Decode.oneOf
+        [ Json.Decode.map SingleBinary (field "SingleBinary" (field "choice" string))
+        , Json.Decode.map MultipleBinary (field "MultipleBinary" (field "choices" (Json.Decode.dict Json.Decode.bool)))
+        ])
+

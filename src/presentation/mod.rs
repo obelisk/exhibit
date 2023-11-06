@@ -6,8 +6,11 @@ use dashmap::DashMap;
 use jsonwebtoken::DecodingKey;
 use tokio::sync::RwLock;
 
-use crate::{Users, Presenters, ratelimiting::{Ratelimiter, time::TimeLimiter}, SlideSettings};
-pub use self::poll::{*};
+pub use self::poll::*;
+use crate::{
+    ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter},
+    Presenters, SlideSettings, Users,
+};
 
 #[derive(Clone)]
 pub struct PresentationData {
@@ -51,7 +54,11 @@ impl Presentation {
     ) -> Self {
         // Create a default 15s ratelimiter
         let ratelimiter = Arc::new(Ratelimiter::new());
-        ratelimiter.add_ratelimit("15s".to_string(), Arc::new(TimeLimiter::new(15)));
+        ratelimiter.add_ratelimit("3s".to_string(), Arc::new(TimeLimiter::new(3)));
+        ratelimiter.add_ratelimit(
+            "value".to_string(),
+            Arc::new(ValueLimiter::new(3, 3, 3, 6, 10)),
+        );
 
         Self {
             id: presentation_id,
