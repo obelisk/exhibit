@@ -5446,8 +5446,14 @@ var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'choice',
-					$elm$json$Json$Encode$string(choice))
+					'SingleBinary',
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'choice',
+								$elm$json$Json$Encode$string(choice))
+							])))
 				]));
 	} else {
 		var choices = vote_type.a;
@@ -5455,18 +5461,24 @@ var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'choices',
+					'MultipleBinary',
 					$elm$json$Json$Encode$object(
-						A2(
-							$elm$core$List$map,
-							function (_v1) {
-								var choice = _v1.a;
-								var picked = _v1.b;
-								return _Utils_Tuple2(
-									choice,
-									$elm$json$Json$Encode$bool(picked));
-							},
-							$elm$core$Dict$toList(choices))))
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'choices',
+								$elm$json$Json$Encode$object(
+									A2(
+										$elm$core$List$map,
+										function (_v1) {
+											var choice = _v1.a;
+											var picked = _v1.b;
+											return _Utils_Tuple2(
+												choice,
+												$elm$json$Json$Encode$bool(picked));
+										},
+										$elm$core$Dict$toList(choices))))
+							])))
 				]));
 	}
 };
@@ -6301,6 +6313,9 @@ var $author$project$ServerMessageTypes$NewSlideMessage = function (a) {
 var $author$project$ServerMessageTypes$RatelimiterResponseMessage = function (a) {
 	return {$: 'RatelimiterResponseMessage', a: a};
 };
+var $author$project$ServerMessageTypes$Success = function (a) {
+	return {$: 'Success', a: a};
+};
 var $author$project$ServerMessageTypes$InitialPresentationData = F2(
 	function (title, settings) {
 		return {settings: settings, title: title};
@@ -6431,6 +6446,19 @@ var $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder = A2(
 				$author$project$ServerMessageTypes$Blocked,
 				$author$project$ServerMessageTypes$simpleMessageDecoder('Blocked'))
 			])));
+var $author$project$ServerMessageTypes$VoteRecorded = {$: 'VoteRecorded'};
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $author$project$ServerMessageTypes$successMessageDecoder = A2(
+	$elm$json$Json$Decode$andThen,
+	function (value) {
+		if (value === 'Vote recorded') {
+			return $elm$json$Json$Decode$succeed($author$project$ServerMessageTypes$VoteRecorded);
+		} else {
+			return $elm$json$Json$Decode$fail('Unknown Success: ' + value);
+		}
+	},
+	A2($elm$json$Json$Decode$field, 'Success', $elm$json$Json$Decode$string));
 var $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
@@ -6441,7 +6469,8 @@ var $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder = $elm$j
 			$author$project$ServerMessageTypes$DisconnectMessage,
 			$author$project$ServerMessageTypes$simpleMessageDecoder('Disconnect')),
 			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$RatelimiterResponseMessage, $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewPollMessage, $author$project$ServerMessageTypes$newPollMessageDecoder)
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewPollMessage, $author$project$ServerMessageTypes$newPollMessageDecoder),
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$Success, $author$project$ServerMessageTypes$successMessageDecoder)
 		]));
 var $author$project$Join$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
 var $author$project$Join$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
@@ -6534,7 +6563,7 @@ var $author$project$Join$update = F2(
 											response: $elm$core$Maybe$Just(m)
 										}),
 									$elm$core$Platform$Cmd$none);
-							default:
+							case 'NewPollMessage':
 								var m = _v2.a.a;
 								var _v3 = model.state;
 								if (_v3.$ === 'Viewing') {
@@ -6554,6 +6583,24 @@ var $author$project$Join$update = F2(
 								} else {
 									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 								}
+							default:
+								var success_type = _v2.a.a;
+								var _v5 = model.state;
+								if (_v5.$ === 'Viewing') {
+									var inputView = _v5.a;
+									return _Utils_Tuple2(
+										_Utils_update(
+											model,
+											{
+												state: $author$project$Join$Viewing(
+													_Utils_update(
+														inputView,
+														{poll: $elm$core$Maybe$Nothing}))
+											}),
+										$elm$core$Platform$Cmd$none);
+								} else {
+									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								}
 						}
 					} else {
 						var err = _v2.a;
@@ -6568,29 +6615,29 @@ var $author$project$Join$update = F2(
 					}
 				case 'InitialPresentationDataEvent':
 					var initialPresentationData = msg.a;
-					var _v4 = _Utils_Tuple2(
+					var _v6 = _Utils_Tuple2(
 						initialPresentationData.settings,
 						_Utils_update(
 							model,
 							{title: initialPresentationData.title}));
-					if (_v4.a.$ === 'Just') {
-						var settings = _v4.a.a;
-						var mdl = _v4.b;
+					if (_v6.a.$ === 'Just') {
+						var settings = _v6.a.a;
+						var mdl = _v6.b;
 						var $temp$msg = $author$project$Join$NewSlideEvent(settings),
 							$temp$model = mdl;
 						msg = $temp$msg;
 						model = $temp$model;
 						continue update;
 					} else {
-						var _v5 = _v4.a;
-						var mdl = _v4.b;
+						var _v7 = _v6.a;
+						var mdl = _v6.b;
 						return _Utils_Tuple2(mdl, $elm$core$Platform$Cmd$none);
 					}
 				case 'NewSlideEvent':
 					var slideSettings = msg.a;
-					var _v6 = model.state;
-					if (_v6.$ === 'Viewing') {
-						var inputView = _v6.a;
+					var _v8 = model.state;
+					if (_v8.$ === 'Viewing') {
+						var inputView = _v8.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6613,12 +6660,12 @@ var $author$project$Join$update = F2(
 					}
 				case 'ChangeSingleBinaryPollAnswer':
 					var answer = msg.a;
-					var _v7 = model.state;
-					if (_v7.$ === 'Viewing') {
-						var inputView = _v7.a;
-						var _v8 = inputView.poll;
-						if (_v8.$ === 'Just') {
-							var poll = _v8.a;
+					var _v9 = model.state;
+					if (_v9.$ === 'Viewing') {
+						var inputView = _v9.a;
+						var _v10 = inputView.poll;
+						if (_v10.$ === 'Just') {
+							var poll = _v10.a;
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
@@ -6645,15 +6692,15 @@ var $author$project$Join$update = F2(
 				case 'ChangeMultipleBinaryPollAnswer':
 					var option = msg.a;
 					var answer = msg.b;
-					var _v9 = model.state;
-					if (_v9.$ === 'Viewing') {
-						var inputView = _v9.a;
-						var _v10 = inputView.poll;
-						if (_v10.$ === 'Just') {
-							var poll = _v10.a;
-							var _v11 = poll.vote_type;
-							if (_v11.$ === 'MultipleBinary') {
-								var options = _v11.a;
+					var _v11 = model.state;
+					if (_v11.$ === 'Viewing') {
+						var inputView = _v11.a;
+						var _v12 = inputView.poll;
+						if (_v12.$ === 'Just') {
+							var poll = _v12.a;
+							var _v13 = poll.vote_type;
+							if (_v13.$ === 'MultipleBinary') {
+								var options = _v13.a;
 								return _Utils_Tuple2(
 									_Utils_update(
 										model,

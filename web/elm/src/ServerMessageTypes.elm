@@ -6,6 +6,9 @@ import Json.Decode exposing (string)
 import Json.Decode exposing (map)
 import Dict exposing (Dict)
 import Json.Decode exposing (map3)
+import Json.Decode exposing (andThen)
+import Json.Decode exposing (succeed)
+import Json.Decode exposing (fail)
 
 
 
@@ -14,6 +17,9 @@ import Json.Decode exposing (map3)
 type alias JoinPresentationResponse =
     { url : String }
 
+type SuccessType = 
+    VoteRecorded
+
 -- Websocket Types and Subtypes
 type ReceivedMessage
     = NewSlideMessage SlideSettings
@@ -21,6 +27,7 @@ type ReceivedMessage
     | DisconnectMessage String
     | RatelimiterResponseMessage RatelimiterResponse
     | NewPollMessage Poll
+    | Success SuccessType
 
 
 -- Message from the server when a new slide is shown. This needs to mirror
@@ -73,6 +80,7 @@ receivedWebsocketMessageDecorder =
         , Json.Decode.map DisconnectMessage (simpleMessageDecoder "Disconnect")
         , Json.Decode.map RatelimiterResponseMessage ratelimiterResponseMessageDecoder
         , Json.Decode.map NewPollMessage newPollMessageDecoder
+        , Json.Decode.map Success successMessageDecoder
         ]
 
 
@@ -80,7 +88,14 @@ nestWebsocketMessageDecoder : String -> Decoder a -> Decoder a
 nestWebsocketMessageDecoder nest decoder =
     field nest decoder
 
-
+successMessageDecoder : Decoder SuccessType
+successMessageDecoder =
+    field "Success" string
+        |> andThen (\value ->
+            case value of
+                "Vote recorded" -> succeed VoteRecorded
+                _ -> fail ("Unknown Success: " ++ value)
+        )
 newSlideMessageDecoder : Decoder SlideSettings
 newSlideMessageDecoder =
     nestWebsocketMessageDecoder "NewSlide" slideSettingDecoder
@@ -116,8 +131,6 @@ ratelimiterResponseMessageDecoder =
         [ Json.Decode.map Allowed (dictMessageDecoder "Allowed")
         , Json.Decode.map Blocked (simpleMessageDecoder "Blocked")
         ])
-
--- {"NewPoll":{"name":"What's Your Favorite Emoji?","options":["📊","📈","📉","💹"],"vote_type":{"SingleBinary":{"choice":""}}}} localhost:8000:34:12
 
 newPollMessageDecoder : Decoder Poll
 newPollMessageDecoder = 

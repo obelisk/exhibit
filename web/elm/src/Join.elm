@@ -139,6 +139,12 @@ update msg model =
                     case model.state of
                         Viewing inputView -> ({model | state = (Viewing {inputView | poll = Just m})}, Cmd.none)
                         _ -> (model, Cmd.none)
+                Ok(Success success_type) ->
+                  case success_type of
+                      VoteRecorded -> case model.state of
+                          -- Close the poll view
+                          Viewing inputView -> ({model | state = (Viewing {inputView | poll = Nothing})}, Cmd.none)
+                          _ -> (model, Cmd.none)
 
                 Err err ->
                     ( { model | error = Just (Json.Decode.errorToString err) }, Cmd.none )

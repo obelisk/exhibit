@@ -52,8 +52,10 @@ encodePollResponse poll =
 encodeVoteType : VoteType -> Json.Encode.Value
 encodeVoteType vote_type =
     case vote_type of 
-        SingleBinary choice -> Json.Encode.object [ ("choice", Json.Encode.string choice) ]
-        MultipleBinary choices -> Json.Encode.object[ ("choices", 
-            Json.Encode.object (
-                (List.map (\(choice, picked) -> (choice, Json.Encode.bool picked)) (Dict.toList choices))))]
+        SingleBinary choice -> Json.Encode.object [ ("SingleBinary", Json.Encode.object [ ("choice", Json.Encode.string choice) ]) ]
+        MultipleBinary choices -> Json.Encode.object [
+            ("MultipleBinary", Json.Encode.object [
+                ("choices", 
+                Json.Encode.object (
+                    (List.map (\(choice, picked) -> (choice, Json.Encode.bool picked)) (Dict.toList choices))))])]
         
