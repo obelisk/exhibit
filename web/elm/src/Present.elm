@@ -46,7 +46,9 @@ type Msg
     -- Handle messages around connections and general
     -- house keeping
     = ChangeRegistrationKey String
+    | GetSlideData (Cmd Msg)
     | SlideDataRead String
+    | SlideDataError String
     | AuthenticateToPresentation
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | StartPresentation String
@@ -138,6 +140,9 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GetSlideData _ -> (model, Cmd.none)
+        SlideDataRead _ -> (model, Cmd.none)
+        SlideDataError _ -> (model, Cmd.none)
         AddSlideData slides ->
             let _ = Debug.log "Slides" slides in
                 case slides of
@@ -193,14 +198,14 @@ update msg model =
 
 filesDecoderMsg: Decode.Decoder Msg
 filesDecoderMsg =
-    Decode.map AddSlideData (Decode.at ["target", "files"] (Decode.map intoSlides (Decode.list File.decoder)))
+    (Decode.at ["target", "files"] (Decode.map intoSlides (Decode.list File.decoder)))
 
-intoSlides: (List File) -> Maybe Slides
+intoSlides: (List File) -> Msg
 intoSlides files =
     let 
         data_files = (List.filter (\file -> (String.endsWith (name file) ".json")) files)
         image_files = (List.filter (\file -> (String.endsWith (name file) ".png")) files) in
-        buildSlides data_files (organizeSlideImages image_files)
+        buildGetSlidesTask data_files (organizeSlideImages image_files)
 
 -- parseSlideData: List File -> Maybe SlideData
 -- parseSlideData data_files =
@@ -215,13 +220,12 @@ organizeSlideImages: List File -> Dict String File
 organizeSlideImages slides =
     Dict.fromList (List.map (\file -> (name file, file)) slides)
 
-buildSlides: List File -> Dict String File -> Maybe Slides
-buildSlides data_files image_files =
+buildGetSlidesTask: List File -> Dict String File -> Msg
+buildGetSlidesTask data_files image_files =
     -- In the event there is exactly one json data file
     case (List.head data_files) of
-        Just file -> 
-            perform (toString file)
-        _ -> Nothing
+        Just file -> GetSlideData (perform SlideDataRead (toString file))
+        _ -> SlideDataError "There was more than one data file (JSON) selected."
 
 view : Model -> Html Msg
 view model =
@@ -229,7 +233,6 @@ view model =
         label [ for "registration_key" ] [ text "Registration Key:" ]
     ,   input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey ] []
     ,   button [ onClick AuthenticateToPresentation ] [ text "Start Presentation" ]
-    -- (Decode.map AddSlideData filesDecoder)
     ,   input [ type_ "file" , multiple True, on "change" filesDecoderMsg ] []
     ,   div [ id "slides-container"] [
         img [ id "slide-img" ] []
