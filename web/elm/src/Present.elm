@@ -49,6 +49,7 @@ type Msg
     | GetSlideData (Cmd Msg)
     | SlideDataRead (String, Dict String String)
     | SlideDataError String
+    | SlideTest (List File)
     | AuthenticateToPresentation
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | StartPresentation String
@@ -139,9 +140,15 @@ main =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let _ = Debug.log "Msg" msg in
     case msg of
-        GetSlideData _ -> (model, Cmd.none)
-        SlideDataRead _ -> (model, Cmd.none)
+        SlideTest files ->
+            let _ = Debug.log "Files" files in
+            (model, Cmd.none)
+        GetSlideData read -> (model, read)
+        SlideDataRead (slide_data, slide_contents) -> 
+            let _ = Debug.log "Slide Data" slide_data in
+            (model, Cmd.none)
         SlideDataError _ -> (model, Cmd.none)
         AddSlideData slides ->
             let _ = Debug.log "Slides" slides in
@@ -198,13 +205,22 @@ update msg model =
 
 filesDecoderMsg: Decode.Decoder Msg
 filesDecoderMsg =
+    let _ = Debug.log "filesDecoderMsg" "filesDecoderMsg" in
     (Decode.at ["target", "files"] (Decode.map intoSlides (Decode.list File.decoder)))
+
+successDecoderMsg : Decode.Decoder Msg
+successDecoderMsg = 
+    Decode.succeed (SlideDataRead ("", Dict.empty))
+
+testDecoderMsg : Decode.Decoder Msg
+testDecoderMsg = 
+    (Decode.at ["target", "files"] (Decode.map SlideTest (Decode.list File.decoder)))
 
 intoSlides: (List File) -> Msg
 intoSlides files =
     let 
-        data_files = (List.filter (\file -> (String.endsWith (name file) ".json")) files)
-        image_files = (List.filter (\file -> (String.endsWith (name file) ".png")) files) in
+        data_files = (List.filter (\file -> (String.endsWith ".json" (name file))) files)
+        image_files = (List.filter (\file -> (String.endsWith ".png" (name file))) files) in
         buildGetSlidesTask data_files (organizeSlideImages image_files)
 
 -- parseSlideData: List File -> Maybe SlideData
@@ -222,14 +238,15 @@ organizeSlideImages slides =
 
 buildGetSlidesTask: List File -> Dict String File -> Msg
 buildGetSlidesTask data_files image_files =
+    let _ = Debug.log "buildGetSlidesTask" data_files in
     -- In the event there is exactly one json data file
-    case (List.head data_files) of
-        Just data_file -> GetSlideData (
+    case data_files of
+        [] -> SlideDataError "There was no data file (JSON) selected."
+        [data_file] -> GetSlideData (
             perform SlideDataRead (buildFileReadingTask data_file image_files)
             )
         _ -> SlideDataError "There was more than one data file (JSON) selected."
 
--- (Dict.toList (Dict.map (\file -> (toString file)) image_files))
 buildFileReadingTask: File -> Dict String File -> Task Never (String, Dict String String)
 buildFileReadingTask data image_files =
     Task.map2 (\slide_data slide_images -> (slide_data, Dict.fromList slide_images)) (toString data) (Task.sequence (List.map (\(slide_name, slide_file) -> (toString slide_file) |> andThen (\image_contents -> (succeed (slide_name, image_contents)))) (Dict.toList image_files)))
