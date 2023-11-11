@@ -47,7 +47,7 @@ type Msg
     -- house keeping
     = ChangeRegistrationKey String
     | GetSlideData (Cmd Msg)
-    | SlideDataRead String
+    | SlideDataRead (String, Dict String String)
     | SlideDataError String
     | AuthenticateToPresentation
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
@@ -224,8 +224,15 @@ buildGetSlidesTask: List File -> Dict String File -> Msg
 buildGetSlidesTask data_files image_files =
     -- In the event there is exactly one json data file
     case (List.head data_files) of
-        Just file -> GetSlideData (perform SlideDataRead (toString file))
+        Just data_file -> GetSlideData (
+            perform SlideDataRead (buildFileReadingTask data_file image_files)
+            )
         _ -> SlideDataError "There was more than one data file (JSON) selected."
+
+-- (Dict.toList (Dict.map (\file -> (toString file)) image_files))
+buildFileReadingTask: File -> Dict String File -> Task Never (String, Dict String String)
+buildFileReadingTask data image_files =
+    Task.map2 (\slide_data slide_images -> (slide_data, Dict.fromList slide_images)) (toString data) (Task.sequence (List.map (\(slide_name, slide_file) -> (toString slide_file) |> andThen (\image_contents -> (succeed (slide_name, image_contents)))) (Dict.toList image_files)))
 
 view : Model -> Html Msg
 view model =
