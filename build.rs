@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::process::Command;
 
-const ELM_FILES: [&str; 1] = ["Join"];
+const ELM_FILES: [&str; 2] = ["Join", "Present"];
 
 fn main() {
     println!("cargo:rerun-if-changed=web/");

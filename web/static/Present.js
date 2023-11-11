@@ -5334,238 +5334,73 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Join$Disconnected = {$: 'Disconnected'};
+var $author$project$Present$Disconnected = {$: 'Disconnected'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Join$init = function (_v0) {
+var $author$project$Present$init = function (_v0) {
 	return _Utils_Tuple2(
-		{error: $elm$core$Maybe$Nothing, registration_key: '', response: $elm$core$Maybe$Nothing, state: $author$project$Join$Disconnected, title: 'Please Join A Presentation'},
+		{error: $elm$core$Maybe$Nothing, registration_key: '', state: $author$project$Present$Disconnected},
 		$elm$core$Platform$Cmd$none);
 };
-var $author$project$Join$ReceivedWebsocketMessage = function (a) {
+var $author$project$Present$ReceivedWebsocketMessage = function (a) {
 	return {$: 'ReceivedWebsocketMessage', a: a};
 };
-var $author$project$Join$SocketDisconnected = function (a) {
+var $author$project$Present$SocketDisconnected = function (a) {
 	return {$: 'SocketDisconnected', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Join$messageReceived = _Platform_incomingPort('messageReceived', $elm$json$Json$Decode$string);
-var $author$project$Join$socketDisconnected = _Platform_incomingPort('socketDisconnected', $elm$json$Json$Decode$string);
-var $author$project$Join$subscriptions = function (_v0) {
-	return $elm$core$Platform$Sub$batch(
-		_List_fromArray(
-			[
-				$author$project$Join$messageReceived($author$project$Join$ReceivedWebsocketMessage),
-				$author$project$Join$socketDisconnected($author$project$Join$SocketDisconnected)
-			]));
+var $author$project$Present$NextSlide = {$: 'NextSlide'};
+var $author$project$Present$OtherKey = function (a) {
+	return {$: 'OtherKey', a: a};
 };
-var $author$project$Join$Authenticated = function (a) {
-	return {$: 'Authenticated', a: a};
-};
-var $author$project$Join$GotWebsocketAddress = function (a) {
-	return {$: 'GotWebsocketAddress', a: a};
-};
-var $author$project$Join$InitialPresentationDataEvent = function (a) {
-	return {$: 'InitialPresentationDataEvent', a: a};
-};
-var $author$project$Join$InputView = F2(
-	function (settings, poll) {
-		return {poll: poll, settings: settings};
-	});
-var $author$project$Join$JoinPresentation = function (a) {
-	return {$: 'JoinPresentation', a: a};
-};
-var $author$project$ServerMessageTypes$MultipleBinary = function (a) {
-	return {$: 'MultipleBinary', a: a};
-};
-var $author$project$Join$NewSlideEvent = function (a) {
-	return {$: 'NewSlideEvent', a: a};
-};
-var $author$project$ServerMessageTypes$SingleBinary = function (a) {
-	return {$: 'SingleBinary', a: a};
-};
-var $author$project$Join$Viewing = function (a) {
-	return {$: 'Viewing', a: a};
-};
-var $elm$json$Json$Decode$decodeString = _Json_runOnString;
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $author$project$UserMessageTypes$encodeUserMessage = F2(
-	function (encoder, message) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'User',
-					encoder(message))
-				]));
-	});
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$UserMessageTypes$encodeEmojiReaction = F2(
-	function (emoji, size) {
-		return A2(
-			$elm$json$Json$Encode$encode,
-			0,
-			A2(
-				$author$project$UserMessageTypes$encodeUserMessage,
-				$elm$json$Json$Encode$object,
-				_List_fromArray(
-					[
-						_Utils_Tuple2(
-						'Emoji',
-						$elm$json$Json$Encode$object(
-							_List_fromArray(
-								[
-									_Utils_Tuple2(
-									'emoji',
-									$elm$json$Json$Encode$string(emoji)),
-									_Utils_Tuple2(
-									'size',
-									$elm$json$Json$Encode$int(size))
-								])))
-					])));
-	});
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
-	if (vote_type.$ === 'SingleBinary') {
-		var choice = vote_type.a;
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'SingleBinary',
-					$elm$json$Json$Encode$object(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'choice',
-								$elm$json$Json$Encode$string(choice))
-							])))
-				]));
-	} else {
-		var choices = vote_type.a;
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'MultipleBinary',
-					$elm$json$Json$Encode$object(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'choices',
-								$elm$json$Json$Encode$object(
-									A2(
-										$elm$core$List$map,
-										function (_v1) {
-											var choice = _v1.a;
-											var picked = _v1.b;
-											return _Utils_Tuple2(
-												choice,
-												$elm$json$Json$Encode$bool(picked));
-										},
-										$elm$core$Dict$toList(choices))))
-							])))
-				]));
+var $author$project$Present$PreviousSlide = {$: 'PreviousSlide'};
+var $author$project$Present$toKey = function (string) {
+	switch (string) {
+		case 'ArrowLeft':
+			return $author$project$Present$PreviousSlide;
+		case 'ArrowRight':
+			return $author$project$Present$NextSlide;
+		default:
+			var x = string;
+			return $author$project$Present$OtherKey(x);
 	}
 };
-var $author$project$UserMessageTypes$encodePollResponse = function (poll) {
-	return A2(
-		$elm$json$Json$Encode$encode,
-		0,
-		A2(
-			$author$project$UserMessageTypes$encodeUserMessage,
-			$elm$json$Json$Encode$object,
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'Vote',
-					$elm$json$Json$Encode$object(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'poll_name',
-								$elm$json$Json$Encode$string(poll.name)),
-								_Utils_Tuple2(
-								'vote_type',
-								$author$project$UserMessageTypes$encodeVoteType(poll.vote_type))
-							])))
-				])));
-};
-var $elm$http$Http$BadStatus_ = F2(
-	function (a, b) {
-		return {$: 'BadStatus_', a: a, b: b};
+var $author$project$Present$keyDecoder = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Present$toKey,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $author$project$Present$messageReceived = _Platform_incomingPort('messageReceived', $elm$json$Json$Decode$string);
+var $elm$browser$Browser$Events$Document = {$: 'Document'};
+var $elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 'MySub', a: a, b: b, c: c};
 	});
-var $elm$http$Http$BadUrl_ = function (a) {
-	return {$: 'BadUrl_', a: a};
-};
-var $elm$http$Http$GoodStatus_ = F2(
-	function (a, b) {
-		return {$: 'GoodStatus_', a: a, b: b};
+var $elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {pids: pids, subs: subs};
 	});
-var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
-var $elm$http$Http$Receiving = function (a) {
-	return {$: 'Receiving', a: a};
-};
-var $elm$http$Http$Sending = function (a) {
-	return {$: 'Sending', a: a};
-};
-var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
+var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
+	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
+var $elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (node.$ === 'Document') {
+		return 'd_';
 	} else {
-		return false;
+		return 'w_';
 	}
 };
-var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
+var $elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			$elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -5626,6 +5461,7 @@ var $elm$core$Dict$balance = F5(
 			}
 		}
 	});
+var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$insertHelp = F3(
 	function (key, value, dict) {
 		if (dict.$ === 'RBEmpty_elm_builtin') {
@@ -5672,6 +5508,346 @@ var $elm$core$Dict$insert = F3(
 		} else {
 			var x = _v0;
 			return x;
+		}
+	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $elm$core$Process$kill = _Scheduler_kill;
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$Dict$merge = F6(
+	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
+		var stepState = F3(
+			function (rKey, rValue, _v0) {
+				stepState:
+				while (true) {
+					var list = _v0.a;
+					var result = _v0.b;
+					if (!list.b) {
+						return _Utils_Tuple2(
+							list,
+							A3(rightStep, rKey, rValue, result));
+					} else {
+						var _v2 = list.a;
+						var lKey = _v2.a;
+						var lValue = _v2.b;
+						var rest = list.b;
+						if (_Utils_cmp(lKey, rKey) < 0) {
+							var $temp$rKey = rKey,
+								$temp$rValue = rValue,
+								$temp$_v0 = _Utils_Tuple2(
+								rest,
+								A3(leftStep, lKey, lValue, result));
+							rKey = $temp$rKey;
+							rValue = $temp$rValue;
+							_v0 = $temp$_v0;
+							continue stepState;
+						} else {
+							if (_Utils_cmp(lKey, rKey) > 0) {
+								return _Utils_Tuple2(
+									list,
+									A3(rightStep, rKey, rValue, result));
+							} else {
+								return _Utils_Tuple2(
+									rest,
+									A4(bothStep, lKey, lValue, rValue, result));
+							}
+						}
+					}
+				}
+			});
+		var _v3 = A3(
+			$elm$core$Dict$foldl,
+			stepState,
+			_Utils_Tuple2(
+				$elm$core$Dict$toList(leftDict),
+				initialResult),
+			rightDict);
+		var leftovers = _v3.a;
+		var intermediateResult = _v3.b;
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v4, result) {
+					var k = _v4.a;
+					var v = _v4.b;
+					return A3(leftStep, k, v, result);
+				}),
+			intermediateResult,
+			leftovers);
+	});
+var $elm$browser$Browser$Events$Event = F2(
+	function (key, event) {
+		return {event: event, key: key};
+	});
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$browser$Browser$Events$spawn = F3(
+	function (router, key, _v0) {
+		var node = _v0.a;
+		var name = _v0.b;
+		var actualNode = function () {
+			if (node.$ === 'Document') {
+				return _Browser_doc;
+			} else {
+				return _Browser_window;
+			}
+		}();
+		return A2(
+			$elm$core$Task$map,
+			function (value) {
+				return _Utils_Tuple2(key, value);
+			},
+			A3(
+				_Browser_on,
+				actualNode,
+				name,
+				function (event) {
+					return A2(
+						$elm$core$Platform$sendToSelf,
+						router,
+						A2($elm$browser$Browser$Events$Event, key, event));
+				}));
+	});
+var $elm$core$Dict$union = F2(
+	function (t1, t2) {
+		return A3($elm$core$Dict$foldl, $elm$core$Dict$insert, t2, t1);
+	});
+var $elm$browser$Browser$Events$onEffects = F3(
+	function (router, subs, state) {
+		var stepRight = F3(
+			function (key, sub, _v6) {
+				var deads = _v6.a;
+				var lives = _v6.b;
+				var news = _v6.c;
+				return _Utils_Tuple3(
+					deads,
+					lives,
+					A2(
+						$elm$core$List$cons,
+						A3($elm$browser$Browser$Events$spawn, router, key, sub),
+						news));
+			});
+		var stepLeft = F3(
+			function (_v4, pid, _v5) {
+				var deads = _v5.a;
+				var lives = _v5.b;
+				var news = _v5.c;
+				return _Utils_Tuple3(
+					A2($elm$core$List$cons, pid, deads),
+					lives,
+					news);
+			});
+		var stepBoth = F4(
+			function (key, pid, _v2, _v3) {
+				var deads = _v3.a;
+				var lives = _v3.b;
+				var news = _v3.c;
+				return _Utils_Tuple3(
+					deads,
+					A3($elm$core$Dict$insert, key, pid, lives),
+					news);
+			});
+		var newSubs = A2($elm$core$List$map, $elm$browser$Browser$Events$addKey, subs);
+		var _v0 = A6(
+			$elm$core$Dict$merge,
+			stepLeft,
+			stepBoth,
+			stepRight,
+			state.pids,
+			$elm$core$Dict$fromList(newSubs),
+			_Utils_Tuple3(_List_Nil, $elm$core$Dict$empty, _List_Nil));
+		var deadPids = _v0.a;
+		var livePids = _v0.b;
+		var makeNewPids = _v0.c;
+		return A2(
+			$elm$core$Task$andThen,
+			function (pids) {
+				return $elm$core$Task$succeed(
+					A2(
+						$elm$browser$Browser$Events$State,
+						newSubs,
+						A2(
+							$elm$core$Dict$union,
+							livePids,
+							$elm$core$Dict$fromList(pids))));
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (_v1) {
+					return $elm$core$Task$sequence(makeNewPids);
+				},
+				$elm$core$Task$sequence(
+					A2($elm$core$List$map, $elm$core$Process$kill, deadPids))));
+	});
+var $elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _v0 = f(mx);
+		if (_v0.$ === 'Just') {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var $elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			$elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var $elm$browser$Browser$Events$onSelfMsg = F3(
+	function (router, _v0, state) {
+		var key = _v0.key;
+		var event = _v0.event;
+		var toMessage = function (_v2) {
+			var subKey = _v2.a;
+			var _v3 = _v2.b;
+			var node = _v3.a;
+			var name = _v3.b;
+			var decoder = _v3.c;
+			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : $elm$core$Maybe$Nothing;
+		};
+		var messages = A2($elm$core$List$filterMap, toMessage, state.subs);
+		return A2(
+			$elm$core$Task$andThen,
+			function (_v1) {
+				return $elm$core$Task$succeed(state);
+			},
+			$elm$core$Task$sequence(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Platform$sendToApp(router),
+					messages)));
+	});
+var $elm$browser$Browser$Events$subMap = F2(
+	function (func, _v0) {
+		var node = _v0.a;
+		var name = _v0.b;
+		var decoder = _v0.c;
+		return A3(
+			$elm$browser$Browser$Events$MySub,
+			node,
+			name,
+			A2($elm$json$Json$Decode$map, func, decoder));
+	});
+_Platform_effectManagers['Browser.Events'] = _Platform_createManager($elm$browser$Browser$Events$init, $elm$browser$Browser$Events$onEffects, $elm$browser$Browser$Events$onSelfMsg, 0, $elm$browser$Browser$Events$subMap);
+var $elm$browser$Browser$Events$subscription = _Platform_leaf('Browser.Events');
+var $elm$browser$Browser$Events$on = F3(
+	function (node, name, decoder) {
+		return $elm$browser$Browser$Events$subscription(
+			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
+	});
+var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
+var $author$project$Present$socketDisconnected = _Platform_incomingPort('socketDisconnected', $elm$json$Json$Decode$string);
+var $author$project$Present$subscriptions = function (_v0) {
+	return $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$author$project$Present$messageReceived($author$project$Present$ReceivedWebsocketMessage),
+				$author$project$Present$socketDisconnected($author$project$Present$SocketDisconnected),
+				$elm$browser$Browser$Events$onKeyDown($author$project$Present$keyDecoder)
+			]));
+};
+var $author$project$Present$Authenticated = function (a) {
+	return {$: 'Authenticated', a: a};
+};
+var $author$project$Present$GotWebsocketAddress = function (a) {
+	return {$: 'GotWebsocketAddress', a: a};
+};
+var $author$project$Present$StartPresentation = function (a) {
+	return {$: 'StartPresentation', a: a};
+};
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $elm$http$Http$BadStatus_ = F2(
+	function (a, b) {
+		return {$: 'BadStatus_', a: a, b: b};
+	});
+var $elm$http$Http$BadUrl_ = function (a) {
+	return {$: 'BadUrl_', a: a};
+};
+var $elm$http$Http$GoodStatus_ = F2(
+	function (a, b) {
+		return {$: 'GoodStatus_', a: a, b: b};
+	});
+var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
+var $elm$http$Http$Receiving = function (a) {
+	return {$: 'Receiving', a: a};
+};
+var $elm$http$Http$Sending = function (a) {
+	return {$: 'Sending', a: a};
+};
+var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
 		}
 	});
 var $elm$core$Dict$getMin = function (dict) {
@@ -6121,11 +6297,11 @@ var $elm$http$Http$expectJson = F2(
 var $author$project$Exhibit$JoinPresentationResponse = function (url) {
 	return {url: url};
 };
-var $elm$json$Json$Decode$field = _Json_decodeField;
 var $author$project$Exhibit$joinPresentationResponseDecoder = A2(
 	$elm$json$Json$Decode$map,
 	$author$project$Exhibit$JoinPresentationResponse,
 	A2($elm$json$Json$Decode$field, 'url', $elm$json$Json$Decode$string));
+var $elm$core$Debug$log = _Debug_log;
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6135,7 +6311,6 @@ var $elm$http$Http$State = F2(
 	});
 var $elm$http$Http$init = $elm$core$Task$succeed(
 	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
-var $elm$core$Process$kill = _Scheduler_kill;
 var $elm$core$Process$spawn = _Scheduler_spawn;
 var $elm$http$Http$updateReqs = F3(
 	function (router, cmds, reqs) {
@@ -6206,24 +6381,6 @@ var $elm$http$Http$onEffects = F4(
 					A2($elm$http$Http$State, reqs, subs));
 			},
 			A3($elm$http$Http$updateReqs, router, cmds, state.reqs));
-	});
-var $elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _v0 = f(mx);
-		if (_v0.$ === 'Just') {
-			var x = _v0.a;
-			return A2($elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var $elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			$elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
 	});
 var $elm$http$Http$maybeSend = F4(
 	function (router, desiredTracker, progress, _v0) {
@@ -6298,184 +6455,11 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
-var $author$project$ServerMessageTypes$DisconnectMessage = function (a) {
-	return {$: 'DisconnectMessage', a: a};
-};
-var $author$project$ServerMessageTypes$InitialPresentationDataMessage = function (a) {
-	return {$: 'InitialPresentationDataMessage', a: a};
-};
-var $author$project$ServerMessageTypes$NewPollMessage = function (a) {
-	return {$: 'NewPollMessage', a: a};
-};
-var $author$project$ServerMessageTypes$NewSlideMessage = function (a) {
-	return {$: 'NewSlideMessage', a: a};
-};
-var $author$project$ServerMessageTypes$RatelimiterResponseMessage = function (a) {
-	return {$: 'RatelimiterResponseMessage', a: a};
-};
-var $author$project$ServerMessageTypes$Success = function (a) {
-	return {$: 'Success', a: a};
-};
-var $author$project$ServerMessageTypes$InitialPresentationData = F2(
-	function (title, settings) {
-		return {settings: settings, title: title};
-	});
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$maybe = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
-				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
-			]));
-};
-var $author$project$ServerMessageTypes$nestWebsocketMessageDecoder = F2(
-	function (nest, decoder) {
-		return A2($elm$json$Json$Decode$field, nest, decoder);
-	});
-var $author$project$ServerMessageTypes$SlideSettings = F2(
-	function (message, emojis) {
-		return {emojis: emojis, message: message};
-	});
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$ServerMessageTypes$slideSettingDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$ServerMessageTypes$SlideSettings,
-	A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string),
-	A2(
-		$elm$json$Json$Decode$field,
-		'emojis',
-		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
-var $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
-	'InitialPresentationData',
-	A3(
-		$elm$json$Json$Decode$map2,
-		$author$project$ServerMessageTypes$InitialPresentationData,
-		A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
-		A2(
-			$elm$json$Json$Decode$field,
-			'settings',
-			$elm$json$Json$Decode$maybe($author$project$ServerMessageTypes$slideSettingDecoder))));
-var $author$project$ServerMessageTypes$Poll = F3(
-	function (name, options, vote_type) {
-		return {name: name, options: options, vote_type: vote_type};
-	});
-var $elm$json$Json$Decode$map3 = _Json_map3;
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
-var $elm$json$Json$Decode$dict = function (decoder) {
-	return A2(
-		$elm$json$Json$Decode$map,
-		$elm$core$Dict$fromList,
-		$elm$json$Json$Decode$keyValuePairs(decoder));
-};
-var $author$project$ServerMessageTypes$voteTypeDecoder = $elm$json$Json$Decode$oneOf(
-	_List_fromArray(
-		[
-			A2(
-			$elm$json$Json$Decode$map,
-			$author$project$ServerMessageTypes$SingleBinary,
-			A2(
-				$elm$json$Json$Decode$field,
-				'SingleBinary',
-				A2($elm$json$Json$Decode$field, 'choice', $elm$json$Json$Decode$string))),
-			A2(
-			$elm$json$Json$Decode$map,
-			$author$project$ServerMessageTypes$MultipleBinary,
-			A2(
-				$elm$json$Json$Decode$field,
-				'MultipleBinary',
-				A2(
-					$elm$json$Json$Decode$field,
-					'choices',
-					$elm$json$Json$Decode$dict($elm$json$Json$Decode$bool))))
-		]));
-var $author$project$ServerMessageTypes$newPollMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
-	'NewPoll',
-	A4(
-		$elm$json$Json$Decode$map3,
-		$author$project$ServerMessageTypes$Poll,
-		A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-		A2(
-			$elm$json$Json$Decode$field,
-			'options',
-			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
-		A2($elm$json$Json$Decode$field, 'vote_type', $author$project$ServerMessageTypes$voteTypeDecoder)));
-var $author$project$ServerMessageTypes$newSlideMessageDecoder = A2($author$project$ServerMessageTypes$nestWebsocketMessageDecoder, 'NewSlide', $author$project$ServerMessageTypes$slideSettingDecoder);
-var $author$project$ServerMessageTypes$Allowed = function (a) {
-	return {$: 'Allowed', a: a};
-};
-var $author$project$ServerMessageTypes$Blocked = function (a) {
-	return {$: 'Blocked', a: a};
-};
-var $author$project$ServerMessageTypes$dictMessageDecoder = function (key) {
-	return A2(
-		$elm$json$Json$Decode$field,
-		key,
-		$elm$json$Json$Decode$dict($elm$json$Json$Decode$string));
-};
-var $author$project$ServerMessageTypes$simpleMessageDecoder = function (key) {
-	return A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$string);
-};
-var $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
-	'RatelimiterResponse',
-	$elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2(
-				$elm$json$Json$Decode$map,
-				$author$project$ServerMessageTypes$Allowed,
-				$author$project$ServerMessageTypes$dictMessageDecoder('Allowed')),
-				A2(
-				$elm$json$Json$Decode$map,
-				$author$project$ServerMessageTypes$Blocked,
-				$author$project$ServerMessageTypes$simpleMessageDecoder('Blocked'))
-			])));
-var $author$project$ServerMessageTypes$VoteRecorded = {$: 'VoteRecorded'};
-var $elm$json$Json$Decode$andThen = _Json_andThen;
-var $elm$json$Json$Decode$fail = _Json_fail;
-var $author$project$ServerMessageTypes$successMessageDecoder = A2(
-	$elm$json$Json$Decode$andThen,
-	function (value) {
-		if (value === 'Vote recorded') {
-			return $elm$json$Json$Decode$succeed($author$project$ServerMessageTypes$VoteRecorded);
-		} else {
-			return $elm$json$Json$Decode$fail('Unknown Success: ' + value);
-		}
-	},
-	A2($elm$json$Json$Decode$field, 'Success', $elm$json$Json$Decode$string));
-var $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder = $elm$json$Json$Decode$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewSlideMessage, $author$project$ServerMessageTypes$newSlideMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$InitialPresentationDataMessage, $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder),
-			A2(
-			$elm$json$Json$Decode$map,
-			$author$project$ServerMessageTypes$DisconnectMessage,
-			$author$project$ServerMessageTypes$simpleMessageDecoder('Disconnect')),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$RatelimiterResponseMessage, $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewPollMessage, $author$project$ServerMessageTypes$newPollMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$Success, $author$project$ServerMessageTypes$successMessageDecoder)
-		]));
-var $author$project$Join$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
-var $author$project$Join$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Present$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
+var $author$project$Present$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
 var $elm$http$Http$stringBody = _Http_pair;
-var $author$project$Join$update = F2(
+var $author$project$Present$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
@@ -6488,23 +6472,23 @@ var $author$project$Join$update = F2(
 							{registration_key: newRegistrationKey}),
 						$elm$core$Platform$Cmd$none);
 				case 'AuthenticateToPresentation':
-					return _Utils_eq(model.state, $author$project$Join$Disconnected) ? _Utils_Tuple2(
+					return _Utils_eq(model.state, $author$project$Present$Disconnected) ? _Utils_Tuple2(
 						model,
 						$elm$http$Http$post(
 							{
 								body: A2($elm$http$Http$stringBody, 'application/text', model.registration_key),
-								expect: A2($elm$http$Http$expectJson, $author$project$Join$GotWebsocketAddress, $author$project$Exhibit$joinPresentationResponseDecoder),
+								expect: A2($elm$http$Http$expectJson, $author$project$Present$GotWebsocketAddress, $author$project$Exhibit$joinPresentationResponseDecoder),
 								url: '/join'
 							})) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 'GotWebsocketAddress':
 					var response = msg.a;
 					if (response.$ === 'Ok') {
-						var joinPresentationResponse = response.a;
-						var $temp$msg = $author$project$Join$JoinPresentation(joinPresentationResponse.url),
+						var startPresentationResponse = response.a;
+						var $temp$msg = $author$project$Present$StartPresentation(startPresentationResponse.url),
 							$temp$model = _Utils_update(
 							model,
 							{
-								state: $author$project$Join$Authenticated(joinPresentationResponse)
+								state: $author$project$Present$Authenticated(startPresentationResponse)
 							});
 						msg = $temp$msg;
 						model = $temp$model;
@@ -6512,257 +6496,39 @@ var $author$project$Join$update = F2(
 					} else {
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					}
-				case 'JoinPresentation':
+				case 'StartPresentation':
 					var url = msg.a;
 					return _Utils_Tuple2(
 						model,
 						$elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
-									$author$project$Join$socketConnect(url),
-									$author$project$Join$sendMessage('Hello')
+									$author$project$Present$socketConnect(url),
+									$author$project$Present$sendMessage('Hello')
 								])));
-				case 'SocketDisconnected':
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{state: $author$project$Join$Disconnected, title: 'Disconnected'}),
-						$elm$core$Platform$Cmd$none);
 				case 'ReceivedWebsocketMessage':
 					var message = msg.a;
-					var _v2 = A2($elm$json$Json$Decode$decodeString, $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder, message);
-					if (_v2.$ === 'Ok') {
-						switch (_v2.a.$) {
-							case 'InitialPresentationDataMessage':
-								var initialPresentationData = _v2.a.a;
-								var $temp$msg = $author$project$Join$InitialPresentationDataEvent(initialPresentationData),
-									$temp$model = model;
-								msg = $temp$msg;
-								model = $temp$model;
-								continue update;
-							case 'NewSlideMessage':
-								var slideSettings = _v2.a.a;
-								var $temp$msg = $author$project$Join$NewSlideEvent(slideSettings),
-									$temp$model = model;
-								msg = $temp$msg;
-								model = $temp$model;
-								continue update;
-							case 'DisconnectMessage':
-								var m = _v2.a.a;
-								var $temp$msg = $author$project$Join$SocketDisconnected(m),
-									$temp$model = model;
-								msg = $temp$msg;
-								model = $temp$model;
-								continue update;
-							case 'RatelimiterResponseMessage':
-								var m = _v2.a.a;
-								return _Utils_Tuple2(
-									_Utils_update(
-										model,
-										{
-											response: $elm$core$Maybe$Just(m)
-										}),
-									$elm$core$Platform$Cmd$none);
-							case 'NewPollMessage':
-								var m = _v2.a.a;
-								var _v3 = model.state;
-								if (_v3.$ === 'Viewing') {
-									var inputView = _v3.a;
-									return _Utils_Tuple2(
-										_Utils_update(
-											model,
-											{
-												state: $author$project$Join$Viewing(
-													_Utils_update(
-														inputView,
-														{
-															poll: $elm$core$Maybe$Just(m)
-														}))
-											}),
-										$elm$core$Platform$Cmd$none);
-								} else {
-									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								}
-							default:
-								var success_type = _v2.a.a;
-								var _v5 = model.state;
-								if (_v5.$ === 'Viewing') {
-									var inputView = _v5.a;
-									return _Utils_Tuple2(
-										_Utils_update(
-											model,
-											{
-												state: $author$project$Join$Viewing(
-													_Utils_update(
-														inputView,
-														{poll: $elm$core$Maybe$Nothing}))
-											}),
-										$elm$core$Platform$Cmd$none);
-								} else {
-									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								}
-						}
-					} else {
-						var err = _v2.a;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									error: $elm$core$Maybe$Just(
-										$elm$json$Json$Decode$errorToString(err))
-								}),
-							$elm$core$Platform$Cmd$none);
-					}
-				case 'InitialPresentationDataEvent':
-					var initialPresentationData = msg.a;
-					var _v6 = _Utils_Tuple2(
-						initialPresentationData.settings,
-						_Utils_update(
-							model,
-							{title: initialPresentationData.title}));
-					if (_v6.a.$ === 'Just') {
-						var settings = _v6.a.a;
-						var mdl = _v6.b;
-						var $temp$msg = $author$project$Join$NewSlideEvent(settings),
-							$temp$model = mdl;
-						msg = $temp$msg;
-						model = $temp$model;
-						continue update;
-					} else {
-						var _v7 = _v6.a;
-						var mdl = _v6.b;
-						return _Utils_Tuple2(mdl, $elm$core$Platform$Cmd$none);
-					}
-				case 'NewSlideEvent':
-					var slideSettings = msg.a;
-					var _v8 = model.state;
-					if (_v8.$ === 'Viewing') {
-						var inputView = _v8.a;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									state: $author$project$Join$Viewing(
-										_Utils_update(
-											inputView,
-											{settings: slideSettings}))
-								}),
-							$elm$core$Platform$Cmd$none);
-					} else {
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									state: $author$project$Join$Viewing(
-										A2($author$project$Join$InputView, slideSettings, $elm$core$Maybe$Nothing))
-								}),
-							$elm$core$Platform$Cmd$none);
-					}
-				case 'ChangeSingleBinaryPollAnswer':
-					var answer = msg.a;
-					var _v9 = model.state;
-					if (_v9.$ === 'Viewing') {
-						var inputView = _v9.a;
-						var _v10 = inputView.poll;
-						if (_v10.$ === 'Just') {
-							var poll = _v10.a;
-							return _Utils_Tuple2(
-								_Utils_update(
-									model,
-									{
-										state: $author$project$Join$Viewing(
-											_Utils_update(
-												inputView,
-												{
-													poll: $elm$core$Maybe$Just(
-														_Utils_update(
-															poll,
-															{
-																vote_type: $author$project$ServerMessageTypes$SingleBinary(answer)
-															}))
-												}))
-									}),
-								$elm$core$Platform$Cmd$none);
-						} else {
-							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-						}
-					} else {
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-					}
-				case 'ChangeMultipleBinaryPollAnswer':
-					var option = msg.a;
-					var answer = msg.b;
-					var _v11 = model.state;
-					if (_v11.$ === 'Viewing') {
-						var inputView = _v11.a;
-						var _v12 = inputView.poll;
-						if (_v12.$ === 'Just') {
-							var poll = _v12.a;
-							var _v13 = poll.vote_type;
-							if (_v13.$ === 'MultipleBinary') {
-								var options = _v13.a;
-								return _Utils_Tuple2(
-									_Utils_update(
-										model,
-										{
-											state: $author$project$Join$Viewing(
-												_Utils_update(
-													inputView,
-													{
-														poll: $elm$core$Maybe$Just(
-															_Utils_update(
-																poll,
-																{
-																	vote_type: $author$project$ServerMessageTypes$MultipleBinary(
-																		A3($elm$core$Dict$insert, option, answer, options))
-																}))
-													}))
-										}),
-									$elm$core$Platform$Cmd$none);
-							} else {
-								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-							}
-						} else {
-							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-						}
-					} else {
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-					}
-				case 'SendEmoji':
-					var emoji = msg.a;
-					var size = msg.b;
-					return _Utils_Tuple2(
-						model,
-						$author$project$Join$sendMessage(
-							A2($author$project$UserMessageTypes$encodeEmojiReaction, emoji, size)));
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				case 'SocketDisconnected':
+					var reason = msg.a;
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				case 'NextSlide':
+					var _v2 = A2($elm$core$Debug$log, 'NextSlide', 'NextSlide');
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				case 'PreviousSlide':
+					var _v3 = A2($elm$core$Debug$log, 'PreviousSlide', 'PreviousSlide');
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				default:
-					var poll = msg.a;
-					return _Utils_Tuple2(
-						model,
-						$author$project$Join$sendMessage(
-							$author$project$UserMessageTypes$encodePollResponse(poll)));
+					var key = msg.a;
+					var _v4 = A2($elm$core$Debug$log, 'SomeOtherKey', key);
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			}
 		}
 	});
-var $author$project$Join$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
-var $author$project$Join$ChangeMultipleBinaryPollAnswer = F2(
-	function (a, b) {
-		return {$: 'ChangeMultipleBinaryPollAnswer', a: a, b: b};
-	});
-var $author$project$Join$ChangeRegistrationKey = function (a) {
+var $author$project$Present$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
+var $author$project$Present$ChangeRegistrationKey = function (a) {
 	return {$: 'ChangeRegistrationKey', a: a};
 };
-var $author$project$Join$ChangeSingleBinaryPollAnswer = function (a) {
-	return {$: 'ChangeSingleBinaryPollAnswer', a: a};
-};
-var $author$project$Join$SendEmoji = F2(
-	function (a, b) {
-		return {$: 'SendEmoji', a: a, b: b};
-	});
-var $author$project$Join$SendPollAnswer = function (a) {
-	return {$: 'SendPollAnswer', a: a};
-};
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6770,14 +6536,24 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
+var $elm$html$Html$Attributes$accept = $elm$html$Html$Attributes$stringProperty('accept');
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$multiple = $elm$html$Html$Attributes$boolProperty('multiple');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6789,21 +6565,6 @@ var $elm$html$Html$Events$on = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var $elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
-	});
-var $elm$html$Html$Events$targetChecked = A2(
-	$elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'checked']),
-	$elm$json$Json$Decode$bool);
-var $elm$html$Html$Events$onCheck = function (tagger) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'change',
-		A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetChecked));
-};
 var $elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		$elm$html$Html$Events$on,
@@ -6823,6 +6584,10 @@ var $elm$html$Html$Events$stopPropagationOn = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
 var $elm$html$Html$Events$targetValue = A2(
 	$elm$json$Json$Decode$at,
 	_List_fromArray(
@@ -6837,16 +6602,11 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
-var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$Join$view = function (model) {
+var $author$project$Present$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -6855,84 +6615,6 @@ var $author$project$Join$view = function (model) {
 			]),
 		_List_fromArray(
 			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('title-group')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('title'),
-								$elm$html$Html$Attributes$id('title')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(model.title)
-							])),
-						function () {
-						var _v0 = model.error;
-						if (_v0.$ === 'Just') {
-							var err = _v0.a;
-							return A2(
-								$elm$html$Html$div,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(err)
-									]));
-						} else {
-							return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-						}
-					}(),
-						function () {
-						var _v1 = model.response;
-						if (_v1.$ === 'Just') {
-							if (_v1.a.$ === 'Allowed') {
-								var responses = _v1.a.a;
-								return A2(
-									$elm$html$Html$ul,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$id('ratelimit-info')
-										]),
-									A2(
-										$elm$core$List$map,
-										function (response) {
-											return A2(
-												$elm$html$Html$li,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('ratelimiter-response')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text(response.a + (': ' + response.b))
-													]));
-										},
-										$elm$core$Dict$toList(responses)));
-							} else {
-								var response = _v1.a.a;
-								return A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('warning')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Message was not sent: ' + response)
-										]));
-							}
-						} else {
-							return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-						}
-					}()
-					])),
 				A2(
 				$elm$html$Html$label,
 				_List_fromArray(
@@ -6950,217 +6632,64 @@ var $author$project$Join$view = function (model) {
 						$elm$html$Html$Attributes$type_('text'),
 						$elm$html$Html$Attributes$id('registration_key'),
 						$elm$html$Html$Attributes$value(model.registration_key),
-						$elm$html$Html$Events$onInput($author$project$Join$ChangeRegistrationKey)
+						$elm$html$Html$Events$onInput($author$project$Present$ChangeRegistrationKey)
 					]),
 				_List_Nil),
 				A2(
 				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Join$AuthenticateToPresentation)
+						$elm$html$Html$Events$onClick($author$project$Present$AuthenticateToPresentation)
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Join Presentation')
+						$elm$html$Html$text('Start Presentation')
 					])),
-				function () {
-				var _v2 = model.state;
-				if (_v2.$ === 'Viewing') {
-					var inputView = _v2.a;
-					var _v3 = inputView.poll;
-					if (_v3.$ === 'Just') {
-						var poll = _v3.a;
-						return A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$id('poll-container')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$id('poll-message')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(poll.name)
-										])),
-									function () {
-									var _v4 = poll.vote_type;
-									if (_v4.$ === 'SingleBinary') {
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$id('pole-options')
-												]),
-											A2(
-												$elm$core$List$map,
-												function (option) {
-													return A2(
-														$elm$html$Html$div,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('poll-option')
-															]),
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$label,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('poll-option-label')
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(option)
-																	])),
-																A2(
-																$elm$html$Html$input,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$type_('radio'),
-																		$elm$html$Html$Attributes$name('poll-options'),
-																		$elm$html$Html$Events$onClick(
-																		$author$project$Join$ChangeSingleBinaryPollAnswer(option))
-																	]),
-																_List_Nil)
-															]));
-												},
-												poll.options));
-									} else {
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$id('pole-options')
-												]),
-											A2(
-												$elm$core$List$map,
-												function (option) {
-													return A2(
-														$elm$html$Html$div,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('poll-option')
-															]),
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$label,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('poll-option-label')
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(option)
-																	])),
-																A2(
-																$elm$html$Html$input,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$type_('checkbox'),
-																		$elm$html$Html$Attributes$name('poll-options'),
-																		$elm$html$Html$Events$onCheck(
-																		$author$project$Join$ChangeMultipleBinaryPollAnswer(option))
-																	]),
-																_List_Nil)
-															]));
-												},
-												poll.options));
-									}
-								}(),
-									A2(
-									$elm$html$Html$input,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$type_('button'),
-											$elm$html$Html$Attributes$name('poll-options-submit'),
-											$elm$html$Html$Events$onClick(
-											$author$project$Join$SendPollAnswer(poll))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Vote')
-										]))
-								]));
-					} else {
-						return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-					}
-				} else {
-					return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-				}
-			}(),
-				function () {
-				var _v5 = model.state;
-				if (_v5.$ === 'Viewing') {
-					var inputView = _v5.a;
-					return A2(
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$type_('file'),
+						$elm$html$Html$Attributes$id('slide_data'),
+						$elm$html$Html$Attributes$accept('.json, .png'),
+						$elm$html$Html$Attributes$multiple(true)
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('slides-container')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$img,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('slide-img')
+							]),
+						_List_Nil)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('reactions-float-bottom')
+					]),
+				_List_fromArray(
+					[
+						A2(
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$id('full-reactions-container')
+								$elm$html$Html$Attributes$id('reactions-container')
 							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$id('slide-message')
-									]),
-								_List_Nil),
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$id('reaction-help')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Send a reaction below')
-									])),
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$id('reaction-container')
-									]),
-								A2(
-									$elm$core$List$map,
-									function (emoji) {
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('reaction-button'),
-													$elm$html$Html$Events$onClick(
-													A2($author$project$Join$SendEmoji, emoji, 1))
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text(emoji)
-												]));
-									},
-									inputView.settings.emojis))
-							]));
-				} else {
-					return A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('full-reactions-container')
-							]),
-						_List_Nil);
-				}
-			}()
+						_List_Nil)
+					]))
 			]));
 };
-var $author$project$Join$main = $elm$browser$Browser$element(
-	{init: $author$project$Join$init, subscriptions: $author$project$Join$subscriptions, update: $author$project$Join$update, view: $author$project$Join$view});
-_Platform_export({'Join':{'init':$author$project$Join$main(
+var $author$project$Present$main = $elm$browser$Browser$element(
+	{init: $author$project$Present$init, subscriptions: $author$project$Present$subscriptions, update: $author$project$Present$update, view: $author$project$Present$view});
+_Platform_export({'Present':{'init':$author$project$Present$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));

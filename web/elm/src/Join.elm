@@ -6,12 +6,12 @@ import Html.Attributes exposing (class, for, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 
+import Exhibit exposing (..)
 import UserMessageTypes exposing (..)
 import ServerMessageTypes exposing (..)
 import Json.Decode
 import Dict
 import Html.Attributes exposing (name)
-import Html.Attributes exposing (selected)
 import Html.Events exposing (onCheck)
 
 

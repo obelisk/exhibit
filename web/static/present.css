@@ -1,0 +1,43 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+/*
+#slides-container {}
+*/
+#reactions-float-bottom {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+}
+
+#reactions-container {
+    position: relative;
+    font-size: 35px;
+}
+
+#slide-img {
+    width: 100%;
+}
+
+.moving-emoji {
+    position: absolute;
+    left: 1%;
+    animation: moveEmoji 8s ease-in-out forwards;
+}
+
+@keyframes moveEmoji {
+    0% {
+        left: 1%;
+    }
+
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        left: 80%;
+        opacity: 0;
+    }
+}

@@ -12,10 +12,7 @@ import Json.Decode exposing (fail)
 
 
 
--- REST response from the server when we authenticate to the presentation
--- that tells us where our websocket is
-type alias JoinPresentationResponse =
-    { url : String }
+
 
 type SuccessType = 
     VoteRecorded
@@ -64,11 +61,7 @@ type alias InitialPresentationData =
     { title : String, settings : Maybe SlideSettings }
 
 
--- REST Decoders
-joinPresentationResponseDecoder : Decoder JoinPresentationResponse
-joinPresentationResponseDecoder =
-    map JoinPresentationResponse
-        (field "url" string)
+
 
 
 -- WebSocket Decoders

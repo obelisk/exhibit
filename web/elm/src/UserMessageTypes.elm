@@ -6,12 +6,9 @@ import Json.Encode
 import ServerMessageTypes exposing (VoteType(..))
 import Dict
 
-
-
 -- Messages from the user are objects under the user key
 -- to denote what objects they can be deserialized into on
 -- the server size. Here we can easily wrap all the types
-
 
 type alias UserMessage a =
     { user : a }
