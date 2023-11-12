@@ -1,0 +1,145 @@
+[
+    {
+        "slide": "demo.001.png",
+        "message": "Welcome To Exhibit!",
+        "emojis": [
+            "👋",
+            "😲",
+            "🙌",
+            "👏"
+        ]
+    },
+    {
+        "slide": "demo.002.png",
+        "message": "Presentations Have Graphs",
+        "emojis": [
+            "👍",
+            "📊"
+        ]
+    },
+    {
+        "slide": "demo.003.png",
+        "message": "Where's The Love?",
+        "emojis": [
+            "❤️",
+            "💗",
+            "💞",
+            "💕"
+        ]
+    },
+    {
+        "slide": "demo.004.png",
+        "message": "So That Graphs",
+        "emojis": [
+            "📊"
+        ]
+    },
+    {
+        "slide": "demo.005.png",
+        "message": "So That Graphs Have Love",
+        "emojis": [
+            "📊",
+            "❤️",
+            "💗",
+            "💞",
+            "💕"
+        ]
+    },
+    {
+        "slide": "demo.006.png",
+        "message": "Emojis. Emojis Are The Answer",
+        "emojis": [
+            "😎",
+            "🤯",
+            "🙏",
+            "🛠️",
+            "💩",
+            "🎉",
+            "📣",
+            "📸",
+            "📱",
+            "👏"
+        ]
+    },
+    {
+        "slide": "demo.007.png",
+        "message": "So We Go From This",
+        "emojis": []
+    },
+    {
+        "slide": "demo.008.png",
+        "message": "To This (and single vote poll)!",
+        "emojis": [
+            "😎",
+            "🤯",
+            "🙏",
+            "🛠️",
+            "💩",
+            "🎉",
+            "📣",
+            "📸",
+            "📱",
+            "👏"
+        ],
+        "poll": {
+            "name": "What's Your Favorite Emoji?",
+            "options": [
+                "😎",
+                "🤯",
+                "🙏",
+                "🛠️",
+                "💩",
+                "🎉",
+                "📣",
+                "📸",
+                "📱",
+                "👏"
+            ],
+            "vote_type": {
+                "SingleBinary": {
+                    "choice": ""
+                }
+            }
+        },
+        "poll_render": {
+            "refresh_interval": 1,
+            "type": "pie",
+            "x": 30,
+            "y": 30,
+            "width": 30,
+            "height": 30
+        }
+    },
+    {
+        "slide": "demo.009.png",
+        "message": "Multichoice Polls!",
+        "emojis": [
+            "📊",
+            "📈",
+            "📉",
+            "💹"
+        ],
+        "poll": {
+            "name": "Which Emojis's do you like?",
+            "options": [
+                "📊",
+                "📈",
+                "📉",
+                "💹"
+            ],
+            "vote_type": {
+                "MultipleBinary": {
+                    "choices": {}
+                }
+            }
+        },
+        "poll_render": {
+            "refresh_interval": 1,
+            "type": "pie",
+            "x": 30,
+            "y": 30,
+            "width": 30,
+            "height": 30
+        }
+    }
+]

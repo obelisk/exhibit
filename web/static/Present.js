@@ -4545,7 +4545,185 @@ function _Http_track(router, xhr, tracker)
 			size: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
 		}))));
 	});
-}var $elm$core$Basics$EQ = {$: 'EQ'};
+}
+
+
+// DECODER
+
+var _File_decoder = _Json_decodePrim(function(value) {
+	// NOTE: checks if `File` exists in case this is run on node
+	return (typeof File !== 'undefined' && value instanceof File)
+		? $elm$core$Result$Ok(value)
+		: _Json_expecting('a FILE', value);
+});
+
+
+// METADATA
+
+function _File_name(file) { return file.name; }
+function _File_mime(file) { return file.type; }
+function _File_size(file) { return file.size; }
+
+function _File_lastModified(file)
+{
+	return $elm$time$Time$millisToPosix(file.lastModified);
+}
+
+
+// DOWNLOAD
+
+var _File_downloadNode;
+
+function _File_getDownloadNode()
+{
+	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
+}
+
+var _File_download = F3(function(name, mime, content)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var blob = new Blob([content], {type: mime});
+
+		// for IE10+
+		if (navigator.msSaveOrOpenBlob)
+		{
+			navigator.msSaveOrOpenBlob(blob, name);
+			return;
+		}
+
+		// for HTML5
+		var node = _File_getDownloadNode();
+		var objectUrl = URL.createObjectURL(blob);
+		node.href = objectUrl;
+		node.download = name;
+		_File_click(node);
+		URL.revokeObjectURL(objectUrl);
+	});
+});
+
+function _File_downloadUrl(href)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var node = _File_getDownloadNode();
+		node.href = href;
+		node.download = '';
+		node.origin === location.origin || (node.target = '_blank');
+		_File_click(node);
+	});
+}
+
+
+// IE COMPATIBILITY
+
+function _File_makeBytesSafeForInternetExplorer(bytes)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
+	// all other browsers can just run `new Blob([bytes])` directly with no problem
+	//
+	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+
+function _File_click(node)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
+	// all other browsers have MouseEvent and do not need this conditional stuff
+	//
+	if (typeof MouseEvent === 'function')
+	{
+		node.dispatchEvent(new MouseEvent('click'));
+	}
+	else
+	{
+		var event = document.createEvent('MouseEvents');
+		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		document.body.appendChild(node);
+		node.dispatchEvent(event);
+		document.body.removeChild(node);
+	}
+}
+
+
+// UPLOAD
+
+var _File_node;
+
+function _File_uploadOne(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.accept = A2($elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			callback(_Scheduler_succeed(event.target.files[0]));
+		});
+		_File_click(_File_node);
+	});
+}
+
+function _File_uploadOneOrMore(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.multiple = true;
+		_File_node.accept = A2($elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			var elmFiles = _List_fromArray(event.target.files);
+			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
+		});
+		_File_click(_File_node);
+	});
+}
+
+
+// CONTENT
+
+function _File_toString(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsText(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toBytes(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(new DataView(reader.result)));
+		});
+		reader.readAsArrayBuffer(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toUrl(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsDataURL(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
 var $elm$core$List$cons = _List_cons;
@@ -5339,7 +5517,12 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Present$init = function (_v0) {
 	return _Utils_Tuple2(
-		{error: $elm$core$Maybe$Nothing, registration_key: '', state: $author$project$Present$Disconnected},
+		{
+			registration_key: '',
+			slides: {future_slides: _List_Nil, past_slides: _List_Nil},
+			state: $author$project$Present$Disconnected,
+			status: $elm$core$Maybe$Nothing
+		},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Present$ReceivedWebsocketMessage = function (a) {
@@ -5783,6 +5966,7 @@ var $author$project$Present$subscriptions = function (_v0) {
 				$elm$browser$Browser$Events$onKeyDown($author$project$Present$keyDecoder)
 			]));
 };
+var $author$project$Present$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
 var $author$project$Present$Authenticated = function (a) {
 	return {$: 'Authenticated', a: a};
 };
@@ -5793,6 +5977,27 @@ var $author$project$Present$StartPresentation = function (a) {
 	return {$: 'StartPresentation', a: a};
 };
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -6294,6 +6499,15 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
 var $author$project$Exhibit$JoinPresentationResponse = function (url) {
 	return {url: url};
 };
@@ -6301,7 +6515,7 @@ var $author$project$Exhibit$joinPresentationResponseDecoder = A2(
 	$elm$json$Json$Decode$map,
 	$author$project$Exhibit$JoinPresentationResponse,
 	A2($elm$json$Json$Decode$field, 'url', $elm$json$Json$Decode$string));
-var $elm$core$Debug$log = _Debug_log;
+var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6457,13 +6671,101 @@ var $elm$http$Http$post = function (r) {
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Present$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
+var $author$project$Present$SlideData = F3(
+	function (slide, message, emojis) {
+		return {emojis: emojis, message: message, slide: slide};
+	});
+var $elm$json$Json$Decode$map3 = _Json_map3;
+var $author$project$Present$slideDataDecoder = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Present$SlideData,
+	A2($elm$json$Json$Decode$field, 'slide', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'emojis',
+		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 var $author$project$Present$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
 var $elm$http$Http$stringBody = _Http_pair;
+var $author$project$Present$zipSlideDataAndImages = F2(
+	function (slide_data, slide_images) {
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (potential, slides) {
+					var _v0 = _Utils_Tuple2(
+						slides,
+						A2($elm$core$Dict$get, potential.slide, slide_images));
+					if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
+						var s = _v0.a.a;
+						var image_data = _v0.b.a;
+						return $elm$core$Maybe$Just(
+							_Utils_ap(
+								s,
+								_List_fromArray(
+									[
+										{data: potential, image: image_data}
+									])));
+					} else {
+						return $elm$core$Maybe$Nothing;
+					}
+				}),
+			$elm$core$Maybe$Just(_List_Nil),
+			slide_data);
+	});
 var $author$project$Present$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
 			switch (msg.$) {
+				case 'GetSlideData':
+					var read = msg.a;
+					return _Utils_Tuple2(model, read);
+				case 'SlideDataRead':
+					var _v1 = msg.a;
+					var slide_data = _v1.a;
+					var slide_contents = _v1.b;
+					var _v2 = A2(
+						$elm$json$Json$Decode$decodeString,
+						$elm$json$Json$Decode$list($author$project$Present$slideDataDecoder),
+						slide_data);
+					if (_v2.$ === 'Ok') {
+						var sd = _v2.a;
+						var _v3 = A2($author$project$Present$zipSlideDataAndImages, sd, slide_contents);
+						if (_v3.$ === 'Just') {
+							var slides = _v3.a;
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										slides: {future_slides: slides, past_slides: _List_Nil},
+										status: $elm$core$Maybe$Just(
+											'Ready with ' + ($elm$core$String$fromInt(
+												$elm$core$List$length(slides)) + ' slides loaded'))
+									}),
+								$elm$core$Platform$Cmd$none);
+						} else {
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										status: $elm$core$Maybe$Just('Could not sync up data file with images. This means slides are defined for which the images were not provided')
+									}),
+								$elm$core$Platform$Cmd$none);
+						}
+					} else {
+						var e = _v2.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									status: $elm$core$Maybe$Just(
+										$elm$json$Json$Decode$errorToString(e))
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
+				case 'SlideDataError':
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 'ChangeRegistrationKey':
 					var newRegistrationKey = msg.a;
 					return _Utils_Tuple2(
@@ -6510,25 +6812,62 @@ var $author$project$Present$update = F2(
 					var message = msg.a;
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 'SocketDisconnected':
-					var reason = msg.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var $temp$msg = $author$project$Present$AuthenticateToPresentation,
+						$temp$model = _Utils_update(
+						model,
+						{state: $author$project$Present$Disconnected});
+					msg = $temp$msg;
+					model = $temp$model;
+					continue update;
 				case 'NextSlide':
-					var _v2 = A2($elm$core$Debug$log, 'NextSlide', 'NextSlide');
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var _v5 = _Utils_Tuple2(
+						$elm$core$List$head(model.slides.future_slides),
+						$elm$core$List$length(model.slides.future_slides));
+					if (_v5.a.$ === 'Just') {
+						if (_v5.b === 1) {
+							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						} else {
+							var slide = _v5.a.a;
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										slides: {
+											future_slides: A2($elm$core$List$drop, 1, model.slides.future_slides),
+											past_slides: A2($elm$core$List$cons, slide, model.slides.past_slides)
+										}
+									}),
+								$elm$core$Platform$Cmd$none);
+						}
+					} else {
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					}
 				case 'PreviousSlide':
-					var _v3 = A2($elm$core$Debug$log, 'PreviousSlide', 'PreviousSlide');
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var _v6 = $elm$core$List$head(model.slides.past_slides);
+					if (_v6.$ === 'Just') {
+						var slide = _v6.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									slides: {
+										future_slides: A2($elm$core$List$cons, slide, model.slides.future_slides),
+										past_slides: A2($elm$core$List$drop, 1, model.slides.past_slides)
+									}
+								}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					}
 				default:
-					var key = msg.a;
-					var _v4 = A2($elm$core$Debug$log, 'SomeOtherKey', key);
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			}
 		}
 	});
-var $author$project$Present$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
 var $author$project$Present$ChangeRegistrationKey = function (a) {
 	return {$: 'ChangeRegistrationKey', a: a};
 };
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6536,10 +6875,130 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
-var $elm$html$Html$Attributes$accept = $elm$html$Html$Attributes$stringProperty('accept');
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$file$File$decoder = _File_decoder;
+var $author$project$Present$GetSlideData = function (a) {
+	return {$: 'GetSlideData', a: a};
+};
+var $author$project$Present$SlideDataError = function (a) {
+	return {$: 'SlideDataError', a: a};
+};
+var $author$project$Present$SlideDataRead = function (a) {
+	return {$: 'SlideDataRead', a: a};
+};
+var $elm$file$File$toString = _File_toString;
+var $elm$file$File$toUrl = _File_toUrl;
+var $author$project$Present$buildFileReadingTask = F2(
+	function (data, image_files) {
+		return A3(
+			$elm$core$Task$map2,
+			F2(
+				function (slide_data, slide_images) {
+					return _Utils_Tuple2(
+						slide_data,
+						$elm$core$Dict$fromList(slide_images));
+				}),
+			$elm$file$File$toString(data),
+			$elm$core$Task$sequence(
+				A2(
+					$elm$core$List$map,
+					function (_v0) {
+						var slide_name = _v0.a;
+						var slide_file = _v0.b;
+						return A2(
+							$elm$core$Task$andThen,
+							function (image_contents) {
+								return $elm$core$Task$succeed(
+									_Utils_Tuple2(slide_name, image_contents));
+							},
+							$elm$file$File$toUrl(slide_file));
+					},
+					$elm$core$Dict$toList(image_files))));
+	});
+var $elm$core$Debug$log = _Debug_log;
+var $author$project$Present$buildGetSlidesTask = F2(
+	function (data_files, image_files) {
+		var _v0 = A2($elm$core$Debug$log, 'buildGetSlidesTask', data_files);
+		if (!data_files.b) {
+			return $author$project$Present$SlideDataError('There was no data file (JSON) selected.');
+		} else {
+			if (!data_files.b.b) {
+				var data_file = data_files.a;
+				return $author$project$Present$GetSlideData(
+					A2(
+						$elm$core$Task$perform,
+						$author$project$Present$SlideDataRead,
+						A2($author$project$Present$buildFileReadingTask, data_file, image_files)));
+			} else {
+				return $author$project$Present$SlideDataError('There was more than one data file (JSON) selected.');
+			}
+		}
+	});
+var $elm$core$String$endsWith = _String_endsWith;
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$file$File$name = _File_name;
+var $author$project$Present$organizeSlideImages = function (slides) {
+	return $elm$core$Dict$fromList(
+		A2(
+			$elm$core$List$map,
+			function (file) {
+				return _Utils_Tuple2(
+					$elm$file$File$name(file),
+					file);
+			},
+			slides));
+};
+var $author$project$Present$sortFiles = function (files) {
+	var image_files = A2(
+		$elm$core$List$filter,
+		function (file) {
+			return A2(
+				$elm$core$String$endsWith,
+				'.png',
+				$elm$file$File$name(file));
+		},
+		files);
+	var data_files = A2(
+		$elm$core$List$filter,
+		function (file) {
+			return A2(
+				$elm$core$String$endsWith,
+				'.json',
+				$elm$file$File$name(file));
+		},
+		files);
+	return A2(
+		$author$project$Present$buildGetSlidesTask,
+		data_files,
+		$author$project$Present$organizeSlideImages(image_files));
+};
+var $author$project$Present$filesDecoderMsg = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'files']),
+	A2(
+		$elm$json$Json$Decode$map,
+		$author$project$Present$sortFiles,
+		$elm$json$Json$Decode$list($elm$file$File$decoder)));
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$img = _VirtualDom_node('img');
@@ -6584,10 +7043,6 @@ var $elm$html$Html$Events$stopPropagationOn = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
-var $elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
-	});
 var $elm$html$Html$Events$targetValue = A2(
 	$elm$json$Json$Decode$at,
 	_List_fromArray(
@@ -6601,6 +7056,12 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$json$Json$Decode$map,
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
@@ -6635,6 +7096,24 @@ var $author$project$Present$view = function (model) {
 						$elm$html$Html$Events$onInput($author$project$Present$ChangeRegistrationKey)
 					]),
 				_List_Nil),
+				function () {
+				var _v0 = model.status;
+				if (_v0.$ === 'Just') {
+					var status = _v0.a;
+					return A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('status')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(status)
+							]));
+				} else {
+					return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+				}
+			}(),
 				A2(
 				$elm$html$Html$button,
 				_List_fromArray(
@@ -6650,9 +7129,8 @@ var $author$project$Present$view = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$type_('file'),
-						$elm$html$Html$Attributes$id('slide_data'),
-						$elm$html$Html$Attributes$accept('.json, .png'),
-						$elm$html$Html$Attributes$multiple(true)
+						$elm$html$Html$Attributes$multiple(true),
+						A2($elm$html$Html$Events$on, 'change', $author$project$Present$filesDecoderMsg)
 					]),
 				_List_Nil),
 				A2(
@@ -6663,13 +7141,22 @@ var $author$project$Present$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						A2(
-						$elm$html$Html$img,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('slide-img')
-							]),
-						_List_Nil)
+						function () {
+						var _v1 = $elm$core$List$head(model.slides.future_slides);
+						if (_v1.$ === 'Just') {
+							var slide = _v1.a;
+							return A2(
+								$elm$html$Html$img,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$id('slide-img'),
+										$elm$html$Html$Attributes$src(slide.image)
+									]),
+								_List_Nil);
+						} else {
+							return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+						}
+					}()
 					])),
 				A2(
 				$elm$html$Html$div,
