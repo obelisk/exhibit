@@ -1,0 +1,25 @@
+module ServerMessagePresenterTypes exposing (..)
+import Json.Decode exposing (Decoder)
+import Exhibit exposing (nestWebsocketMessageDecoder)
+
+
+type ReceivedMessage
+    = Emoji EmojiMessage
+
+type alias EmojiMessage =
+    { emoji : String
+    , size : Int
+    }
+
+emojiMessageDecoder : Decoder EmojiMessage
+emojiMessageDecoder =
+    Json.Decode.map2 EmojiMessage
+        (Json.Decode.field "emoji" Json.Decode.string)
+        (Json.Decode.field "size" Json.Decode.int)
+
+
+receivedWebsocketMessageDecorder : Decoder ReceivedMessage
+receivedWebsocketMessageDecorder =
+    Json.Decode.oneOf
+        [ Json.Decode.map Emoji (nestWebsocketMessageDecoder "Emoji" emojiMessageDecoder)
+        ]

@@ -3,18 +3,23 @@ body {
     font-size: 14px;
     line-height: 1.42857143;
     color: #333;
-    background: #fdfdfd;
+    background: #000;
     margin: 0;
     padding: 0;
 }
 
 .container {
-    width: 100%;
+    width: 80%;
     max-width: 1200px;
     margin: 20px auto;
     padding: 20px;
-    background: #fff;
+    background: #ffffffbb;
     box-shadow: 1px 13px 13px #eee;
+    position: absolute;
+    border-radius: 25px;
+    /* Center this in the x dimentation */
+    left: 10%;
+    right: 10%;
 }
 
 .title-group {

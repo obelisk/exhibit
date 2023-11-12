@@ -1,35 +1,33 @@
 port module Join exposing (..)
 
 import Browser
-import Dict
-import Exhibit exposing (..)
-import Html exposing (Html, button, div, input, label, li, text, ul)
-import Html.Attributes exposing (class, for, id, name, type_, value)
-import Html.Events exposing (onCheck, onClick, onInput)
+import Html exposing (Html, button, div, input, label, text, ul, li)
+import Html.Attributes exposing (class, for, id, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
-import Json.Decode
-import ServerMessageTypes exposing (..)
+
+import Exhibit exposing (..)
 import UserMessageTypes exposing (..)
+import ServerMessageTypes exposing (..)
+import Json.Decode
+import Dict
+import Html.Attributes exposing (name)
+import Html.Events exposing (onCheck)
+import Html exposing (br)
+import Html.Attributes exposing (placeholder)
 
 
 
 -- Ports
-
-
 port socketConnect : String -> Cmd msg
-
-
 port sendMessage : String -> Cmd msg
-
-
 port messageReceived : (String -> msg) -> Sub msg
-
-
 port socketDisconnected : (String -> msg) -> Sub msg
 
 
 main =
     Browser.element { init = init, update = update, subscriptions = subscriptions, view = view }
+
 
 
 type alias InputView =
@@ -59,8 +57,7 @@ init _ =
     ( { registration_key = "", title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, Cmd.none )
 
 
-type
-    Msg
+type Msg
     -- Handle messages around connections and general
     -- house keeping
     = AuthenticateToPresentation
@@ -73,10 +70,10 @@ type
       -- parsed
     | InitialPresentationDataEvent InitialPresentationData
     | NewSlideEvent SlideSettings
-      -- Handle changing of user state like changing poll answers
+    -- Handle changing of user state like changing poll answers
     | ChangeSingleBinaryPollAnswer String
     | ChangeMultipleBinaryPollAnswer String Bool
-      -- Handle messages around user actions like sending a reaction
+    -- Handle messages around user actions like sending a reaction
     | SendEmoji String Int
     | SendPollAnswer Poll
 
@@ -98,7 +95,6 @@ update msg model =
                     , expect = Http.expectJson GotWebsocketAddress joinPresentationResponseDecoder
                     }
                 )
-
             else
                 ( model, Cmd.none )
 
@@ -133,31 +129,23 @@ update msg model =
 
                 Ok (NewSlideMessage slideSettings) ->
                     update (NewSlideEvent slideSettings) model
-
+                  
                 Ok (DisconnectMessage m) ->
                     update (SocketDisconnected m) model
-
-                Ok (RatelimiterResponseMessage m) ->
-                    ( { model | response = Just m }, Cmd.none )
-
-                Ok (NewPollMessage m) ->
+                
+                Ok(RatelimiterResponseMessage m) ->
+                    ({model | response = Just m}, Cmd.none)
+                
+                Ok(NewPollMessage m) ->
                     case model.state of
-                        Viewing inputView ->
-                            ( { model | state = Viewing { inputView | poll = Just m } }, Cmd.none )
-
-                        _ ->
-                            ( model, Cmd.none )
-
-                Ok (Success success_type) ->
-                    case success_type of
-                        VoteRecorded ->
-                            case model.state of
-                                -- Close the poll view
-                                Viewing inputView ->
-                                    ( { model | state = Viewing { inputView | poll = Nothing } }, Cmd.none )
-
-                                _ ->
-                                    ( model, Cmd.none )
+                        Viewing inputView -> ({model | state = (Viewing {inputView | poll = Just m})}, Cmd.none)
+                        _ -> (model, Cmd.none)
+                Ok(Success success_type) ->
+                  case success_type of
+                      VoteRecorded -> case model.state of
+                          -- Close the poll view
+                          Viewing inputView -> ({model | state = (Viewing {inputView | poll = Nothing})}, Cmd.none)
+                          _ -> (model, Cmd.none)
 
                 Err err ->
                     ( { model | error = Just (Json.Decode.errorToString err) }, Cmd.none )
@@ -181,45 +169,30 @@ update msg model =
 
                 _ ->
                     ( { model | state = Viewing (InputView slideSettings Nothing) }, Cmd.none )
-
         -- Handlers for changing user state like changing poll answers
         ChangeSingleBinaryPollAnswer answer ->
             case model.state of
-                Viewing inputView ->
-                    case inputView.poll of
-                        Just poll ->
-                            ( { model | state = Viewing { inputView | poll = Just { poll | vote_type = SingleBinary answer } } }, Cmd.none )
-
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+                Viewing inputView -> case inputView.poll of
+                    Just poll -> ({model | state = Viewing {inputView | poll = Just {poll | vote_type = SingleBinary answer}}}, Cmd.none)
+                    Nothing -> (model, Cmd.none)
+                _ -> (model, Cmd.none)
 
         ChangeMultipleBinaryPollAnswer option answer ->
             case model.state of
-                Viewing inputView ->
-                    case inputView.poll of
-                        Just poll ->
-                            case poll.vote_type of
-                                MultipleBinary options ->
-                                    ( { model | state = Viewing { inputView | poll = Just { poll | vote_type = MultipleBinary (Dict.insert option answer options) } } }, Cmd.none )
-
-                                _ ->
-                                    ( model, Cmd.none )
-
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
+                Viewing inputView -> case inputView.poll of
+                    Just poll -> case poll.vote_type of
+                        MultipleBinary options -> ({model | state = Viewing {inputView | poll = Just {poll | vote_type = MultipleBinary (Dict.insert option answer options)}}}, Cmd.none)
+                        _ -> (model, Cmd.none)
+                    Nothing -> (model, Cmd.none)
+                _ -> (model, Cmd.none)
         -- Handlers for user submission events like reactions and poll answers
         SendEmoji emoji size ->
-            ( model, sendMessage (encodeEmojiReaction emoji size) )
-
+            (model, sendMessage (encodeEmojiReaction emoji size))
+        
         SendPollAnswer poll ->
-            ( model, sendMessage (encodePollResponse poll) )
+            (model, sendMessage (encodePollResponse poll))
+            
+
 
 
 subscriptions : Model -> Sub Msg
@@ -236,86 +209,63 @@ view model =
         [ div [ class "title-group" ]
             [ div [ class "title", id "title" ] [ text model.title ]
             , case model.error of
-                Just err ->
-                    div [] [ text err ]
-
-                Nothing ->
-                    div [] []
+                Just err -> div [] [ text err ]
+                Nothing -> div [] [] 
             , case model.response of
-                Just (Allowed responses) ->
-                    ul [ id "ratelimit-info" ]
-                        (List.map (\response -> li [ class "ratelimiter-response" ] [ text (Tuple.first response ++ ": " ++ Tuple.second response) ]) (Dict.toList responses))
-
-                Just (Blocked response) ->
-                    div [ class "warning" ] [ text ("Message was not sent: " ++ response) ]
-
-                Nothing ->
-                    div [] []
+                    Just (Allowed responses) -> ul [ id "ratelimit-info" ] 
+                        (List.map (\response -> li [class "ratelimiter-response"] [text ((Tuple.first response) ++ ": " ++ (Tuple.second response))] ) (Dict.toList responses))
+                    
+                    Just (Blocked response) -> div [class "warning"] [text ("Message was not sent: " ++ response)]
+                    Nothing -> div [] []
             ]
-        , label [ for "registration_key" ] [ text "Registration Key:" ]
-        , input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey ] []
+        , input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey, placeholder "Enter Registration Key..." ] []
+        , br [] []
         , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
         , case model.state of
             Viewing inputView ->
                 case inputView.poll of
-                    Just poll ->
-                        div [ id "poll-container" ]
-                            [ div [ id "poll-message" ] [ text poll.name ]
-                            , case poll.vote_type of
-                                SingleBinary _ ->
-                                    div [ id "pole-options" ]
-                                        (List.map
-                                            (\option ->
-                                                div [ class "poll-option" ]
-                                                    [ label [ class "poll-option-label" ] [ text option ]
-                                                    , input [ type_ "radio", name "poll-options", onClick (ChangeSingleBinaryPollAnswer option) ] []
-                                                    ]
-                                            )
-                                            poll.options
-                                        )
-
-                                MultipleBinary _ ->
-                                    div [ id "pole-options" ]
-                                        (List.map
-                                            (\option ->
-                                                div [ class "poll-option" ]
-                                                    [ label [ class "poll-option-label" ] [ text option ]
-                                                    , input [ type_ "checkbox", name "poll-options", onCheck (ChangeMultipleBinaryPollAnswer option) ] []
-                                                    ]
-                                            )
-                                            poll.options
-                                        )
-
-                            {- SingleValue _ _ ->
-                                   div [ id "pole-options" ]
-                                           (List.map (\option ->
-                                               div [class "poll-option"] [
-                                                   label [class "poll-option-label"] [ text option ]
-                                                   , input [ type_ "slider", name "poll-options", selected False ] []
-                                               ]) poll.options)
-                               MultipleValue _ ->
-                                   div [ id "pole-options" ]
-                                       (List.map (\option ->
-                                           div [class "poll-option"] [
-                                               label [class "poll-option-label"] [ text option ]
-                                               , input [ type_ "slider", name "poll-options", selected False ] []
-                                           ]) poll.options)
-                            -}
-                            , input [ type_ "button", name "poll-options-submit", onClick (SendPollAnswer poll) ] [ text "Vote" ]
-                            ]
-
-                    _ ->
-                        div [] []
-
-            _ ->
-                div [] []
+                    Just poll -> div [ id "poll-container" ]
+                        [ div [ id "poll-message" ] [ text poll.name ]
+                        , case poll.vote_type of
+                            SingleBinary _ ->
+                                div [ id "pole-options" ] 
+                                    (List.map (\option -> 
+                                        div [class "poll-option"] [
+                                            label [class "poll-option-label"] [ text option ]
+                                            , input [ type_ "radio", name "poll-options", onClick (ChangeSingleBinaryPollAnswer option)] []
+                                        ]) poll.options)
+                            MultipleBinary _ ->
+                                div [ id "pole-options" ] 
+                                    (List.map (\option -> 
+                                        div [class "poll-option"] [
+                                            label [class "poll-option-label"] [ text option ]
+                                            , input [ type_ "checkbox", name "poll-options", onCheck (ChangeMultipleBinaryPollAnswer option) ] []
+                                        ]) poll.options)
+                            {-SingleValue _ _ ->
+                                div [ id "pole-options" ] 
+                                        (List.map (\option -> 
+                                            div [class "poll-option"] [
+                                                label [class "poll-option-label"] [ text option ]
+                                                , input [ type_ "slider", name "poll-options", selected False ] []
+                                            ]) poll.options)
+                            MultipleValue _ ->
+                                div [ id "pole-options" ] 
+                                    (List.map (\option -> 
+                                        div [class "poll-option"] [
+                                            label [class "poll-option-label"] [ text option ]
+                                            , input [ type_ "slider", name "poll-options", selected False ] []
+                                        ]) poll.options) -}
+                        , input [type_ "button", name "poll-options-submit", onClick (SendPollAnswer poll) ] [text "Vote"]
+                        ]
+                    _ -> div [] []
+            _ -> div [] []
         , case model.state of
             Viewing inputView ->
                 div [ id "full-reactions-container" ]
                     [ div [ id "slide-message" ] []
                     , div [ id "reaction-help" ] [ text "Send a reaction below" ]
                     , div [ id "reaction-container" ]
-                        (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1) ] [ text emoji ]) inputView.settings.emojis)
+                        (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
                     ]
 
             _ ->

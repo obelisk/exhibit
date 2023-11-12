@@ -5998,6 +5998,73 @@ var $elm$core$List$drop = F2(
 			}
 		}
 	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $author$project$Present$encodePresenterMessage = F2(
+	function (encoder, message) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'Presenter',
+					encoder(message))
+				]));
+	});
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Present$encodeSlideDataAsNewSlideMessage = F2(
+	function (sd, index) {
+		return A2(
+			$elm$json$Json$Encode$encode,
+			0,
+			A2(
+				$author$project$Present$encodePresenterMessage,
+				$elm$json$Json$Encode$object,
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'NewSlide',
+						$elm$json$Json$Encode$object(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									'slide',
+									$elm$json$Json$Encode$int(index)),
+									_Utils_Tuple2(
+									'slide_settings',
+									$elm$json$Json$Encode$object(
+										_List_fromArray(
+											[
+												_Utils_Tuple2(
+												'message',
+												$elm$json$Json$Encode$string(sd.message)),
+												_Utils_Tuple2(
+												'emojis',
+												A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, sd.emojis))
+											])))
+								])))
+					])));
+	});
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -6516,6 +6583,7 @@ var $author$project$Exhibit$joinPresentationResponseDecoder = A2(
 	$author$project$Exhibit$JoinPresentationResponse,
 	A2($elm$json$Json$Decode$field, 'url', $elm$json$Json$Decode$string));
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$core$Debug$log = _Debug_log;
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6669,7 +6737,32 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$ServerMessagePresenterTypes$Emoji = function (a) {
+	return {$: 'Emoji', a: a};
+};
+var $author$project$ServerMessagePresenterTypes$EmojiMessage = F2(
+	function (emoji, size) {
+		return {emoji: emoji, size: size};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $author$project$ServerMessagePresenterTypes$emojiMessageDecoder = A3(
+	$elm$json$Json$Decode$map2,
+	$author$project$ServerMessagePresenterTypes$EmojiMessage,
+	A2($elm$json$Json$Decode$field, 'emoji', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'size', $elm$json$Json$Decode$int));
+var $author$project$Exhibit$nestWebsocketMessageDecoder = F2(
+	function (nest, decoder) {
+		return A2($elm$json$Json$Decode$field, nest, decoder);
+	});
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $author$project$ServerMessagePresenterTypes$receivedWebsocketMessageDecorder = $elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$ServerMessagePresenterTypes$Emoji,
+			A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'Emoji', $author$project$ServerMessagePresenterTypes$emojiMessageDecoder))
+		]));
 var $author$project$Present$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
 var $author$project$Present$SlideData = F3(
 	function (slide, message, emojis) {
@@ -6810,7 +6903,22 @@ var $author$project$Present$update = F2(
 								])));
 				case 'ReceivedWebsocketMessage':
 					var message = msg.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var _v5 = A2($elm$json$Json$Decode$decodeString, $author$project$ServerMessagePresenterTypes$receivedWebsocketMessageDecorder, message);
+					if (_v5.$ === 'Ok') {
+						var emoji_msg = _v5.a.a;
+						var _v6 = A2($elm$core$Debug$log, 'Emoji', emoji_msg);
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					} else {
+						var e = _v5.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									status: $elm$core$Maybe$Just(
+										$elm$json$Json$Decode$errorToString(e))
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
 				case 'SocketDisconnected':
 					var $temp$msg = $author$project$Present$AuthenticateToPresentation,
 						$temp$model = _Utils_update(
@@ -6820,32 +6928,36 @@ var $author$project$Present$update = F2(
 					model = $temp$model;
 					continue update;
 				case 'NextSlide':
-					var _v5 = _Utils_Tuple2(
-						$elm$core$List$head(model.slides.future_slides),
-						$elm$core$List$length(model.slides.future_slides));
-					if (_v5.a.$ === 'Just') {
-						if (_v5.b === 1) {
+					var _v7 = model.slides.future_slides;
+					if (!_v7.b) {
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					} else {
+						if (!_v7.b.b) {
 							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 						} else {
-							var slide = _v5.a.a;
+							var shown_slide = _v7.a;
+							var _v8 = _v7.b;
+							var new_slide = _v8.a;
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
 									{
 										slides: {
 											future_slides: A2($elm$core$List$drop, 1, model.slides.future_slides),
-											past_slides: A2($elm$core$List$cons, slide, model.slides.past_slides)
+											past_slides: A2($elm$core$List$cons, shown_slide, model.slides.past_slides)
 										}
 									}),
-								$elm$core$Platform$Cmd$none);
+								$author$project$Present$sendMessage(
+									A2(
+										$author$project$Present$encodeSlideDataAsNewSlideMessage,
+										new_slide.data,
+										$elm$core$List$length(model.slides.past_slides) + 1)));
 						}
-					} else {
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					}
 				case 'PreviousSlide':
-					var _v6 = $elm$core$List$head(model.slides.past_slides);
-					if (_v6.$ === 'Just') {
-						var slide = _v6.a;
+					var _v9 = $elm$core$List$head(model.slides.past_slides);
+					if (_v9.$ === 'Just') {
+						var slide = _v9.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6855,11 +6967,18 @@ var $author$project$Present$update = F2(
 										past_slides: A2($elm$core$List$drop, 1, model.slides.past_slides)
 									}
 								}),
-							$elm$core$Platform$Cmd$none);
+							$author$project$Present$sendMessage(
+								A2(
+									$author$project$Present$encodeSlideDataAsNewSlideMessage,
+									slide.data,
+									$elm$core$List$length(model.slides.past_slides) - 1)));
 					} else {
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					}
+				case 'OtherKey':
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				default:
+					var slide_data = msg.a;
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			}
 		}
@@ -6924,10 +7043,8 @@ var $author$project$Present$buildFileReadingTask = F2(
 					},
 					$elm$core$Dict$toList(image_files))));
 	});
-var $elm$core$Debug$log = _Debug_log;
 var $author$project$Present$buildGetSlidesTask = F2(
 	function (data_files, image_files) {
-		var _v0 = A2($elm$core$Debug$log, 'buildGetSlidesTask', data_files);
 		if (!data_files.b) {
 			return $author$project$Present$SlideDataError('There was no data file (JSON) selected.');
 		} else {

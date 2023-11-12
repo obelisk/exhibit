@@ -4,11 +4,21 @@
   <meta charset="UTF-8">
   <title>Exhibit v0.2.4</title>
   <script src="/static/join.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <link rel="stylesheet" href="/static/join.css">
+  <!--<script>
+	// Particles were taking way too much compute. Would melt everyone's phones
+	particlesJS.load('particles-js', '/static/particlesjs-config.json', function() {
+	  console.log('Time for particles, configuration loaded.');
+	});
+  </script> -->
 </head>
 
 <body>
-  <div id="app"></div>
+	<!--<div id="particles-js">
+		<div id="app"></div>
+	</div> -->
+	<div id="app"></div>
   <script>
   var app = Elm.Join.init({
     node: document.getElementById('app')

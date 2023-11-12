@@ -6329,7 +6329,7 @@ var $elm$json$Json$Decode$maybe = function (decoder) {
 				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
 			]));
 };
-var $author$project$ServerMessageTypes$nestWebsocketMessageDecoder = F2(
+var $author$project$Exhibit$nestWebsocketMessageDecoder = F2(
 	function (nest, decoder) {
 		return A2($elm$json$Json$Decode$field, nest, decoder);
 	});
@@ -6347,7 +6347,7 @@ var $author$project$ServerMessageTypes$slideSettingDecoder = A3(
 		'emojis',
 		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 var $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
+	$author$project$Exhibit$nestWebsocketMessageDecoder,
 	'InitialPresentationData',
 	A3(
 		$elm$json$Json$Decode$map2,
@@ -6404,7 +6404,7 @@ var $author$project$ServerMessageTypes$voteTypeDecoder = $elm$json$Json$Decode$o
 					$elm$json$Json$Decode$dict($elm$json$Json$Decode$bool))))
 		]));
 var $author$project$ServerMessageTypes$newPollMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
+	$author$project$Exhibit$nestWebsocketMessageDecoder,
 	'NewPoll',
 	A4(
 		$elm$json$Json$Decode$map3,
@@ -6415,7 +6415,7 @@ var $author$project$ServerMessageTypes$newPollMessageDecoder = A2(
 			'options',
 			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
 		A2($elm$json$Json$Decode$field, 'vote_type', $author$project$ServerMessageTypes$voteTypeDecoder)));
-var $author$project$ServerMessageTypes$newSlideMessageDecoder = A2($author$project$ServerMessageTypes$nestWebsocketMessageDecoder, 'NewSlide', $author$project$ServerMessageTypes$slideSettingDecoder);
+var $author$project$ServerMessageTypes$newSlideMessageDecoder = A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'NewSlide', $author$project$ServerMessageTypes$slideSettingDecoder);
 var $author$project$ServerMessageTypes$Allowed = function (a) {
 	return {$: 'Allowed', a: a};
 };
@@ -6432,7 +6432,7 @@ var $author$project$ServerMessageTypes$simpleMessageDecoder = function (key) {
 	return A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$string);
 };
 var $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder = A2(
-	$author$project$ServerMessageTypes$nestWebsocketMessageDecoder,
+	$author$project$Exhibit$nestWebsocketMessageDecoder,
 	'RatelimiterResponse',
 	$elm$json$Json$Decode$oneOf(
 		_List_fromArray(
@@ -6762,6 +6762,7 @@ var $author$project$Join$SendEmoji = F2(
 var $author$project$Join$SendPollAnswer = function (a) {
 	return {$: 'SendPollAnswer', a: a};
 };
+var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -6772,7 +6773,6 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
@@ -6837,6 +6837,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
@@ -6934,25 +6935,17 @@ var $author$project$Join$view = function (model) {
 					}()
 					])),
 				A2(
-				$elm$html$Html$label,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$for('registration_key')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Registration Key:')
-					])),
-				A2(
 				$elm$html$Html$input,
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$type_('text'),
 						$elm$html$Html$Attributes$id('registration_key'),
 						$elm$html$Html$Attributes$value(model.registration_key),
-						$elm$html$Html$Events$onInput($author$project$Join$ChangeRegistrationKey)
+						$elm$html$Html$Events$onInput($author$project$Join$ChangeRegistrationKey),
+						$elm$html$Html$Attributes$placeholder('Enter Registration Key...')
 					]),
 				_List_Nil),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
 				A2(
 				$elm$html$Html$button,
 				_List_fromArray(

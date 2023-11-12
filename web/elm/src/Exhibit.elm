@@ -15,8 +15,6 @@ type alias JoinPresentationResponse =
 
 
 -- REST Decoders
-
-
 joinPresentationResponseDecoder : Decoder JoinPresentationResponse
 joinPresentationResponseDecoder =
     map JoinPresentationResponse
@@ -36,3 +34,8 @@ connectToPresentation registration_key msg decoder =
         , body = Http.stringBody "application/text" registration_key
         , expect = Http.expectJson msg decoder
         }
+
+
+nestWebsocketMessageDecoder : String -> Decoder a -> Decoder a
+nestWebsocketMessageDecoder nest decoder =
+    field nest decoder

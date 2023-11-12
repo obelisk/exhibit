@@ -12,6 +12,11 @@ import Http
 import Json.Decode as Decode exposing (field, string)
 import Task exposing (..)
 import Html.Attributes exposing (src)
+import Json.Encode
+import ServerMessagePresenterTypes exposing (receivedWebsocketMessageDecorder)
+import ServerMessagePresenterTypes exposing (EmojiMessage)
+import ServerMessagePresenterTypes exposing (ReceivedMessage(..))
+import Json.Decode exposing (errorToString)
 
 
 
@@ -64,6 +69,12 @@ type
     | OtherKey String
 
 
+encodePresenterMessage : (a -> Json.Encode.Value) -> a -> Json.Encode.Value
+encodePresenterMessage encoder message =
+    Json.Encode.object
+        [ ( "Presenter", encoder message )
+        ]
+
 type alias Poll =
     {}
 
@@ -75,6 +86,23 @@ type alias SlideData =
 
     --, poll: Maybe Poll
     }
+
+encodeSlideDataAsNewSlideMessage : SlideData -> Int -> String
+encodeSlideDataAsNewSlideMessage sd index =
+    Json.Encode.encode 0
+        (encodePresenterMessage Json.Encode.object
+            [ ( "NewSlide"
+              , Json.Encode.object
+                    [ ( "slide", Json.Encode.int index )
+                    , ( "slide_settings", Json.Encode.object
+                        [ ( "message", Json.Encode.string sd.message )
+                        , ( "emojis", Json.Encode.list Json.Encode.string sd.emojis )
+                        ]
+                      )
+                    ]
+                )
+            ]
+        )
 
 
 slideDataDecoder : Decode.Decoder SlideData
@@ -114,6 +142,7 @@ type alias Model =
     , status : Maybe String
     , slides : Slides
     , state : State
+    , emojis : List EmojiMessage
     }
 
 
@@ -141,6 +170,7 @@ init _ =
       , status = Nothing
       , slides = { past_slides = [], future_slides = [] }
       , state = Disconnected
+      , emojis = []
       }
     , Cmd.none
     )
@@ -213,25 +243,30 @@ update msg model =
             ( model, Cmd.batch [ socketConnect url, sendMessage "Hello" ] )
 
         ReceivedWebsocketMessage message ->
-            ( model, Cmd.none )
+            case Decode.decodeString receivedWebsocketMessageDecorder message of
+                Ok (Emoji emoji_msg) ->
+                    let _ = Debug.log "Emoji" emoji_msg in
+                        (model, Cmd.none)
+                Err e ->
+                    ({model | status = Just (errorToString e)}, Cmd.none)
+
 
         -- Reconnect to the presentation if disconnected
         SocketDisconnected _ ->
             update AuthenticateToPresentation { model | state = Disconnected }
 
-        NextSlide -> case (List.head model.slides.future_slides, List.length model.slides.future_slides) of
-            -- Don't allow to go past the end of the slides
-            (Just _, 1) -> ( model, Cmd.none )
+        NextSlide -> case model.slides.future_slides of
+            -- This shouldn't be possible but if it is, we just want to keep the UI the same
+            [] -> ( model, Cmd.none )
+            -- If this is the last slide, also don't allow moving forward
+            _ :: [] -> (model, Cmd.none)
             -- There are still more future slides
-            (Just slide, _) ->
+            shown_slide :: new_slide :: _ ->
                 ( { model
-                    | slides = { past_slides = slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }
+                    | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }
                   }
-                , Cmd.none
+                , sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1))
                 )
-            -- There are no more future slides and catch all to keep the UI the same
-            _ ->
-                ( model, Cmd.none )
 
         PreviousSlide ->
             case List.head model.slides.past_slides of
@@ -239,14 +274,13 @@ update msg model =
                     ( { model
                         | slides = { past_slides = List.drop 1 model.slides.past_slides, future_slides = slide :: model.slides.future_slides }
                     }
-                    , Cmd.none
+                    , sendMessage (encodeSlideDataAsNewSlideMessage slide.data ((List.length model.slides.past_slides) - 1))
                     )
                 Nothing ->
                     ( model, Cmd.none )
 
         OtherKey _ ->
             ( model, Cmd.none )
-
 
 filesDecoderMsg : Decode.Decoder Msg
 filesDecoderMsg =

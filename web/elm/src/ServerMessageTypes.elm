@@ -2,6 +2,7 @@ module ServerMessageTypes exposing (..)
 
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder, andThen, fail, field, map, map2, map3, string, succeed)
+import Exhibit exposing (nestWebsocketMessageDecoder)
 
 
 type SuccessType
@@ -79,9 +80,6 @@ receivedWebsocketMessageDecorder =
         ]
 
 
-nestWebsocketMessageDecoder : String -> Decoder a -> Decoder a
-nestWebsocketMessageDecoder nest decoder =
-    field nest decoder
 
 
 successMessageDecoder : Decoder SuccessType
