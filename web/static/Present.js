@@ -5513,11 +5513,15 @@ var $elm$core$Task$perform = F2(
 	});
 var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Present$Disconnected = {$: 'Disconnected'};
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Present$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
+			emojis: _List_Nil,
+			poll_results: $elm$core$Dict$empty,
 			registration_key: '',
 			slides: {future_slides: _List_Nil, past_slides: _List_Nil},
 			state: $author$project$Present$Disconnected,
@@ -5564,8 +5568,6 @@ var $elm$browser$Browser$Events$State = F2(
 	function (subs, pids) {
 		return {pids: pids, subs: subs};
 	});
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
 	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
 var $elm$browser$Browser$Events$nodeToKey = function (node) {
@@ -5976,7 +5978,24 @@ var $author$project$Present$GotWebsocketAddress = function (a) {
 var $author$project$Present$StartPresentation = function (a) {
 	return {$: 'StartPresentation', a: a};
 };
+var $author$project$Present$UpdatePollResults = {$: 'UpdatePollResults'};
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm$core$Process$sleep = _Process_sleep;
+var $author$project$Present$delay = F2(
+	function (time, msg) {
+		return A2(
+			$elm$core$Task$perform,
+			$elm$core$Basics$identity,
+			A2(
+				$elm$core$Task$andThen,
+				$elm$core$Basics$always(
+					$elm$core$Task$succeed(msg)),
+				$elm$core$Process$sleep(time * 1000)));
+	});
 var $elm$core$List$drop = F2(
 	function (n, list) {
 		drop:
@@ -6021,7 +6040,51 @@ var $author$project$Present$encodePresenterMessage = F2(
 					encoder(message))
 				]));
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
+	if (vote_type.$ === 'SingleBinary') {
+		var choice = vote_type.a;
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'SingleBinary',
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'choice',
+								$elm$json$Json$Encode$string(choice))
+							])))
+				]));
+	} else {
+		var choices = vote_type.a;
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'MultipleBinary',
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'choices',
+								$elm$json$Json$Encode$object(
+									A2(
+										$elm$core$List$map,
+										function (_v1) {
+											var choice = _v1.a;
+											var picked = _v1.b;
+											return _Utils_Tuple2(
+												choice,
+												$elm$json$Json$Encode$bool(picked));
+										},
+										$elm$core$Dict$toList(choices))))
+							])))
+				]));
+	}
+};
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -6031,7 +6094,61 @@ var $elm$json$Json$Encode$list = F2(
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
-var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Present$encodePollAsNewPollMessage = function (poll) {
+	return A2(
+		$elm$json$Json$Encode$encode,
+		0,
+		A2(
+			$author$project$Present$encodePresenterMessage,
+			$elm$json$Json$Encode$object,
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'NewPoll',
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'name',
+								$elm$json$Json$Encode$string(poll.name)),
+								_Utils_Tuple2(
+								'options',
+								A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, poll.options)),
+								_Utils_Tuple2(
+								'vote_type',
+								$author$project$UserMessageTypes$encodeVoteType(poll.vote_type))
+							])))
+				])));
+};
+var $author$project$Exhibit$encodeMessageUnderKey = F3(
+	function (key, encoder, message) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					key,
+					encoder(message))
+				]));
+	});
+var $author$project$Exhibit$encodePresenterMessage = F2(
+	function (encoder, message) {
+		return A3($author$project$Exhibit$encodeMessageUnderKey, 'Presenter', encoder, message);
+	});
+var $author$project$Exhibit$encodePollAsRequestTotalsMessage = function (poll) {
+	return A2(
+		$elm$json$Json$Encode$encode,
+		0,
+		A2(
+			$author$project$Exhibit$encodePresenterMessage,
+			A2($author$project$Exhibit$encodeMessageUnderKey, 'GetPollTotals', $elm$json$Json$Encode$object),
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'name',
+					$elm$json$Json$Encode$string(poll.name))
+				])));
+};
+var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Present$encodeSlideDataAsNewSlideMessage = F2(
 	function (sd, index) {
 		return A2(
@@ -6566,6 +6683,15 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
 var $elm$core$List$head = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -6574,6 +6700,22 @@ var $elm$core$List$head = function (list) {
 	} else {
 		return $elm$core$Maybe$Nothing;
 	}
+};
+var $author$project$Present$getCurrentPoll = function (model) {
+	return A2(
+		$elm$core$Maybe$andThen,
+		function (slide) {
+			return slide.data.poll;
+		},
+		$elm$core$List$head(model.slides.future_slides));
+};
+var $author$project$Present$getCurrentPollRender = function (model) {
+	return A2(
+		$elm$core$Maybe$andThen,
+		function (slide) {
+			return slide.data.poll_render;
+		},
+		$elm$core$List$head(model.slides.future_slides));
 };
 var $author$project$Exhibit$JoinPresentationResponse = function (url) {
 	return {url: url};
@@ -6740,6 +6882,19 @@ var $elm$http$Http$post = function (r) {
 var $author$project$ServerMessagePresenterTypes$Emoji = function (a) {
 	return {$: 'Emoji', a: a};
 };
+var $author$project$ServerMessagePresenterTypes$Error = function (a) {
+	return {$: 'Error', a: a};
+};
+var $author$project$ServerMessagePresenterTypes$PollResults = function (a) {
+	return {$: 'PollResults', a: a};
+};
+var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
+var $elm$json$Json$Decode$dict = function (decoder) {
+	return A2(
+		$elm$json$Json$Decode$map,
+		$elm$core$Dict$fromList,
+		$elm$json$Json$Decode$keyValuePairs(decoder));
+};
 var $author$project$ServerMessagePresenterTypes$EmojiMessage = F2(
 	function (emoji, size) {
 		return {emoji: emoji, size: size};
@@ -6761,23 +6916,118 @@ var $author$project$ServerMessagePresenterTypes$receivedWebsocketMessageDecorder
 			A2(
 			$elm$json$Json$Decode$map,
 			$author$project$ServerMessagePresenterTypes$Emoji,
-			A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'Emoji', $author$project$ServerMessagePresenterTypes$emojiMessageDecoder))
+			A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'Emoji', $author$project$ServerMessagePresenterTypes$emojiMessageDecoder)),
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$ServerMessagePresenterTypes$PollResults,
+			A2(
+				$author$project$Exhibit$nestWebsocketMessageDecoder,
+				'PollResults',
+				$elm$json$Json$Decode$dict($elm$json$Json$Decode$int))),
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$ServerMessagePresenterTypes$Error,
+			A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'Error', $elm$json$Json$Decode$string))
 		]));
 var $author$project$Present$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
-var $author$project$Present$SlideData = F3(
-	function (slide, message, emojis) {
-		return {emojis: emojis, message: message, slide: slide};
+var $author$project$Present$SlideData = F5(
+	function (poll, poll_render, slide, message, emojis) {
+		return {emojis: emojis, message: message, poll: poll, poll_render: poll_render, slide: slide};
 	});
 var $elm$json$Json$Decode$map3 = _Json_map3;
-var $author$project$Present$slideDataDecoder = A4(
+var $author$project$Present$slideDataDecoderNoPoll = A4(
 	$elm$json$Json$Decode$map3,
-	$author$project$Present$SlideData,
+	A2($author$project$Present$SlideData, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing),
 	A2($elm$json$Json$Decode$field, 'slide', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string),
 	A2(
 		$elm$json$Json$Decode$field,
 		'emojis',
 		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
+};
+var $author$project$Exhibit$Poll = F3(
+	function (name, options, vote_type) {
+		return {name: name, options: options, vote_type: vote_type};
+	});
+var $author$project$Exhibit$MultipleBinary = function (a) {
+	return {$: 'MultipleBinary', a: a};
+};
+var $author$project$Exhibit$SingleBinary = function (a) {
+	return {$: 'SingleBinary', a: a};
+};
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $author$project$Exhibit$voteTypeDecoder = $elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$Exhibit$SingleBinary,
+			A2(
+				$elm$json$Json$Decode$field,
+				'SingleBinary',
+				A2($elm$json$Json$Decode$field, 'choice', $elm$json$Json$Decode$string))),
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$Exhibit$MultipleBinary,
+			A2(
+				$elm$json$Json$Decode$field,
+				'MultipleBinary',
+				A2(
+					$elm$json$Json$Decode$field,
+					'choices',
+					$elm$json$Json$Decode$dict($elm$json$Json$Decode$bool))))
+		]));
+var $author$project$Exhibit$pollDecoder = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Exhibit$Poll,
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'options',
+		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'vote_type', $author$project$Exhibit$voteTypeDecoder));
+var $author$project$Present$PollRender = F6(
+	function (refresh_interval, type_, x, y, width, height) {
+		return {height: height, refresh_interval: refresh_interval, type_: type_, width: width, x: x, y: y};
+	});
+var $elm$json$Json$Decode$map6 = _Json_map6;
+var $author$project$Present$pollRenderDecoder = A7(
+	$elm$json$Json$Decode$map6,
+	$author$project$Present$PollRender,
+	A2($elm$json$Json$Decode$field, 'refresh_interval', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'type_', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'x', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'y', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'width', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'height', $elm$json$Json$Decode$int));
+var $author$project$Present$slideDataDecoderWithPoll = A6(
+	$elm$json$Json$Decode$map5,
+	$author$project$Present$SlideData,
+	A2(
+		$elm$json$Json$Decode$field,
+		'poll',
+		$elm$json$Json$Decode$maybe($author$project$Exhibit$pollDecoder)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'poll_render',
+		$elm$json$Json$Decode$maybe($author$project$Present$pollRenderDecoder)),
+	A2($elm$json$Json$Decode$field, 'slide', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'emojis',
+		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+var $author$project$Present$slideDataDecoder = $elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[$author$project$Present$slideDataDecoderWithPoll, $author$project$Present$slideDataDecoderNoPoll]));
 var $author$project$Present$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
 var $elm$http$Http$stringBody = _Http_pair;
 var $author$project$Present$zipSlideDataAndImages = F2(
@@ -6903,13 +7153,33 @@ var $author$project$Present$update = F2(
 								])));
 				case 'ReceivedWebsocketMessage':
 					var message = msg.a;
-					var _v5 = A2($elm$json$Json$Decode$decodeString, $author$project$ServerMessagePresenterTypes$receivedWebsocketMessageDecorder, message);
-					if (_v5.$ === 'Ok') {
-						var emoji_msg = _v5.a.a;
-						var _v6 = A2($elm$core$Debug$log, 'Emoji', emoji_msg);
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var _v5 = A2($elm$core$Debug$log, 'Message', message);
+					var _v6 = A2($elm$json$Json$Decode$decodeString, $author$project$ServerMessagePresenterTypes$receivedWebsocketMessageDecorder, message);
+					if (_v6.$ === 'Ok') {
+						switch (_v6.a.$) {
+							case 'Emoji':
+								var emoji_msg = _v6.a.a;
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							case 'PollResults':
+								var poll_results = _v6.a.a;
+								var _v7 = A2($elm$core$Debug$log, 'Poll Results', poll_results);
+								return _Utils_Tuple2(
+									_Utils_update(
+										model,
+										{poll_results: poll_results}),
+									$elm$core$Platform$Cmd$none);
+							default:
+								var e = _v6.a.a;
+								return _Utils_Tuple2(
+									_Utils_update(
+										model,
+										{
+											status: $elm$core$Maybe$Just(e)
+										}),
+									$elm$core$Platform$Cmd$none);
+						}
 					} else {
-						var e = _v5.a;
+						var e = _v6.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6928,36 +7198,52 @@ var $author$project$Present$update = F2(
 					model = $temp$model;
 					continue update;
 				case 'NextSlide':
-					var _v7 = model.slides.future_slides;
-					if (!_v7.b) {
+					var _v8 = model.slides.future_slides;
+					if (!_v8.b) {
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					} else {
-						if (!_v7.b.b) {
+						if (!_v8.b.b) {
 							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 						} else {
-							var shown_slide = _v7.a;
-							var _v8 = _v7.b;
-							var new_slide = _v8.a;
-							return _Utils_Tuple2(
-								_Utils_update(
-									model,
-									{
-										slides: {
-											future_slides: A2($elm$core$List$drop, 1, model.slides.future_slides),
-											past_slides: A2($elm$core$List$cons, shown_slide, model.slides.past_slides)
-										}
-									}),
-								$author$project$Present$sendMessage(
-									A2(
-										$author$project$Present$encodeSlideDataAsNewSlideMessage,
-										new_slide.data,
-										$elm$core$List$length(model.slides.past_slides) + 1)));
+							var shown_slide = _v8.a;
+							var _v9 = _v8.b;
+							var new_slide = _v9.a;
+							var update_message = $author$project$Present$sendMessage(
+								A2(
+									$author$project$Present$encodeSlideDataAsNewSlideMessage,
+									new_slide.data,
+									$elm$core$List$length(model.slides.past_slides) + 1));
+							var model_update = _Utils_update(
+								model,
+								{
+									slides: {
+										future_slides: A2($elm$core$List$drop, 1, model.slides.future_slides),
+										past_slides: A2($elm$core$List$cons, shown_slide, model.slides.past_slides)
+									}
+								});
+							var _v10 = _Utils_Tuple2(new_slide.data.poll, new_slide.data.poll_render);
+							if ((_v10.a.$ === 'Just') && (_v10.b.$ === 'Just')) {
+								var poll = _v10.a.a;
+								var poll_render = _v10.b.a;
+								return _Utils_Tuple2(
+									model_update,
+									$elm$core$Platform$Cmd$batch(
+										_List_fromArray(
+											[
+												update_message,
+												$author$project$Present$sendMessage(
+												$author$project$Present$encodePollAsNewPollMessage(poll)),
+												A2($author$project$Present$delay, poll_render.refresh_interval, $author$project$Present$UpdatePollResults)
+											])));
+							} else {
+								return _Utils_Tuple2(model_update, update_message);
+							}
 						}
 					}
 				case 'PreviousSlide':
-					var _v9 = $elm$core$List$head(model.slides.past_slides);
-					if (_v9.$ === 'Just') {
-						var slide = _v9.a;
+					var _v11 = $elm$core$List$head(model.slides.past_slides);
+					if (_v11.$ === 'Just') {
+						var slide = _v11.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6978,8 +7264,25 @@ var $author$project$Present$update = F2(
 				case 'OtherKey':
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				default:
-					var slide_data = msg.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var _v12 = A2($elm$core$Debug$log, 'Timer Elapsed', _Utils_Tuple0);
+					var _v13 = _Utils_Tuple2(
+						$author$project$Present$getCurrentPoll(model),
+						$author$project$Present$getCurrentPollRender(model));
+					if ((_v13.a.$ === 'Just') && (_v13.b.$ === 'Just')) {
+						var poll = _v13.a.a;
+						var poll_render = _v13.b.a;
+						return _Utils_Tuple2(
+							model,
+							$elm$core$Platform$Cmd$batch(
+								_List_fromArray(
+									[
+										A2($author$project$Present$delay, poll_render.refresh_interval, $author$project$Present$UpdatePollResults),
+										$author$project$Present$sendMessage(
+										$author$project$Exhibit$encodePollAsRequestTotalsMessage(poll))
+									])));
+					} else {
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					}
 			}
 		}
 	});
@@ -7121,7 +7424,6 @@ var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id'
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
-var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
 		return A2(
@@ -7280,6 +7582,22 @@ var $author$project$Present$view = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$id('reactions-float-bottom')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('reactions-container')
+							]),
+						_List_Nil)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('poll-results')
 					]),
 				_List_fromArray(
 					[

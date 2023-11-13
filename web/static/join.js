@@ -5376,13 +5376,13 @@ var $author$project$Join$InputView = F2(
 var $author$project$Join$JoinPresentation = function (a) {
 	return {$: 'JoinPresentation', a: a};
 };
-var $author$project$ServerMessageTypes$MultipleBinary = function (a) {
+var $author$project$Exhibit$MultipleBinary = function (a) {
 	return {$: 'MultipleBinary', a: a};
 };
 var $author$project$Join$NewSlideEvent = function (a) {
 	return {$: 'NewSlideEvent', a: a};
 };
-var $author$project$ServerMessageTypes$SingleBinary = function (a) {
+var $author$project$Exhibit$SingleBinary = function (a) {
 	return {$: 'SingleBinary', a: a};
 };
 var $author$project$Join$Viewing = function (a) {
@@ -6357,7 +6357,7 @@ var $author$project$ServerMessageTypes$initialPresentationDataMessageDecoder = A
 			$elm$json$Json$Decode$field,
 			'settings',
 			$elm$json$Json$Decode$maybe($author$project$ServerMessageTypes$slideSettingDecoder))));
-var $author$project$ServerMessageTypes$Poll = F3(
+var $author$project$Exhibit$Poll = F3(
 	function (name, options, vote_type) {
 		return {name: name, options: options, vote_type: vote_type};
 	});
@@ -6382,19 +6382,19 @@ var $elm$json$Json$Decode$dict = function (decoder) {
 		$elm$core$Dict$fromList,
 		$elm$json$Json$Decode$keyValuePairs(decoder));
 };
-var $author$project$ServerMessageTypes$voteTypeDecoder = $elm$json$Json$Decode$oneOf(
+var $author$project$Exhibit$voteTypeDecoder = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
 			A2(
 			$elm$json$Json$Decode$map,
-			$author$project$ServerMessageTypes$SingleBinary,
+			$author$project$Exhibit$SingleBinary,
 			A2(
 				$elm$json$Json$Decode$field,
 				'SingleBinary',
 				A2($elm$json$Json$Decode$field, 'choice', $elm$json$Json$Decode$string))),
 			A2(
 			$elm$json$Json$Decode$map,
-			$author$project$ServerMessageTypes$MultipleBinary,
+			$author$project$Exhibit$MultipleBinary,
 			A2(
 				$elm$json$Json$Decode$field,
 				'MultipleBinary',
@@ -6403,18 +6403,16 @@ var $author$project$ServerMessageTypes$voteTypeDecoder = $elm$json$Json$Decode$o
 					'choices',
 					$elm$json$Json$Decode$dict($elm$json$Json$Decode$bool))))
 		]));
-var $author$project$ServerMessageTypes$newPollMessageDecoder = A2(
-	$author$project$Exhibit$nestWebsocketMessageDecoder,
-	'NewPoll',
-	A4(
-		$elm$json$Json$Decode$map3,
-		$author$project$ServerMessageTypes$Poll,
-		A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-		A2(
-			$elm$json$Json$Decode$field,
-			'options',
-			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
-		A2($elm$json$Json$Decode$field, 'vote_type', $author$project$ServerMessageTypes$voteTypeDecoder)));
+var $author$project$Exhibit$pollDecoder = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Exhibit$Poll,
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'options',
+		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'vote_type', $author$project$Exhibit$voteTypeDecoder));
+var $author$project$ServerMessageTypes$newPollMessageDecoder = A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'NewPoll', $author$project$Exhibit$pollDecoder);
 var $author$project$ServerMessageTypes$newSlideMessageDecoder = A2($author$project$Exhibit$nestWebsocketMessageDecoder, 'NewSlide', $author$project$ServerMessageTypes$slideSettingDecoder);
 var $author$project$ServerMessageTypes$Allowed = function (a) {
 	return {$: 'Allowed', a: a};
@@ -6678,7 +6676,7 @@ var $author$project$Join$update = F2(
 														_Utils_update(
 															poll,
 															{
-																vote_type: $author$project$ServerMessageTypes$SingleBinary(answer)
+																vote_type: $author$project$Exhibit$SingleBinary(answer)
 															}))
 												}))
 									}),
@@ -6713,7 +6711,7 @@ var $author$project$Join$update = F2(
 															_Utils_update(
 																poll,
 																{
-																	vote_type: $author$project$ServerMessageTypes$MultipleBinary(
+																	vote_type: $author$project$Exhibit$MultipleBinary(
 																		A3($elm$core$Dict$insert, option, answer, options))
 																}))
 													}))

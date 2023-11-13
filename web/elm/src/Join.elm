@@ -2,7 +2,7 @@ port module Join exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, input, label, text, ul, li)
-import Html.Attributes exposing (class, for, id, type_, value)
+import Html.Attributes exposing (class, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 

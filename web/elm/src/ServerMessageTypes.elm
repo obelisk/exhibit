@@ -1,8 +1,9 @@
 module ServerMessageTypes exposing (..)
 
 import Dict exposing (Dict)
-import Json.Decode exposing (Decoder, andThen, fail, field, map, map2, map3, string, succeed)
+import Json.Decode exposing (Decoder, andThen, fail, field, map2, string, succeed)
 import Exhibit exposing (nestWebsocketMessageDecoder)
+import Exhibit exposing (Poll, pollDecoder)
 
 
 type SuccessType
@@ -32,27 +33,6 @@ type alias SlideSettings =
     , emojis : List String
     }
 
-
-type
-    VoteType
-    -- A single selected choice (radio buttons)
-    = SingleBinary String
-      -- Multiple selected choices (check boxes)
-    | MultipleBinary (Dict String Bool)
-
-
-
--- Single choice with slider
---| SingleValue String Int
--- Multiple selected choices with sliders
---| MultipleValue (Dict String Int)
-
-
-type alias Poll =
-    { name : String
-    , options : List String
-    , vote_type : VoteType
-    }
 
 
 type RatelimiterResponse
@@ -139,17 +119,4 @@ ratelimiterResponseMessageDecoder =
 
 newPollMessageDecoder : Decoder Poll
 newPollMessageDecoder =
-    nestWebsocketMessageDecoder "NewPoll"
-        (map3 Poll
-            (field "name" string)
-            (field "options" (Json.Decode.list string))
-            (field "vote_type" voteTypeDecoder)
-        )
-
-
-voteTypeDecoder : Decoder VoteType
-voteTypeDecoder =
-    Json.Decode.oneOf
-        [ Json.Decode.map SingleBinary (field "SingleBinary" (field "choice" string))
-        , Json.Decode.map MultipleBinary (field "MultipleBinary" (field "choices" (Json.Decode.dict Json.Decode.bool)))
-        ]
+    nestWebsocketMessageDecoder "NewPoll" pollDecoder

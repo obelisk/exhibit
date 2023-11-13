@@ -2,7 +2,7 @@ module UserMessageTypes exposing (..)
 
 import Dict
 import Json.Encode
-import ServerMessageTypes exposing (Poll, VoteType(..))
+import Exhibit exposing (Poll, VoteType(..))
 
 
 

@@ -102,8 +102,8 @@
             }
         },
         "poll_render": {
-            "refresh_interval": 1,
-            "type": "pie",
+            "refresh_interval": 3,
+            "type_": "centroid",
             "x": 30,
             "y": 30,
             "width": 30,
@@ -134,8 +134,8 @@
             }
         },
         "poll_render": {
-            "refresh_interval": 1,
-            "type": "pie",
+            "refresh_interval": 3,
+            "type_": "centroid",
             "x": 30,
             "y": 30,
             "width": 30,
