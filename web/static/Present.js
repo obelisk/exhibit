@@ -4723,6 +4723,43 @@ function _File_toUrl(blob)
 	});
 }
 
+
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5521,6 +5558,7 @@ var $author$project$Present$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			emojis: _List_Nil,
+			poll_render: $elm$core$Maybe$Nothing,
 			poll_results: $elm$core$Dict$empty,
 			registration_key: '',
 			slides: {future_slides: _List_Nil, past_slides: _List_Nil},
@@ -7226,7 +7264,11 @@ var $author$project$Present$update = F2(
 								var poll = _v10.a.a;
 								var poll_render = _v10.b.a;
 								return _Utils_Tuple2(
-									model_update,
+									_Utils_update(
+										model_update,
+										{
+											poll_render: $elm$core$Maybe$Just(poll_render)
+										}),
 									$elm$core$Platform$Cmd$batch(
 										_List_fromArray(
 											[
@@ -7236,7 +7278,11 @@ var $author$project$Present$update = F2(
 												A2($author$project$Present$delay, poll_render.refresh_interval, $author$project$Present$UpdatePollResults)
 											])));
 							} else {
-								return _Utils_Tuple2(model_update, update_message);
+								return _Utils_Tuple2(
+									_Utils_update(
+										model_update,
+										{poll_render: $elm$core$Maybe$Nothing}),
+									update_message);
 							}
 						}
 					}
@@ -7486,6 +7532,2303 @@ var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $elm_community$typed_svg$TypedSvg$Types$FontWeightBold = {$: 'FontWeightBold'};
+var $elm_community$typed_svg$TypedSvg$Types$Paint = function (a) {
+	return {$: 'Paint', a: a};
+};
+var $elm_community$typed_svg$TypedSvg$Types$Translate = F2(
+	function (a, b) {
+		return {$: 'Translate', a: a, b: b};
+	});
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $elm$core$Basics$acos = _Basics_acos;
+var $folkertdev$one_true_path_experiment$LowLevel$Command$EllipticalArc = function (a) {
+	return {$: 'EllipticalArc', a: a};
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$arcTo = $folkertdev$one_true_path_experiment$LowLevel$Command$EllipticalArc;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$LargestArc = {$: 'LargestArc'};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$largestArc = $folkertdev$svg_path_lowlevel$Path$LowLevel$LargestArc;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$SmallestArc = {$: 'SmallestArc'};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$smallestArc = $folkertdev$svg_path_lowlevel$Path$LowLevel$SmallestArc;
+var $gampleman$elm_visualization$Shape$Pie$boolToArc = function (b) {
+	return b ? $folkertdev$one_true_path_experiment$LowLevel$Command$largestArc : $folkertdev$one_true_path_experiment$LowLevel$Command$smallestArc;
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$Clockwise = {$: 'Clockwise'};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$clockwise = $folkertdev$svg_path_lowlevel$Path$LowLevel$Clockwise;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$CounterClockwise = {$: 'CounterClockwise'};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$counterClockwise = $folkertdev$svg_path_lowlevel$Path$LowLevel$CounterClockwise;
+var $gampleman$elm_visualization$Shape$Pie$boolToDirection = function (b) {
+	return b ? $folkertdev$one_true_path_experiment$LowLevel$Command$counterClockwise : $folkertdev$one_true_path_experiment$LowLevel$Command$clockwise;
+};
+var $elm$core$Basics$cos = _Basics_cos;
+var $folkertdev$one_true_path_experiment$SubPath$Empty = {$: 'Empty'};
+var $folkertdev$one_true_path_experiment$SubPath$empty = $folkertdev$one_true_path_experiment$SubPath$Empty;
+var $gampleman$elm_visualization$Shape$Pie$epsilon = 1.0e-12;
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Basics$truncate = _Basics_truncate;
+var $gampleman$elm_visualization$Shape$Pie$mod = F2(
+	function (a, b) {
+		var frac = a / b;
+		return (frac - (frac | 0)) * b;
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$MoveTo = function (a) {
+	return {$: 'MoveTo', a: a};
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$moveTo = $folkertdev$one_true_path_experiment$LowLevel$Command$MoveTo;
+var $elm$core$Basics$not = _Basics_not;
+var $elm$core$Basics$pi = _Basics_pi;
+var $elm$core$Basics$sin = _Basics_sin;
+var $folkertdev$one_true_path_experiment$SubPath$SubPath = function (a) {
+	return {$: 'SubPath', a: a};
+};
+var $folkertdev$elm_deque$Deque$Deque = function (a) {
+	return {$: 'Deque', a: a};
+};
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $folkertdev$elm_deque$Internal$rebalance = function (deque) {
+	var sizeF = deque.sizeF;
+	var sizeR = deque.sizeR;
+	var front = deque.front;
+	var rear = deque.rear;
+	var size1 = ((sizeF + sizeR) / 2) | 0;
+	var size2 = (sizeF + sizeR) - size1;
+	var balanceConstant = 4;
+	if ((sizeF + sizeR) < 2) {
+		return deque;
+	} else {
+		if (_Utils_cmp(sizeF, (balanceConstant * sizeR) + 1) > 0) {
+			var newRear = _Utils_ap(
+				rear,
+				$elm$core$List$reverse(
+					A2($elm$core$List$drop, size1, front)));
+			var newFront = A2($elm$core$List$take, size1, front);
+			return {front: newFront, rear: newRear, sizeF: size1, sizeR: size2};
+		} else {
+			if (_Utils_cmp(sizeR, (balanceConstant * sizeF) + 1) > 0) {
+				var newRear = A2($elm$core$List$take, size1, rear);
+				var newFront = _Utils_ap(
+					front,
+					$elm$core$List$reverse(
+						A2($elm$core$List$drop, size1, rear)));
+				return {front: newFront, rear: newRear, sizeF: size1, sizeR: size2};
+			} else {
+				return deque;
+			}
+		}
+	}
+};
+var $folkertdev$elm_deque$Internal$fromList = function (list) {
+	return $folkertdev$elm_deque$Internal$rebalance(
+		{
+			front: list,
+			rear: _List_Nil,
+			sizeF: $elm$core$List$length(list),
+			sizeR: 0
+		});
+};
+var $folkertdev$elm_deque$Deque$fromList = A2($elm$core$Basics$composeL, $folkertdev$elm_deque$Deque$Deque, $folkertdev$elm_deque$Internal$fromList);
+var $folkertdev$one_true_path_experiment$SubPath$with = F2(
+	function (moveto, drawtos) {
+		return $folkertdev$one_true_path_experiment$SubPath$SubPath(
+			{
+				drawtos: $folkertdev$elm_deque$Deque$fromList(drawtos),
+				moveto: moveto
+			});
+	});
+var $gampleman$elm_visualization$Shape$Pie$arc_ = F6(
+	function (x, y, radius, a0, a1, ccw) {
+		var r = $elm$core$Basics$abs(radius);
+		if (!r) {
+			return $folkertdev$one_true_path_experiment$SubPath$empty;
+		} else {
+			var tau = 2 * $elm$core$Basics$pi;
+			var dy = r * $elm$core$Basics$sin(a0);
+			var y0_ = y + dy;
+			var dx = r * $elm$core$Basics$cos(a0);
+			var x0_ = x + dx;
+			var origin = $folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+				_Utils_Tuple2(x0_, y0_));
+			var da = ccw ? (a0 - a1) : (a1 - a0);
+			var cw = $gampleman$elm_visualization$Shape$Pie$boolToDirection(!ccw);
+			if (_Utils_cmp(da, tau - $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+				return A2(
+					$folkertdev$one_true_path_experiment$SubPath$with,
+					origin,
+					_List_fromArray(
+						[
+							$folkertdev$one_true_path_experiment$LowLevel$Command$arcTo(
+							_List_fromArray(
+								[
+									{
+									arcFlag: $folkertdev$one_true_path_experiment$LowLevel$Command$largestArc,
+									direction: cw,
+									radii: _Utils_Tuple2(r, r),
+									target: _Utils_Tuple2(x - dx, y - dy),
+									xAxisRotate: 0
+								}
+								])),
+							$folkertdev$one_true_path_experiment$LowLevel$Command$arcTo(
+							_List_fromArray(
+								[
+									{
+									arcFlag: $folkertdev$one_true_path_experiment$LowLevel$Command$largestArc,
+									direction: cw,
+									radii: _Utils_Tuple2(r, r),
+									target: _Utils_Tuple2(x0_, y0_),
+									xAxisRotate: 0
+								}
+								]))
+						]));
+			} else {
+				var da_ = (da < 0) ? (A2($gampleman$elm_visualization$Shape$Pie$mod, da, tau) + tau) : da;
+				return A2(
+					$folkertdev$one_true_path_experiment$SubPath$with,
+					origin,
+					_List_fromArray(
+						[
+							$folkertdev$one_true_path_experiment$LowLevel$Command$arcTo(
+							_List_fromArray(
+								[
+									{
+									arcFlag: $gampleman$elm_visualization$Shape$Pie$boolToArc(
+										_Utils_cmp(da_, $elm$core$Basics$pi) > -1),
+									direction: cw,
+									radii: _Utils_Tuple2(r, r),
+									target: _Utils_Tuple2(
+										x + (r * $elm$core$Basics$cos(a1)),
+										y + (r * $elm$core$Basics$sin(a1))),
+									xAxisRotate: 0
+								}
+								]))
+						]));
+			}
+		}
+	});
+var $elm$core$Basics$atan2 = _Basics_atan2;
+var $folkertdev$one_true_path_experiment$LowLevel$Command$ClosePath = {$: 'ClosePath'};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$closePath = $folkertdev$one_true_path_experiment$LowLevel$Command$ClosePath;
+var $elm$core$Tuple$mapSecond = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var $folkertdev$elm_deque$Internal$empty = {front: _List_Nil, rear: _List_Nil, sizeF: 0, sizeR: 0};
+var $folkertdev$elm_deque$Internal$popBack = function (deque) {
+	var front = deque.front;
+	var rear = deque.rear;
+	var _v0 = _Utils_Tuple2(front, rear);
+	if (!_v0.b.b) {
+		if (!_v0.a.b) {
+			return _Utils_Tuple2($elm$core$Maybe$Nothing, $folkertdev$elm_deque$Internal$empty);
+		} else {
+			if (!_v0.a.b.b) {
+				var _v1 = _v0.a;
+				var x = _v1.a;
+				return _Utils_Tuple2(
+					$elm$core$Maybe$Just(x),
+					$folkertdev$elm_deque$Internal$empty);
+			} else {
+				return _Utils_Tuple2($elm$core$Maybe$Nothing, $folkertdev$elm_deque$Internal$empty);
+			}
+		}
+	} else {
+		var _v2 = _v0.b;
+		var r = _v2.a;
+		var rs = _v2.b;
+		return _Utils_Tuple2(
+			$elm$core$Maybe$Just(r),
+			$folkertdev$elm_deque$Internal$rebalance(
+				{front: deque.front, rear: rs, sizeF: deque.sizeF, sizeR: deque.sizeR - 1}));
+	}
+};
+var $folkertdev$elm_deque$Deque$unwrap = function (_v0) {
+	var boundedDeque = _v0.a;
+	return boundedDeque;
+};
+var $folkertdev$elm_deque$Deque$popBack = A2(
+	$elm$core$Basics$composeL,
+	A2(
+		$elm$core$Basics$composeL,
+		$elm$core$Tuple$mapSecond($folkertdev$elm_deque$Deque$Deque),
+		$folkertdev$elm_deque$Internal$popBack),
+	$folkertdev$elm_deque$Deque$unwrap);
+var $folkertdev$elm_deque$Deque$mapAbstract = F2(
+	function (f, _v0) {
+		var _abstract = _v0.a;
+		return $folkertdev$elm_deque$Deque$Deque(
+			f(_abstract));
+	});
+var $folkertdev$elm_deque$Deque$pushBack = F2(
+	function (elem, _v0) {
+		var deque = _v0.a;
+		return A2(
+			$folkertdev$elm_deque$Deque$mapAbstract,
+			$folkertdev$elm_deque$Internal$rebalance,
+			$folkertdev$elm_deque$Deque$Deque(
+				{
+					front: deque.front,
+					rear: A2($elm$core$List$cons, elem, deque.rear),
+					sizeF: deque.sizeF,
+					sizeR: deque.sizeR + 1
+				}));
+	});
+var $folkertdev$one_true_path_experiment$SubPath$close = function (subpath) {
+	if (subpath.$ === 'Empty') {
+		return $folkertdev$one_true_path_experiment$SubPath$Empty;
+	} else {
+		var moveto = subpath.a.moveto;
+		var drawtos = subpath.a.drawtos;
+		var _v1 = $folkertdev$elm_deque$Deque$popBack(drawtos);
+		if ((_v1.a.$ === 'Just') && (_v1.a.a.$ === 'ClosePath')) {
+			var _v2 = _v1.a.a;
+			var preceding = _v1.b;
+			return subpath;
+		} else {
+			return $folkertdev$one_true_path_experiment$SubPath$SubPath(
+				{
+					drawtos: A2($folkertdev$elm_deque$Deque$pushBack, $folkertdev$one_true_path_experiment$LowLevel$Command$closePath, drawtos),
+					moveto: moveto
+				});
+		}
+	}
+};
+var $folkertdev$one_true_path_experiment$SubPath$firstPoint = function (_v0) {
+	var moveto = _v0.moveto;
+	var p = moveto.a;
+	return p;
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$LineTo = function (a) {
+	return {$: 'LineTo', a: a};
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$lineTo = $folkertdev$one_true_path_experiment$LowLevel$Command$LineTo;
+var $folkertdev$one_true_path_experiment$SubPath$map2 = F3(
+	function (f, sub1, sub2) {
+		var _v0 = _Utils_Tuple2(sub1, sub2);
+		if (_v0.a.$ === 'Empty') {
+			if (_v0.b.$ === 'Empty') {
+				var _v1 = _v0.a;
+				var _v2 = _v0.b;
+				return $folkertdev$one_true_path_experiment$SubPath$Empty;
+			} else {
+				var _v3 = _v0.a;
+				var subpath = _v0.b;
+				return subpath;
+			}
+		} else {
+			if (_v0.b.$ === 'Empty') {
+				var subpath = _v0.a;
+				var _v4 = _v0.b;
+				return subpath;
+			} else {
+				var a = _v0.a.a;
+				var b = _v0.b.a;
+				return A2(f, a, b);
+			}
+		}
+	});
+var $folkertdev$one_true_path_experiment$SubPath$pushBack = F2(
+	function (drawto, data) {
+		return _Utils_update(
+			data,
+			{
+				drawtos: A2($folkertdev$elm_deque$Deque$pushBack, drawto, data.drawtos)
+			});
+	});
+var $folkertdev$elm_deque$Internal$length = function (deque) {
+	return deque.sizeF + deque.sizeR;
+};
+var $folkertdev$elm_deque$Internal$isEmpty = function (deque) {
+	return !$folkertdev$elm_deque$Internal$length(deque);
+};
+var $folkertdev$elm_deque$Deque$isEmpty = A2($elm$core$Basics$composeL, $folkertdev$elm_deque$Internal$isEmpty, $folkertdev$elm_deque$Deque$unwrap);
+var $folkertdev$elm_deque$Deque$append = F2(
+	function (p, q) {
+		var x = p.a;
+		var y = q.a;
+		return $folkertdev$elm_deque$Deque$isEmpty(p) ? q : ($folkertdev$elm_deque$Deque$isEmpty(q) ? p : $folkertdev$elm_deque$Deque$Deque(
+			{
+				front: _Utils_ap(
+					x.front,
+					$elm$core$List$reverse(x.rear)),
+				rear: $elm$core$List$reverse(
+					_Utils_ap(
+						y.front,
+						$elm$core$List$reverse(y.rear))),
+				sizeF: x.sizeF + x.sizeR,
+				sizeR: y.sizeF + y.sizeR
+			}));
+	});
+var $folkertdev$one_true_path_experiment$SubPath$unsafeConcatenate = F2(
+	function (a, b) {
+		return _Utils_update(
+			a,
+			{
+				drawtos: A2($folkertdev$elm_deque$Deque$append, a.drawtos, b.drawtos)
+			});
+	});
+var $folkertdev$one_true_path_experiment$SubPath$connect = function () {
+	var helper = F2(
+		function (right, left) {
+			return $folkertdev$one_true_path_experiment$SubPath$SubPath(
+				A2(
+					$folkertdev$one_true_path_experiment$SubPath$unsafeConcatenate,
+					A2(
+						$folkertdev$one_true_path_experiment$SubPath$pushBack,
+						$folkertdev$one_true_path_experiment$LowLevel$Command$lineTo(
+							_List_fromArray(
+								[
+									$folkertdev$one_true_path_experiment$SubPath$firstPoint(right)
+								])),
+						left),
+					right));
+		});
+	return $folkertdev$one_true_path_experiment$SubPath$map2(helper);
+}();
+var $elm$core$Basics$pow = _Basics_pow;
+var $elm$core$Basics$sqrt = _Basics_sqrt;
+var $gampleman$elm_visualization$Shape$Pie$cornerTangents = F7(
+	function (x0, y0, x1, y1, r1, rc, cw) {
+		var y01 = y0 - y1;
+		var x01 = x0 - x1;
+		var r = r1 - rc;
+		var lo = (cw ? rc : (-rc)) / $elm$core$Basics$sqrt(
+			A2($elm$core$Basics$pow, x01, 2) + A2($elm$core$Basics$pow, y01, 2));
+		var ox = lo * y01;
+		var x10 = x1 + ox;
+		var x11 = x0 + ox;
+		var x00 = (x11 + x10) / 2;
+		var oy = (-lo) * x01;
+		var y10 = y1 + oy;
+		var y11 = y0 + oy;
+		var y00 = (y11 + y10) / 2;
+		var dy = y10 - y11;
+		var dx = x10 - x11;
+		var dd = (x11 * y10) - (x10 * y11);
+		var d2 = A2($elm$core$Basics$pow, dx, 2) + A2($elm$core$Basics$pow, dy, 2);
+		var d = ((dy < 0) ? (-1) : 1) * $elm$core$Basics$sqrt(
+			A2(
+				$elm$core$Basics$max,
+				0,
+				(A2($elm$core$Basics$pow, r, 2) * d2) - A2($elm$core$Basics$pow, dd, 2)));
+		var cy1 = (((-dd) * dx) + (dy * d)) / d2;
+		var dy1 = cy1 - y00;
+		var cy0 = (((-dd) * dx) - (dy * d)) / d2;
+		var dy0 = cy0 - y00;
+		var cx1 = ((dd * dy) + (dx * d)) / d2;
+		var dx1 = cx1 - x00;
+		var cx0 = ((dd * dy) - (dx * d)) / d2;
+		var dx0 = cx0 - x00;
+		var _v0 = (_Utils_cmp(
+			A2($elm$core$Basics$pow, dx0, 2) + A2($elm$core$Basics$pow, dy0, 2),
+			A2($elm$core$Basics$pow, dx1, 2) + A2($elm$core$Basics$pow, dy1, 2)) > 0) ? _Utils_Tuple2(cx1, cy1) : _Utils_Tuple2(cx0, cy0);
+		var fcx = _v0.a;
+		var fxy = _v0.b;
+		return {cx: fcx, cy: fxy, x01: -ox, x11: fcx * ((r1 / r) - 1), y01: -oy, y11: fxy * ((r1 / r) - 1)};
+	});
+var $gampleman$elm_visualization$Shape$Pie$intersect = F8(
+	function (x0, y0, x1, y1, x2, y2, x3, y3) {
+		var y32 = y3 - y2;
+		var y10 = y1 - y0;
+		var x32 = x3 - x2;
+		var x10 = x1 - x0;
+		var t = ((x32 * (y0 - y2)) - (y32 * (x0 - x2))) / ((y32 * x10) - (x32 * y10));
+		return _Utils_Tuple2(x0 + (t * x10), y0 + (t * y10));
+	});
+var $folkertdev$elm_deque$Internal$foldl = F3(
+	function (f, initial, deque) {
+		return function (initial_) {
+			return A3($elm$core$List$foldr, f, initial_, deque.rear);
+		}(
+			A3($elm$core$List$foldl, f, initial, deque.front));
+	});
+var $folkertdev$elm_deque$Deque$foldl = F2(
+	function (f, initial) {
+		return A2(
+			$elm$core$Basics$composeL,
+			A2($folkertdev$elm_deque$Internal$foldl, f, initial),
+			$folkertdev$elm_deque$Deque$unwrap);
+	});
+var $elm_community$list_extra$List$Extra$last = function (items) {
+	last:
+	while (true) {
+		if (!items.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			if (!items.b.b) {
+				var x = items.a;
+				return $elm$core$Maybe$Just(x);
+			} else {
+				var rest = items.b;
+				var $temp$items = rest;
+				items = $temp$items;
+				continue last;
+			}
+		}
+	}
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$updateCursorState = F2(
+	function (drawto, state) {
+		var noControlPoint = function (currentState) {
+			return _Utils_update(
+				currentState,
+				{previousControlPoint: $elm$core$Maybe$Nothing});
+		};
+		var maybeUpdateCursor = function (coordinate) {
+			return _Utils_update(
+				state,
+				{
+					cursor: A2($elm$core$Maybe$withDefault, state.cursor, coordinate)
+				});
+		};
+		var _v0 = state.cursor;
+		var cursorX = _v0.a;
+		var cursorY = _v0.b;
+		switch (drawto.$) {
+			case 'LineTo':
+				var coordinates = drawto.a;
+				return noControlPoint(
+					maybeUpdateCursor(
+						$elm_community$list_extra$List$Extra$last(coordinates)));
+			case 'CurveTo':
+				var coordinates = drawto.a;
+				var _v2 = $elm_community$list_extra$List$Extra$last(coordinates);
+				if (_v2.$ === 'Nothing') {
+					return state;
+				} else {
+					var _v3 = _v2.a;
+					var control1 = _v3.a;
+					var control2 = _v3.b;
+					var target = _v3.c;
+					return _Utils_update(
+						state,
+						{
+							cursor: target,
+							previousControlPoint: $elm$core$Maybe$Just(control2)
+						});
+				}
+			case 'QuadraticBezierCurveTo':
+				var coordinates = drawto.a;
+				var _v4 = $elm_community$list_extra$List$Extra$last(coordinates);
+				if (_v4.$ === 'Nothing') {
+					return state;
+				} else {
+					var _v5 = _v4.a;
+					var control = _v5.a;
+					var target = _v5.b;
+					return _Utils_update(
+						state,
+						{
+							cursor: target,
+							previousControlPoint: $elm$core$Maybe$Just(control)
+						});
+				}
+			case 'EllipticalArc':
+				var _arguments = drawto.a;
+				return noControlPoint(
+					maybeUpdateCursor(
+						A2(
+							$elm$core$Maybe$map,
+							function ($) {
+								return $.target;
+							},
+							$elm_community$list_extra$List$Extra$last(_arguments))));
+			default:
+				return noControlPoint(state);
+		}
+	});
+var $folkertdev$one_true_path_experiment$SubPath$finalCursorState = function (_v0) {
+	var moveto = _v0.moveto;
+	var drawtos = _v0.drawtos;
+	var _v1 = moveto;
+	var start = _v1.a;
+	var initial = {cursor: start, previousControlPoint: $elm$core$Maybe$Nothing, start: start};
+	return A3($folkertdev$elm_deque$Deque$foldl, $folkertdev$one_true_path_experiment$LowLevel$Command$updateCursorState, initial, drawtos);
+};
+var $folkertdev$one_true_path_experiment$SubPath$finalPoint = A2(
+	$elm$core$Basics$composeR,
+	$folkertdev$one_true_path_experiment$SubPath$finalCursorState,
+	function ($) {
+		return $.cursor;
+	});
+var $ianmackenzie$elm_units$Quantity$Quantity = function (a) {
+	return {$: 'Quantity', a: a};
+};
+var $ianmackenzie$elm_units$Quantity$float = function (value) {
+	return $ianmackenzie$elm_units$Quantity$Quantity(value);
+};
+var $ianmackenzie$elm_geometry$Geometry$Types$Vector2d = function (a) {
+	return {$: 'Vector2d', a: a};
+};
+var $ianmackenzie$elm_geometry$Vector2d$xy = F2(
+	function (_v0, _v1) {
+		var x = _v0.a;
+		var y = _v1.a;
+		return $ianmackenzie$elm_geometry$Geometry$Types$Vector2d(
+			{x: x, y: y});
+	});
+var $ianmackenzie$elm_geometry$Vector2d$fromTuple = F2(
+	function (toQuantity, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return A2(
+			$ianmackenzie$elm_geometry$Vector2d$xy,
+			toQuantity(x),
+			toQuantity(y));
+	});
+var $folkertdev$elm_deque$Internal$map = F2(
+	function (f, deque) {
+		return {
+			front: A2($elm$core$List$map, f, deque.front),
+			rear: A2($elm$core$List$map, f, deque.rear),
+			sizeF: deque.sizeF,
+			sizeR: deque.sizeR
+		};
+	});
+var $folkertdev$elm_deque$Deque$map = function (f) {
+	return $folkertdev$elm_deque$Deque$mapAbstract(
+		$folkertdev$elm_deque$Internal$map(f));
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$CurveTo = function (a) {
+	return {$: 'CurveTo', a: a};
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$QuadraticBezierCurveTo = function (a) {
+	return {$: 'QuadraticBezierCurveTo', a: a};
+};
+var $folkertdev$one_true_path_experiment$LowLevel$Command$mapTuple2 = F2(
+	function (f, _v0) {
+		var a = _v0.a;
+		var b = _v0.b;
+		return _Utils_Tuple2(
+			f(a),
+			f(b));
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$mapTuple3 = F2(
+	function (f, _v0) {
+		var a = _v0.a;
+		var b = _v0.b;
+		var c = _v0.c;
+		return _Utils_Tuple3(
+			f(a),
+			f(b),
+			f(c));
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$mapCoordinateDrawTo = F2(
+	function (f, drawto) {
+		switch (drawto.$) {
+			case 'LineTo':
+				var coordinates = drawto.a;
+				return $folkertdev$one_true_path_experiment$LowLevel$Command$LineTo(
+					A2($elm$core$List$map, f, coordinates));
+			case 'CurveTo':
+				var coordinates = drawto.a;
+				return $folkertdev$one_true_path_experiment$LowLevel$Command$CurveTo(
+					A2(
+						$elm$core$List$map,
+						$folkertdev$one_true_path_experiment$LowLevel$Command$mapTuple3(f),
+						coordinates));
+			case 'QuadraticBezierCurveTo':
+				var coordinates = drawto.a;
+				return $folkertdev$one_true_path_experiment$LowLevel$Command$QuadraticBezierCurveTo(
+					A2(
+						$elm$core$List$map,
+						$folkertdev$one_true_path_experiment$LowLevel$Command$mapTuple2(f),
+						coordinates));
+			case 'EllipticalArc':
+				var _arguments = drawto.a;
+				return $folkertdev$one_true_path_experiment$LowLevel$Command$EllipticalArc(
+					A2(
+						$elm$core$List$map,
+						function (argument) {
+							return _Utils_update(
+								argument,
+								{
+									target: f(argument.target)
+								});
+						},
+						_arguments));
+			default:
+				return $folkertdev$one_true_path_experiment$LowLevel$Command$ClosePath;
+		}
+	});
+var $folkertdev$one_true_path_experiment$SubPath$mapCoordinateInstructions = F2(
+	function (f, _v0) {
+		var moveto = _v0.moveto;
+		var drawtos = _v0.drawtos;
+		var coordinate = moveto.a;
+		return {
+			drawtos: A2(
+				$folkertdev$elm_deque$Deque$map,
+				$folkertdev$one_true_path_experiment$LowLevel$Command$mapCoordinateDrawTo(f),
+				drawtos),
+			moveto: $folkertdev$one_true_path_experiment$LowLevel$Command$MoveTo(
+				f(coordinate))
+		};
+	});
+var $ianmackenzie$elm_geometry$Vector2d$minus = F2(
+	function (_v0, _v1) {
+		var v2 = _v0.a;
+		var v1 = _v1.a;
+		return $ianmackenzie$elm_geometry$Geometry$Types$Vector2d(
+			{x: v1.x - v2.x, y: v1.y - v2.y});
+	});
+var $ianmackenzie$elm_geometry$Vector2d$plus = F2(
+	function (_v0, _v1) {
+		var v2 = _v0.a;
+		var v1 = _v1.a;
+		return $ianmackenzie$elm_geometry$Geometry$Types$Vector2d(
+			{x: v1.x + v2.x, y: v1.y + v2.y});
+	});
+var $ianmackenzie$elm_units$Quantity$toFloat = function (_v0) {
+	var value = _v0.a;
+	return value;
+};
+var $ianmackenzie$elm_geometry$Vector2d$xComponent = function (_v0) {
+	var v = _v0.a;
+	return $ianmackenzie$elm_units$Quantity$Quantity(v.x);
+};
+var $ianmackenzie$elm_geometry$Vector2d$yComponent = function (_v0) {
+	var v = _v0.a;
+	return $ianmackenzie$elm_units$Quantity$Quantity(v.y);
+};
+var $ianmackenzie$elm_geometry$Vector2d$toTuple = F2(
+	function (fromQuantity, vector) {
+		return _Utils_Tuple2(
+			fromQuantity(
+				$ianmackenzie$elm_geometry$Vector2d$xComponent(vector)),
+			fromQuantity(
+				$ianmackenzie$elm_geometry$Vector2d$yComponent(vector)));
+	});
+var $folkertdev$one_true_path_experiment$SubPath$continue = function () {
+	var helper = F2(
+		function (right, left) {
+			var distance = A2(
+				$ianmackenzie$elm_geometry$Vector2d$minus,
+				A2(
+					$ianmackenzie$elm_geometry$Vector2d$fromTuple,
+					$ianmackenzie$elm_units$Quantity$float,
+					$folkertdev$one_true_path_experiment$SubPath$firstPoint(right)),
+				A2(
+					$ianmackenzie$elm_geometry$Vector2d$fromTuple,
+					$ianmackenzie$elm_units$Quantity$float,
+					$folkertdev$one_true_path_experiment$SubPath$finalPoint(left)));
+			var mapper = A2(
+				$elm$core$Basics$composeL,
+				A2(
+					$elm$core$Basics$composeL,
+					$ianmackenzie$elm_geometry$Vector2d$toTuple($ianmackenzie$elm_units$Quantity$toFloat),
+					$ianmackenzie$elm_geometry$Vector2d$plus(distance)),
+				$ianmackenzie$elm_geometry$Vector2d$fromTuple($ianmackenzie$elm_units$Quantity$float));
+			return $folkertdev$one_true_path_experiment$SubPath$SubPath(
+				A2(
+					$folkertdev$one_true_path_experiment$SubPath$unsafeConcatenate,
+					left,
+					A2($folkertdev$one_true_path_experiment$SubPath$mapCoordinateInstructions, mapper, right)));
+		});
+	return $folkertdev$one_true_path_experiment$SubPath$map2(helper);
+}();
+var $gampleman$elm_visualization$Shape$Pie$makeArc = F6(
+	function (x, y, radius, a0, a1, ccw) {
+		return $folkertdev$one_true_path_experiment$SubPath$continue(
+			A6($gampleman$elm_visualization$Shape$Pie$arc_, x, y, radius, a0, a1, ccw));
+	});
+var $elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var $elm$core$Basics$asin = _Basics_asin;
+var $gampleman$elm_visualization$Shape$Pie$myAsin = function (x) {
+	return (x >= 1) ? ($elm$core$Basics$pi / 2) : ((_Utils_cmp(x, -1) < 1) ? ((-$elm$core$Basics$pi) / 2) : $elm$core$Basics$asin(x));
+};
+var $gampleman$elm_visualization$Shape$Pie$arc = function (arcData) {
+	var _v0 = (_Utils_cmp(arcData.innerRadius, arcData.outerRadius) > 0) ? _Utils_Tuple2(arcData.outerRadius, arcData.innerRadius) : _Utils_Tuple2(arcData.innerRadius, arcData.outerRadius);
+	var r0 = _v0.a;
+	var r1 = _v0.b;
+	if (_Utils_cmp(r1, $gampleman$elm_visualization$Shape$Pie$epsilon) < 1) {
+		return _List_fromArray(
+			[
+				$folkertdev$one_true_path_experiment$SubPath$close(
+				A2(
+					$folkertdev$one_true_path_experiment$SubPath$with,
+					$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+						_Utils_Tuple2(0, 0)),
+					_List_Nil))
+			]);
+	} else {
+		var a1 = arcData.endAngle - ($elm$core$Basics$pi / 2);
+		var a0 = arcData.startAngle - ($elm$core$Basics$pi / 2);
+		var cw = _Utils_cmp(a1, a0) > 0;
+		var da = $elm$core$Basics$abs(a1 - a0);
+		if (_Utils_cmp(da, (2 * $elm$core$Basics$pi) - $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+			var p = A7(
+				$gampleman$elm_visualization$Shape$Pie$makeArc,
+				0,
+				0,
+				r1,
+				a0,
+				a1,
+				!cw,
+				A2(
+					$folkertdev$one_true_path_experiment$SubPath$with,
+					$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+						_Utils_Tuple2(
+							r1 * $elm$core$Basics$cos(a0),
+							r1 * $elm$core$Basics$sin(a0))),
+					_List_Nil));
+			return (_Utils_cmp(r0, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) ? _List_fromArray(
+				[
+					p,
+					$folkertdev$one_true_path_experiment$SubPath$close(
+					A7(
+						$gampleman$elm_visualization$Shape$Pie$makeArc,
+						0,
+						0,
+						r0,
+						a1,
+						a0,
+						cw,
+						A2(
+							$folkertdev$one_true_path_experiment$SubPath$with,
+							$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+								_Utils_Tuple2(
+									r0 * $elm$core$Basics$cos(a1),
+									r0 * $elm$core$Basics$sin(a1))),
+							_List_Nil)))
+				]) : _List_fromArray(
+				[
+					$folkertdev$one_true_path_experiment$SubPath$close(p)
+				]);
+		} else {
+			var rc = A2(
+				$elm$core$Basics$min,
+				$elm$core$Basics$abs(r1 - r0) / 2,
+				arcData.cornerRadius);
+			var ap = arcData.padAngle / 2;
+			var rp = (_Utils_cmp(ap, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) ? ((arcData.padRadius > 0) ? arcData.padRadius : $elm$core$Basics$sqrt(
+				A2($elm$core$Basics$pow, r0, 2) + A2($elm$core$Basics$pow, r1, 2))) : 0;
+			var _v1 = function () {
+				if (_Utils_cmp(rp, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+					var p1 = $gampleman$elm_visualization$Shape$Pie$myAsin(
+						(rp / r1) * $elm$core$Basics$sin(ap));
+					return (_Utils_cmp(da - (p1 * 2), $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) ? (cw ? _Utils_Tuple3(a0 + p1, a1 - p1, da - (p1 * 2)) : _Utils_Tuple3(a0 - p1, a1 + p1, da - (p1 * 2))) : _Utils_Tuple3((a0 + a1) / 2, (a0 + a1) / 2, 0);
+				} else {
+					return _Utils_Tuple3(a0, a1, da);
+				}
+			}();
+			var a01 = _v1.a;
+			var a11 = _v1.b;
+			var da1 = _v1.c;
+			var x01 = r1 * $elm$core$Basics$cos(a01);
+			var y01 = r1 * $elm$core$Basics$sin(a01);
+			var x11 = r1 * $elm$core$Basics$cos(a11);
+			var y11 = r1 * $elm$core$Basics$sin(a11);
+			var _v2 = function () {
+				if (_Utils_cmp(rp, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+					var p0 = $gampleman$elm_visualization$Shape$Pie$myAsin(
+						(rp / r0) * $elm$core$Basics$sin(ap));
+					return (_Utils_cmp(da - (p0 * 2), $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) ? (cw ? _Utils_Tuple3(a0 + p0, a1 - p0, da - (p0 * 2)) : _Utils_Tuple3(a0 - p0, a1 + p0, da - (p0 * 2))) : _Utils_Tuple3((a0 + a1) / 2, (a0 + a1) / 2, 0);
+				} else {
+					return _Utils_Tuple3(a0, a1, da);
+				}
+			}();
+			var a00 = _v2.a;
+			var a10 = _v2.b;
+			var da0 = _v2.c;
+			var x00 = r0 * $elm$core$Basics$cos(a00);
+			var y00 = r0 * $elm$core$Basics$sin(a00);
+			var x10 = r0 * $elm$core$Basics$cos(a10);
+			var y10 = r0 * $elm$core$Basics$sin(a10);
+			var _v3 = (_Utils_cmp(da0, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) ? A8($gampleman$elm_visualization$Shape$Pie$intersect, x01, y01, x00, y00, x11, y11, x10, y10) : _Utils_Tuple2(x10, y10);
+			var ocx = _v3.a;
+			var ocy = _v3.b;
+			var _v4 = _Utils_Tuple2(x11 - ocx, y11 - ocy);
+			var bx = _v4.a;
+			var by = _v4.b;
+			var _v5 = _Utils_Tuple2(x01 - ocx, y01 - ocy);
+			var ax = _v5.a;
+			var ay = _v5.b;
+			var _v6 = function () {
+				if ((_Utils_cmp(rc, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) && (_Utils_cmp(da, $elm$core$Basics$pi) < 0)) {
+					var lc = $elm$core$Basics$sqrt(
+						A2($elm$core$Basics$pow, ocx, 2) + A2($elm$core$Basics$pow, ocy, 2));
+					var kc = 1 / $elm$core$Basics$sin(
+						$elm$core$Basics$acos(
+							((ax * bx) + (ay * by)) / ($elm$core$Basics$sqrt(
+								A2($elm$core$Basics$pow, ax, 2) + A2($elm$core$Basics$pow, ay, 2)) * $elm$core$Basics$sqrt(
+								A2($elm$core$Basics$pow, bx, 2) + A2($elm$core$Basics$pow, by, 2)))) / 2);
+					return _Utils_Tuple2(
+						A2($elm$core$Basics$min, rc, (r0 - lc) / (kc - 1)),
+						A2($elm$core$Basics$min, rc, (r1 - lc) / (kc + 1)));
+				} else {
+					return _Utils_Tuple2(rc, rc);
+				}
+			}();
+			var rc0 = _v6.a;
+			var rc1 = _v6.b;
+			var outerRing = function () {
+				if (_Utils_cmp(da1, $gampleman$elm_visualization$Shape$Pie$epsilon) < 1) {
+					return A2(
+						$folkertdev$one_true_path_experiment$SubPath$with,
+						$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+							_Utils_Tuple2(x01, y01)),
+						_List_Nil);
+				} else {
+					if (_Utils_cmp(rc1, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+						var t1 = A7($gampleman$elm_visualization$Shape$Pie$cornerTangents, x11, y11, x10, y10, r1, rc1, cw);
+						var t0 = A7($gampleman$elm_visualization$Shape$Pie$cornerTangents, x00, y00, x01, y01, r1, rc1, cw);
+						var p = A2(
+							$folkertdev$one_true_path_experiment$SubPath$with,
+							$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+								_Utils_Tuple2(t0.cx + t0.x01, t0.cy + t0.y01)),
+							_List_Nil);
+						return (_Utils_cmp(rc1, rc) < 0) ? A7(
+							$gampleman$elm_visualization$Shape$Pie$makeArc,
+							t0.cx,
+							t0.cy,
+							rc1,
+							A2($elm$core$Basics$atan2, t0.y01, t0.x01),
+							A2($elm$core$Basics$atan2, t1.y01, t1.x01),
+							!cw,
+							p) : A7(
+							$gampleman$elm_visualization$Shape$Pie$makeArc,
+							t1.cx,
+							t1.cy,
+							rc1,
+							A2($elm$core$Basics$atan2, t1.y11, t1.x11),
+							A2($elm$core$Basics$atan2, t1.y01, t1.x01),
+							!cw,
+							A7(
+								$gampleman$elm_visualization$Shape$Pie$makeArc,
+								0,
+								0,
+								r1,
+								A2($elm$core$Basics$atan2, t0.cy + t0.y11, t0.cx + t0.x11),
+								A2($elm$core$Basics$atan2, t1.cy + t1.y11, t1.cx + t1.x11),
+								!cw,
+								A7(
+									$gampleman$elm_visualization$Shape$Pie$makeArc,
+									t0.cx,
+									t0.cy,
+									rc1,
+									A2($elm$core$Basics$atan2, t0.y01, t0.x01),
+									A2($elm$core$Basics$atan2, t0.y11, t0.x11),
+									!cw,
+									p)));
+					} else {
+						return A7(
+							$gampleman$elm_visualization$Shape$Pie$makeArc,
+							0,
+							0,
+							r1,
+							a01,
+							a11,
+							!cw,
+							A2(
+								$folkertdev$one_true_path_experiment$SubPath$with,
+								$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+									_Utils_Tuple2(x01, y01)),
+								_List_Nil));
+					}
+				}
+			}();
+			if ((_Utils_cmp(r0, $gampleman$elm_visualization$Shape$Pie$epsilon) < 1) || (_Utils_cmp(da0, $gampleman$elm_visualization$Shape$Pie$epsilon) < 1)) {
+				return _List_fromArray(
+					[
+						$folkertdev$one_true_path_experiment$SubPath$close(
+						A2(
+							$folkertdev$one_true_path_experiment$SubPath$connect,
+							A2(
+								$folkertdev$one_true_path_experiment$SubPath$with,
+								$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+									_Utils_Tuple2(x10, y10)),
+								_List_Nil),
+							outerRing))
+					]);
+			} else {
+				if (_Utils_cmp(rc0, $gampleman$elm_visualization$Shape$Pie$epsilon) > 0) {
+					var t1 = A7($gampleman$elm_visualization$Shape$Pie$cornerTangents, x01, y01, x00, y00, r0, -rc0, cw);
+					var t0 = A7($gampleman$elm_visualization$Shape$Pie$cornerTangents, x10, y10, x11, y11, r0, -rc0, cw);
+					var p = A2(
+						$folkertdev$one_true_path_experiment$SubPath$connect,
+						A2(
+							$folkertdev$one_true_path_experiment$SubPath$with,
+							$folkertdev$one_true_path_experiment$LowLevel$Command$moveTo(
+								_Utils_Tuple2(t0.cx + t0.x01, t0.cy + t0.y01)),
+							_List_Nil),
+						outerRing);
+					return (_Utils_cmp(rc0, rc) < 0) ? _List_fromArray(
+						[
+							$folkertdev$one_true_path_experiment$SubPath$close(
+							A7(
+								$gampleman$elm_visualization$Shape$Pie$makeArc,
+								t0.cx,
+								t0.cy,
+								rc0,
+								A2($elm$core$Basics$atan2, t0.y01, t0.x01),
+								A2($elm$core$Basics$atan2, t1.y01, t1.x01),
+								!cw,
+								p))
+						]) : _List_fromArray(
+						[
+							$folkertdev$one_true_path_experiment$SubPath$close(
+							A7(
+								$gampleman$elm_visualization$Shape$Pie$makeArc,
+								t1.cx,
+								t1.cy,
+								rc0,
+								A2($elm$core$Basics$atan2, t1.y11, t1.x11),
+								A2($elm$core$Basics$atan2, t1.y01, t1.x01),
+								!cw,
+								A7(
+									$gampleman$elm_visualization$Shape$Pie$makeArc,
+									0,
+									0,
+									r0,
+									A2($elm$core$Basics$atan2, t0.cy + t0.y11, t0.cx + t0.x11),
+									A2($elm$core$Basics$atan2, t1.cy + t1.y11, t1.cx + t1.x11),
+									cw,
+									A7(
+										$gampleman$elm_visualization$Shape$Pie$makeArc,
+										t0.cx,
+										t0.cy,
+										rc0,
+										A2($elm$core$Basics$atan2, t0.y01, t0.x01),
+										A2($elm$core$Basics$atan2, t0.y11, t0.x11),
+										!cw,
+										p))))
+						]);
+				} else {
+					return _List_fromArray(
+						[
+							$folkertdev$one_true_path_experiment$SubPath$close(
+							A2(
+								$folkertdev$one_true_path_experiment$SubPath$connect,
+								A6($gampleman$elm_visualization$Shape$Pie$arc_, 0, 0, r0, a10, a00, cw),
+								outerRing))
+						]);
+				}
+			}
+		}
+	}
+};
+var $gampleman$elm_visualization$Shape$arc = $gampleman$elm_visualization$Shape$Pie$arc;
+var $avh4$elm_color$Color$RgbaSpace = F4(
+	function (a, b, c, d) {
+		return {$: 'RgbaSpace', a: a, b: b, c: c, d: d};
+	});
+var $avh4$elm_color$Color$black = A4($avh4$elm_color$Color$RgbaSpace, 0 / 255, 0 / 255, 0 / 255, 1.0);
+var $gampleman$elm_visualization$Shape$Pie$centroid = function (arcData) {
+	var r = (arcData.innerRadius + arcData.outerRadius) / 2;
+	var a = ((arcData.startAngle + arcData.endAngle) / 2) - ($elm$core$Basics$pi / 2);
+	return _Utils_Tuple2(
+		$elm$core$Basics$cos(a) * r,
+		$elm$core$Basics$sin(a) * r);
+};
+var $gampleman$elm_visualization$Shape$centroid = $gampleman$elm_visualization$Shape$Pie$centroid;
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
+var $avh4$elm_color$Color$fromRgba = function (components) {
+	return A4($avh4$elm_color$Color$RgbaSpace, components.red, components.green, components.blue, components.alpha);
+};
+var $author$project$Centroid$rgba255 = F4(
+	function (r, g, b, a) {
+		return $avh4$elm_color$Color$fromRgba(
+			{alpha: a, blue: b / 255, green: g / 255, red: r / 255});
+	});
+var $author$project$Centroid$colors = $elm$core$Array$fromList(
+	_List_fromArray(
+		[
+			A4($author$project$Centroid$rgba255, 31, 119, 180, 0.5),
+			A4($author$project$Centroid$rgba255, 255, 127, 14, 0.5),
+			A4($author$project$Centroid$rgba255, 44, 159, 44, 0.5),
+			A4($author$project$Centroid$rgba255, 214, 39, 40, 0.5),
+			A4($author$project$Centroid$rgba255, 148, 103, 189, 0.5),
+			A4($author$project$Centroid$rgba255, 140, 86, 75, 0.5),
+			A4($author$project$Centroid$rgba255, 227, 119, 194, 0.5),
+			A4($author$project$Centroid$rgba255, 128, 128, 128, 0.5),
+			A4($author$project$Centroid$rgba255, 188, 189, 34, 0.5),
+			A4($author$project$Centroid$rgba255, 23, 190, 207, 0.5)
+		]));
+var $elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
+var $elm$svg$Svg$path = $elm$svg$Svg$trustedNode('path');
+var $folkertdev$elm_deque$Deque$empty = $folkertdev$elm_deque$Deque$Deque($folkertdev$elm_deque$Internal$empty);
+var $folkertdev$one_true_path_experiment$LowLevel$Command$merge = F2(
+	function (instruction1, instruction2) {
+		var _v0 = _Utils_Tuple2(instruction1, instruction2);
+		_v0$5:
+		while (true) {
+			switch (_v0.a.$) {
+				case 'LineTo':
+					if (_v0.b.$ === 'LineTo') {
+						var p1 = _v0.a.a;
+						var p2 = _v0.b.a;
+						return $elm$core$Result$Ok(
+							$folkertdev$one_true_path_experiment$LowLevel$Command$LineTo(
+								_Utils_ap(p1, p2)));
+					} else {
+						break _v0$5;
+					}
+				case 'CurveTo':
+					if (_v0.b.$ === 'CurveTo') {
+						var p1 = _v0.a.a;
+						var p2 = _v0.b.a;
+						return $elm$core$Result$Ok(
+							$folkertdev$one_true_path_experiment$LowLevel$Command$CurveTo(
+								_Utils_ap(p1, p2)));
+					} else {
+						break _v0$5;
+					}
+				case 'QuadraticBezierCurveTo':
+					if (_v0.b.$ === 'QuadraticBezierCurveTo') {
+						var p1 = _v0.a.a;
+						var p2 = _v0.b.a;
+						return $elm$core$Result$Ok(
+							$folkertdev$one_true_path_experiment$LowLevel$Command$QuadraticBezierCurveTo(
+								_Utils_ap(p1, p2)));
+					} else {
+						break _v0$5;
+					}
+				case 'EllipticalArc':
+					if (_v0.b.$ === 'EllipticalArc') {
+						var p1 = _v0.a.a;
+						var p2 = _v0.b.a;
+						return $elm$core$Result$Ok(
+							$folkertdev$one_true_path_experiment$LowLevel$Command$EllipticalArc(
+								_Utils_ap(p1, p2)));
+					} else {
+						break _v0$5;
+					}
+				default:
+					if (_v0.b.$ === 'ClosePath') {
+						var _v1 = _v0.a;
+						var _v2 = _v0.b;
+						return $elm$core$Result$Ok($folkertdev$one_true_path_experiment$LowLevel$Command$ClosePath);
+					} else {
+						break _v0$5;
+					}
+			}
+		}
+		return $elm$core$Result$Err(
+			_Utils_Tuple2(instruction1, instruction2));
+	});
+var $folkertdev$elm_deque$Internal$toList = function (deque) {
+	return _Utils_ap(
+		deque.front,
+		$elm$core$List$reverse(deque.rear));
+};
+var $folkertdev$elm_deque$Deque$toList = A2($elm$core$Basics$composeL, $folkertdev$elm_deque$Internal$toList, $folkertdev$elm_deque$Deque$unwrap);
+var $folkertdev$one_true_path_experiment$SubPath$compressHelper = function (drawtos) {
+	var folder = F2(
+		function (instruction, _v3) {
+			var previous = _v3.a;
+			var accum = _v3.b;
+			var _v2 = A2($folkertdev$one_true_path_experiment$LowLevel$Command$merge, previous, instruction);
+			if (_v2.$ === 'Ok') {
+				var merged = _v2.a;
+				return _Utils_Tuple2(merged, accum);
+			} else {
+				return _Utils_Tuple2(
+					instruction,
+					A2($elm$core$List$cons, previous, accum));
+			}
+		});
+	var _v0 = $folkertdev$elm_deque$Deque$toList(drawtos);
+	if (!_v0.b) {
+		return $folkertdev$elm_deque$Deque$empty;
+	} else {
+		var first = _v0.a;
+		var rest = _v0.b;
+		return $folkertdev$elm_deque$Deque$fromList(
+			$elm$core$List$reverse(
+				function (_v1) {
+					var a = _v1.a;
+					var b = _v1.b;
+					return A2($elm$core$List$cons, a, b);
+				}(
+					A3(
+						$elm$core$List$foldl,
+						folder,
+						_Utils_Tuple2(first, _List_Nil),
+						rest))));
+	}
+};
+var $folkertdev$one_true_path_experiment$SubPath$compress = function (subpath) {
+	if (subpath.$ === 'Empty') {
+		return $folkertdev$one_true_path_experiment$SubPath$Empty;
+	} else {
+		var data = subpath.a;
+		return $folkertdev$one_true_path_experiment$SubPath$SubPath(
+			_Utils_update(
+				data,
+				{
+					drawtos: $folkertdev$one_true_path_experiment$SubPath$compressHelper(data.drawtos)
+				}));
+	}
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$DecimalPlaces = function (a) {
+	return {$: 'DecimalPlaces', a: a};
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$decimalPlaces = $folkertdev$svg_path_lowlevel$Path$LowLevel$DecimalPlaces;
+var $folkertdev$one_true_path_experiment$SubPath$defaultConfig = {decimalPlaces: $elm$core$Maybe$Nothing, mergeAdjacent: false};
+var $folkertdev$one_true_path_experiment$SubPath$optionFolder = F2(
+	function (option, config) {
+		if (option.$ === 'DecimalPlaces') {
+			var n = option.a;
+			return _Utils_update(
+				config,
+				{
+					decimalPlaces: $elm$core$Maybe$Just(n)
+				});
+		} else {
+			return _Utils_update(
+				config,
+				{mergeAdjacent: true});
+		}
+	});
+var $elm$core$List$singleton = function (value) {
+	return _List_fromArray(
+		[value]);
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute = {$: 'Absolute'};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$ClosePath = {$: 'ClosePath'};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$CurveTo = F2(
+	function (a, b) {
+		return {$: 'CurveTo', a: a, b: b};
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$EllipticalArc = F2(
+	function (a, b) {
+		return {$: 'EllipticalArc', a: a, b: b};
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$LineTo = F2(
+	function (a, b) {
+		return {$: 'LineTo', a: a, b: b};
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$QuadraticBezierCurveTo = F2(
+	function (a, b) {
+		return {$: 'QuadraticBezierCurveTo', a: a, b: b};
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$toLowLevelDrawTo = function (drawto) {
+	switch (drawto.$) {
+		case 'LineTo':
+			var coordinates = drawto.a;
+			return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$LineTo, $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute, coordinates);
+		case 'CurveTo':
+			var coordinates = drawto.a;
+			return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$CurveTo, $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute, coordinates);
+		case 'QuadraticBezierCurveTo':
+			var coordinates = drawto.a;
+			return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$QuadraticBezierCurveTo, $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute, coordinates);
+		case 'EllipticalArc':
+			var _arguments = drawto.a;
+			return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$EllipticalArc, $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute, _arguments);
+		default:
+			return $folkertdev$svg_path_lowlevel$Path$LowLevel$ClosePath;
+	}
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$MoveTo = F2(
+	function (a, b) {
+		return {$: 'MoveTo', a: a, b: b};
+	});
+var $folkertdev$one_true_path_experiment$LowLevel$Command$toLowLevelMoveTo = function (_v0) {
+	var target = _v0.a;
+	return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$MoveTo, $folkertdev$svg_path_lowlevel$Path$LowLevel$Absolute, target);
+};
+var $folkertdev$one_true_path_experiment$SubPath$toLowLevel = function (subpath) {
+	if (subpath.$ === 'Empty') {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var moveto = subpath.a.moveto;
+		var drawtos = subpath.a.drawtos;
+		return $elm$core$Maybe$Just(
+			{
+				drawtos: A2(
+					$elm$core$List$map,
+					$folkertdev$one_true_path_experiment$LowLevel$Command$toLowLevelDrawTo,
+					$folkertdev$elm_deque$Deque$toList(drawtos)),
+				moveto: $folkertdev$one_true_path_experiment$LowLevel$Command$toLowLevelMoveTo(moveto)
+			});
+	}
+};
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$defaultConfig = {floatFormatter: $elm$core$String$fromFloat};
+var $elm$core$Basics$round = _Basics_round;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$roundTo = F2(
+	function (n, value) {
+		if (!n) {
+			return $elm$core$String$fromInt(
+				$elm$core$Basics$round(value));
+		} else {
+			var sign = (value < 0.0) ? '-' : '';
+			var exp = A2($elm$core$Basics$pow, 10, n);
+			var raised = $elm$core$Basics$abs(
+				$elm$core$Basics$round(value * exp));
+			var decimals = raised % exp;
+			return (!decimals) ? _Utils_ap(
+				sign,
+				$elm$core$String$fromInt((raised / exp) | 0)) : (sign + ($elm$core$String$fromInt((raised / exp) | 0) + ('.' + $elm$core$String$fromInt(decimals))));
+		}
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$optionFolder = F2(
+	function (option, config) {
+		var n = option.a;
+		return _Utils_update(
+			config,
+			{
+				floatFormatter: $folkertdev$svg_path_lowlevel$Path$LowLevel$roundTo(n)
+			});
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$accumulateOptions = A2($elm$core$List$foldl, $folkertdev$svg_path_lowlevel$Path$LowLevel$optionFolder, $folkertdev$svg_path_lowlevel$Path$LowLevel$defaultConfig);
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$isEmpty = function (command) {
+	switch (command.$) {
+		case 'LineTo':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'Horizontal':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'Vertical':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'CurveTo':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'SmoothCurveTo':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'QuadraticBezierCurveTo':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'SmoothQuadraticBezierCurveTo':
+			var mode = command.a;
+			var coordinates = command.b;
+			return $elm$core$List$isEmpty(coordinates);
+		case 'EllipticalArc':
+			var mode = command.a;
+			var _arguments = command.b;
+			return $elm$core$List$isEmpty(_arguments);
+		default:
+			return false;
+	}
+};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Char$toLower = _Char_toLower;
+var $elm$core$Char$toUpper = _Char_toUpper;
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter = F2(
+	function (mode, character) {
+		if (mode.$ === 'Absolute') {
+			return $elm$core$String$fromChar(
+				$elm$core$Char$toUpper(character));
+		} else {
+			return $elm$core$String$fromChar(
+				$elm$core$Char$toLower(character));
+		}
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate = F2(
+	function (config, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return config.floatFormatter(x) + (',' + config.floatFormatter(y));
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate2 = F2(
+	function (config, _v0) {
+		var c1 = _v0.a;
+		var c2 = _v0.b;
+		return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, c1) + (' ' + A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, c2));
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate3 = F2(
+	function (config, _v0) {
+		var c1 = _v0.a;
+		var c2 = _v0.b;
+		var c3 = _v0.c;
+		return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, c1) + (' ' + (A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, c2) + (' ' + A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, c3))));
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$encodeFlags = function (_v0) {
+	var arcFlag = _v0.a;
+	var direction = _v0.b;
+	var _v1 = _Utils_Tuple2(arcFlag, direction);
+	if (_v1.a.$ === 'LargestArc') {
+		if (_v1.b.$ === 'Clockwise') {
+			var _v2 = _v1.a;
+			var _v3 = _v1.b;
+			return _Utils_Tuple2(1, 0);
+		} else {
+			var _v6 = _v1.a;
+			var _v7 = _v1.b;
+			return _Utils_Tuple2(1, 1);
+		}
+	} else {
+		if (_v1.b.$ === 'Clockwise') {
+			var _v4 = _v1.a;
+			var _v5 = _v1.b;
+			return _Utils_Tuple2(0, 0);
+		} else {
+			var _v8 = _v1.a;
+			var _v9 = _v1.b;
+			return _Utils_Tuple2(0, 1);
+		}
+	}
+};
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyEllipticalArcArgument = F2(
+	function (config, _v0) {
+		var radii = _v0.radii;
+		var xAxisRotate = _v0.xAxisRotate;
+		var arcFlag = _v0.arcFlag;
+		var direction = _v0.direction;
+		var target = _v0.target;
+		var _v1 = $folkertdev$svg_path_lowlevel$Path$LowLevel$encodeFlags(
+			_Utils_Tuple2(arcFlag, direction));
+		var arc = _v1.a;
+		var sweep = _v1.b;
+		return A2(
+			$elm$core$String$join,
+			' ',
+			_List_fromArray(
+				[
+					A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, radii),
+					$elm$core$String$fromFloat(xAxisRotate),
+					$elm$core$String$fromInt(arc),
+					$elm$core$String$fromInt(sweep),
+					A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, target)
+				]));
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyDrawTo = F2(
+	function (config, command) {
+		if ($folkertdev$svg_path_lowlevel$Path$LowLevel$isEmpty(command)) {
+			return '';
+		} else {
+			switch (command.$) {
+				case 'LineTo':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('L')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate(config),
+								coordinates)));
+				case 'Horizontal':
+					var mode = command.a;
+					var coordinates = command.b;
+					return $elm$core$List$isEmpty(coordinates) ? '' : _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('H')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2($elm$core$List$map, $elm$core$String$fromFloat, coordinates)));
+				case 'Vertical':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('V')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2($elm$core$List$map, $elm$core$String$fromFloat, coordinates)));
+				case 'CurveTo':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('C')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate3(config),
+								coordinates)));
+				case 'SmoothCurveTo':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('S')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate2(config),
+								coordinates)));
+				case 'QuadraticBezierCurveTo':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('Q')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate2(config),
+								coordinates)));
+				case 'SmoothQuadraticBezierCurveTo':
+					var mode = command.a;
+					var coordinates = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('T')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate(config),
+								coordinates)));
+				case 'EllipticalArc':
+					var mode = command.a;
+					var _arguments = command.b;
+					return _Utils_ap(
+						A2(
+							$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCharacter,
+							mode,
+							_Utils_chr('A')),
+						A2(
+							$elm$core$String$join,
+							' ',
+							A2(
+								$elm$core$List$map,
+								$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyEllipticalArcArgument(config),
+								_arguments)));
+				default:
+					return 'Z';
+			}
+		}
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyMoveTo = F2(
+	function (config, _v0) {
+		var mode = _v0.a;
+		var coordinate = _v0.b;
+		if (mode.$ === 'Absolute') {
+			return 'M' + A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, coordinate);
+		} else {
+			return 'm' + A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyCoordinate, config, coordinate);
+		}
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$toStringSubPath = F2(
+	function (config, _v0) {
+		var moveto = _v0.moveto;
+		var drawtos = _v0.drawtos;
+		return A2($folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyMoveTo, config, moveto) + (' ' + A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$folkertdev$svg_path_lowlevel$Path$LowLevel$stringifyDrawTo(config),
+				drawtos)));
+	});
+var $folkertdev$svg_path_lowlevel$Path$LowLevel$toStringWith = F2(
+	function (options, subpaths) {
+		var config = $folkertdev$svg_path_lowlevel$Path$LowLevel$accumulateOptions(options);
+		return A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$folkertdev$svg_path_lowlevel$Path$LowLevel$toStringSubPath(config),
+				subpaths));
+	});
+var $folkertdev$one_true_path_experiment$SubPath$toStringWith = F2(
+	function (options, subpath) {
+		var config = A3($elm$core$List$foldl, $folkertdev$one_true_path_experiment$SubPath$optionFolder, $folkertdev$one_true_path_experiment$SubPath$defaultConfig, options);
+		var lowLevelOptions = function () {
+			var _v0 = config.decimalPlaces;
+			if (_v0.$ === 'Nothing') {
+				return _List_Nil;
+			} else {
+				var n = _v0.a;
+				return _List_fromArray(
+					[
+						$folkertdev$svg_path_lowlevel$Path$LowLevel$decimalPlaces(n)
+					]);
+			}
+		}();
+		return A2(
+			$elm$core$Maybe$withDefault,
+			'',
+			A2(
+				$elm$core$Maybe$map,
+				A2(
+					$elm$core$Basics$composeL,
+					$folkertdev$svg_path_lowlevel$Path$LowLevel$toStringWith(lowLevelOptions),
+					$elm$core$List$singleton),
+				$folkertdev$one_true_path_experiment$SubPath$toLowLevel(
+					(config.mergeAdjacent ? $folkertdev$one_true_path_experiment$SubPath$compress : $elm$core$Basics$identity)(subpath))));
+	});
+var $folkertdev$one_true_path_experiment$SubPath$toString = function (subpath) {
+	return A2($folkertdev$one_true_path_experiment$SubPath$toStringWith, _List_Nil, subpath);
+};
+var $folkertdev$one_true_path_experiment$Path$toString = A2(
+	$elm$core$Basics$composeL,
+	$elm$core$String$join(' '),
+	$elm$core$List$map($folkertdev$one_true_path_experiment$SubPath$toString));
+var $folkertdev$one_true_path_experiment$Path$element = F2(
+	function (path, attributes) {
+		return A2(
+			$elm$svg$Svg$path,
+			A2(
+				$elm$core$List$cons,
+				$elm$svg$Svg$Attributes$d(
+					$folkertdev$one_true_path_experiment$Path$toString(path)),
+				attributes),
+			_List_Nil);
+	});
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm_community$typed_svg$TypedSvg$Core$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $elm$core$String$concat = function (strings) {
+	return A2($elm$core$String$join, '', strings);
+};
+var $avh4$elm_color$Color$toCssString = function (_v0) {
+	var r = _v0.a;
+	var g = _v0.b;
+	var b = _v0.c;
+	var a = _v0.d;
+	var roundTo = function (x) {
+		return $elm$core$Basics$round(x * 1000) / 1000;
+	};
+	var pct = function (x) {
+		return $elm$core$Basics$round(x * 10000) / 100;
+	};
+	return $elm$core$String$concat(
+		_List_fromArray(
+			[
+				'rgba(',
+				$elm$core$String$fromFloat(
+				pct(r)),
+				'%,',
+				$elm$core$String$fromFloat(
+				pct(g)),
+				'%,',
+				$elm$core$String$fromFloat(
+				pct(b)),
+				'%,',
+				$elm$core$String$fromFloat(
+				roundTo(a)),
+				')'
+			]));
+};
+var $elm_community$typed_svg$TypedSvg$TypesToStrings$paintToString = function (paint) {
+	switch (paint.$) {
+		case 'Paint':
+			var color = paint.a;
+			return $avh4$elm_color$Color$toCssString(color);
+		case 'CSSVariable':
+			var string = paint.a;
+			return $elm$core$String$concat(
+				_List_fromArray(
+					['var(' + (string + ')')]));
+		case 'Reference':
+			var string = paint.a;
+			return $elm$core$String$concat(
+				_List_fromArray(
+					['url(#', string, ')']));
+		case 'ContextFill':
+			return 'context-fill';
+		case 'ContextStroke':
+			return 'context-stroke';
+		default:
+			return 'none';
+	}
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$fill = A2(
+	$elm$core$Basics$composeL,
+	$elm_community$typed_svg$TypedSvg$Core$attribute('fill'),
+	$elm_community$typed_svg$TypedSvg$TypesToStrings$paintToString);
+var $elm_community$typed_svg$TypedSvg$Attributes$fontFamily = function (families) {
+	if (!families.b) {
+		return A2($elm_community$typed_svg$TypedSvg$Core$attribute, 'font-family', 'inherit');
+	} else {
+		return A2(
+			$elm_community$typed_svg$TypedSvg$Core$attribute,
+			'font-family',
+			A2($elm$core$String$join, ', ', families));
+	}
+};
+var $elm_community$typed_svg$TypedSvg$TypesToStrings$lengthToString = function (length) {
+	switch (length.$) {
+		case 'Cm':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'cm';
+		case 'Em':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'em';
+		case 'Ex':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'ex';
+		case 'In':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'in';
+		case 'Mm':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'mm';
+		case 'Num':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x);
+		case 'Pc':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'pc';
+		case 'Percent':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + '%';
+		case 'Pt':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'pt';
+		case 'Px':
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'px';
+		default:
+			var x = length.a;
+			return $elm$core$String$fromFloat(x) + 'rem';
+	}
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$fontSize = function (length) {
+	return A2(
+		$elm_community$typed_svg$TypedSvg$Core$attribute,
+		'font-size',
+		$elm_community$typed_svg$TypedSvg$TypesToStrings$lengthToString(length));
+};
+var $elm$core$Basics$clamp = F3(
+	function (low, high, number) {
+		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
+	});
+var $elm_community$typed_svg$TypedSvg$TypesToStrings$fontWeightToString = function (fontWeight) {
+	var fontWeightClamped = function (weight) {
+		return A3($elm$core$Basics$clamp, 100, 900, (((weight + 50) / 100) | 0) * 100);
+	};
+	switch (fontWeight.$) {
+		case 'FontWeightNormal':
+			return 'normal';
+		case 'FontWeightBold':
+			return 'bold';
+		case 'FontWeightBolder':
+			return 'bolder';
+		case 'FontWeightLighter':
+			return 'lighter';
+		case 'FontWeightInherit':
+			return 'inherit';
+		default:
+			var weight = fontWeight.a;
+			return $elm$core$String$fromInt(
+				fontWeightClamped(weight));
+	}
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$fontWeight = function (fWeight) {
+	return A2(
+		$elm_community$typed_svg$TypedSvg$Core$attribute,
+		'font-weight',
+		$elm_community$typed_svg$TypedSvg$TypesToStrings$fontWeightToString(fWeight));
+};
+var $elm$virtual_dom$VirtualDom$nodeNS = F2(
+	function (namespace, tag) {
+		return A2(
+			_VirtualDom_nodeNS,
+			namespace,
+			_VirtualDom_noScript(tag));
+	});
+var $elm_community$typed_svg$TypedSvg$Core$node = $elm$virtual_dom$VirtualDom$nodeNS('http://www.w3.org/2000/svg');
+var $elm_community$typed_svg$TypedSvg$g = $elm_community$typed_svg$TypedSvg$Core$node('g');
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
+var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Array$getHelp = F3(
+	function (shift, index, tree) {
+		getHelp:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (index >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var subTree = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$index = index,
+					$temp$tree = subTree;
+				shift = $temp$shift;
+				index = $temp$index;
+				tree = $temp$tree;
+				continue getHelp;
+			} else {
+				var values = _v0.a;
+				return A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, values);
+			}
+		}
+	});
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$get = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? $elm$core$Maybe$Nothing : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? $elm$core$Maybe$Just(
+			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
+			A3($elm$core$Array$getHelp, startShift, index, tree)));
+	});
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $elm_community$typed_svg$TypedSvg$Types$Px = function (a) {
+	return {$: 'Px', a: a};
+};
+var $elm_community$typed_svg$TypedSvg$Types$px = $elm_community$typed_svg$TypedSvg$Types$Px;
+var $elm_community$typed_svg$TypedSvg$Attributes$stroke = A2(
+	$elm$core$Basics$composeL,
+	$elm_community$typed_svg$TypedSvg$Core$attribute('stroke'),
+	$elm_community$typed_svg$TypedSvg$TypesToStrings$paintToString);
+var $elm_community$typed_svg$TypedSvg$Core$text = $elm$virtual_dom$VirtualDom$text;
+var $elm_community$typed_svg$TypedSvg$text_ = $elm_community$typed_svg$TypedSvg$Core$node('text');
+var $elm_community$typed_svg$TypedSvg$TypesToStrings$transformToString = function (xform) {
+	var tr = F2(
+		function (name, args) {
+			return $elm$core$String$concat(
+				_List_fromArray(
+					[
+						name,
+						'(',
+						A2(
+						$elm$core$String$join,
+						' ',
+						A2($elm$core$List$map, $elm$core$String$fromFloat, args)),
+						')'
+					]));
+		});
+	switch (xform.$) {
+		case 'Matrix':
+			var a = xform.a;
+			var b = xform.b;
+			var c = xform.c;
+			var d = xform.d;
+			var e = xform.e;
+			var f = xform.f;
+			return A2(
+				tr,
+				'matrix',
+				_List_fromArray(
+					[a, b, c, d, e, f]));
+		case 'Rotate':
+			var a = xform.a;
+			var x = xform.b;
+			var y = xform.c;
+			return A2(
+				tr,
+				'rotate',
+				_List_fromArray(
+					[a, x, y]));
+		case 'Scale':
+			var x = xform.a;
+			var y = xform.b;
+			return A2(
+				tr,
+				'scale',
+				_List_fromArray(
+					[x, y]));
+		case 'SkewX':
+			var x = xform.a;
+			return A2(
+				tr,
+				'skewX',
+				_List_fromArray(
+					[x]));
+		case 'SkewY':
+			var y = xform.a;
+			return A2(
+				tr,
+				'skewY',
+				_List_fromArray(
+					[y]));
+		default:
+			var x = xform.a;
+			var y = xform.b;
+			return A2(
+				tr,
+				'translate',
+				_List_fromArray(
+					[x, y]));
+	}
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$transform = function (transforms) {
+	return A2(
+		$elm_community$typed_svg$TypedSvg$Core$attribute,
+		'transform',
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2($elm$core$List$map, $elm_community$typed_svg$TypedSvg$TypesToStrings$transformToString, transforms)));
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$x = function (length) {
+	return A2(
+		$elm_community$typed_svg$TypedSvg$Core$attribute,
+		'x',
+		$elm_community$typed_svg$TypedSvg$TypesToStrings$lengthToString(length));
+};
+var $elm_community$typed_svg$TypedSvg$Attributes$y = function (length) {
+	return A2(
+		$elm_community$typed_svg$TypedSvg$Core$attribute,
+		'y',
+		$elm_community$typed_svg$TypedSvg$TypesToStrings$lengthToString(length));
+};
+var $author$project$Centroid$annular = F3(
+	function (arcs, labels, rad) {
+		var zip = $elm$core$List$map2($elm$core$Tuple$pair);
+		var makeSlice = F2(
+			function (index, datum) {
+				return A2(
+					$folkertdev$one_true_path_experiment$Path$element,
+					$gampleman$elm_visualization$Shape$arc(
+						_Utils_update(
+							datum,
+							{innerRadius: rad - 60})),
+					_List_fromArray(
+						[
+							$elm_community$typed_svg$TypedSvg$Attributes$fill(
+							$elm_community$typed_svg$TypedSvg$Types$Paint(
+								A2(
+									$elm$core$Maybe$withDefault,
+									$avh4$elm_color$Color$black,
+									A2($elm$core$Array$get, index, $author$project$Centroid$colors)))),
+							$elm_community$typed_svg$TypedSvg$Attributes$stroke(
+							$elm_community$typed_svg$TypedSvg$Types$Paint($avh4$elm_color$Color$black))
+						]));
+			});
+		var makeLabel = function (_v1) {
+			var datum = _v1.a;
+			var label = _v1.b;
+			var _v0 = $gampleman$elm_visualization$Shape$centroid(
+				_Utils_update(
+					datum,
+					{innerRadius: rad - 60}));
+			var xloc = _v0.a;
+			var yloc = _v0.b;
+			return A2(
+				$elm_community$typed_svg$TypedSvg$text_,
+				_List_fromArray(
+					[
+						$elm_community$typed_svg$TypedSvg$Attributes$x(
+						$elm_community$typed_svg$TypedSvg$Types$px(xloc)),
+						$elm_community$typed_svg$TypedSvg$Attributes$y(
+						$elm_community$typed_svg$TypedSvg$Types$px(yloc)),
+						$elm_community$typed_svg$TypedSvg$Attributes$fontFamily(
+						_List_fromArray(
+							['Helvetica', 'sans-serif'])),
+						$elm_community$typed_svg$TypedSvg$Attributes$fontSize(
+						$elm_community$typed_svg$TypedSvg$Types$px(10)),
+						$elm_community$typed_svg$TypedSvg$Attributes$fontWeight($elm_community$typed_svg$TypedSvg$Types$FontWeightBold)
+					]),
+				_List_fromArray(
+					[
+						$elm_community$typed_svg$TypedSvg$Core$text(label)
+					]));
+		};
+		return A2(
+			$elm_community$typed_svg$TypedSvg$g,
+			_List_fromArray(
+				[
+					$elm_community$typed_svg$TypedSvg$Attributes$transform(
+					_List_fromArray(
+						[
+							A2($elm_community$typed_svg$TypedSvg$Types$Translate, (3 * rad) + 20, rad)
+						]))
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm_community$typed_svg$TypedSvg$g,
+					_List_Nil,
+					A2($elm$core$List$indexedMap, makeSlice, arcs)),
+					A2(
+					$elm_community$typed_svg$TypedSvg$g,
+					_List_Nil,
+					A2(
+						$elm$core$List$map,
+						makeLabel,
+						A2(zip, arcs, labels)))
+				]));
+	});
+var $gampleman$elm_visualization$Shape$defaultPieConfig = {cornerRadius: 0, endAngle: 2 * $elm$core$Basics$pi, innerRadius: 0, outerRadius: 100, padAngle: 0, padRadius: 0, sortingFn: $elm$core$Basics$compare, startAngle: 0, valueFn: $elm$core$Basics$identity};
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $elm$core$List$sortWith = _List_sortWith;
+var $elm$core$Dict$values = function (dict) {
+	return A3(
+		$elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2($elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
+var $gampleman$elm_visualization$Shape$Pie$pie = F2(
+	function (settings, data) {
+		var unsafeGet = F2(
+			function (index, array) {
+				unsafeGet:
+				while (true) {
+					var _v0 = A2($elm$core$Array$get, index, array);
+					if (_v0.$ === 'Just') {
+						var v = _v0.a;
+						return v;
+					} else {
+						var $temp$index = index,
+							$temp$array = array;
+						index = $temp$index;
+						array = $temp$array;
+						continue unsafeGet;
+					}
+				}
+			});
+		var summer = F2(
+			function (a, b) {
+				var v = settings.valueFn(a);
+				return (v > 0) ? (v + b) : b;
+			});
+		var sum = A3($elm$core$List$foldr, summer, 0, data);
+		var sortedIndices = A2(
+			$elm$core$Basics$composeL,
+			A2(
+				$elm$core$Basics$composeL,
+				$elm$core$List$map($elm$core$Tuple$first),
+				$elm$core$List$sortWith(
+					F2(
+						function (_v2, _v3) {
+							var a = _v2.b;
+							var b = _v3.b;
+							return A2(settings.sortingFn, a, b);
+						}))),
+			$elm$core$List$indexedMap($elm$core$Tuple$pair));
+		var dataArray = $elm$core$Array$fromList(data);
+		var da = A2(
+			$elm$core$Basics$min,
+			2 * $elm$core$Basics$pi,
+			A2($elm$core$Basics$max, (-2) * $elm$core$Basics$pi, settings.endAngle - settings.startAngle));
+		var p = A2(
+			$elm$core$Basics$min,
+			$elm$core$Basics$abs(da) / $elm$core$List$length(data),
+			settings.padAngle);
+		var pa = p * ((da < 0) ? (-1) : 1);
+		var k = (!sum) ? 0 : ((da - ($elm$core$List$length(data) * pa)) / sum);
+		var computeValue = F2(
+			function (el, angle) {
+				var value = settings.valueFn(el);
+				return {
+					cornerRadius: settings.cornerRadius,
+					endAngle: (angle + ((value > 0) ? (value * k) : 0)) + pa,
+					innerRadius: settings.innerRadius,
+					outerRadius: settings.outerRadius,
+					padAngle: p,
+					padRadius: settings.padRadius,
+					startAngle: angle
+				};
+			});
+		var helper = F2(
+			function (index, _v1) {
+				var angle = _v1.a;
+				var result = _v1.b;
+				var r = A2(
+					computeValue,
+					A2(unsafeGet, index, dataArray),
+					angle);
+				return _Utils_Tuple2(
+					r.endAngle,
+					A3($elm$core$Dict$insert, index, r, result));
+			});
+		return $elm$core$Dict$values(
+			A3(
+				$elm$core$List$foldl,
+				helper,
+				_Utils_Tuple2(settings.startAngle, $elm$core$Dict$empty),
+				sortedIndices(data)).b);
+	});
+var $gampleman$elm_visualization$Shape$pie = $gampleman$elm_visualization$Shape$Pie$pie;
+var $author$project$Centroid$radius = F2(
+	function (width, height) {
+		return (A2($elm$core$Basics$min, width / 2, height) / 2) - 10;
+	});
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm_community$typed_svg$TypedSvg$svg = $elm_community$typed_svg$TypedSvg$Core$node('svg');
+var $elm_community$typed_svg$TypedSvg$Attributes$viewBox = F4(
+	function (minX, minY, vWidth, vHeight) {
+		return A2(
+			$elm_community$typed_svg$TypedSvg$Core$attribute,
+			'viewBox',
+			A2(
+				$elm$core$String$join,
+				' ',
+				A2(
+					$elm$core$List$map,
+					$elm$core$String$fromFloat,
+					_List_fromArray(
+						[minX, minY, vWidth, vHeight]))));
+	});
+var $author$project$Centroid$view = F3(
+	function (data, width, height) {
+		var sorted_labels = A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$first,
+			A2($elm$core$List$sortBy, $elm$core$Tuple$second, data));
+		var sorted_data = A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$second,
+			A2($elm$core$List$sortBy, $elm$core$Tuple$second, data));
+		var sort = $elm$core$Basics$compare;
+		var rad = A2($author$project$Centroid$radius, width, height);
+		var pieData = A2(
+			$gampleman$elm_visualization$Shape$pie,
+			_Utils_update(
+				$gampleman$elm_visualization$Shape$defaultPieConfig,
+				{outerRadius: rad, sortingFn: sort}),
+			sorted_data);
+		return A2(
+			$elm_community$typed_svg$TypedSvg$svg,
+			_List_fromArray(
+				[
+					A4($elm_community$typed_svg$TypedSvg$Attributes$viewBox, 0, 0, width, height)
+				]),
+			_List_fromArray(
+				[
+					A3($author$project$Centroid$annular, pieData, sorted_labels, rad)
+				]));
+	});
 var $author$project$Present$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -7575,29 +9918,57 @@ var $author$project$Present$view = function (model) {
 						} else {
 							return A2($elm$html$Html$div, _List_Nil, _List_Nil);
 						}
-					}()
+					}(),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('poll-results-container')
+							]),
+						_List_fromArray(
+							[
+								function () {
+								var _v2 = model.poll_render;
+								if (_v2.$ === 'Just') {
+									var render = _v2.a;
+									return A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('poll-results')
+											]),
+										_List_fromArray(
+											[
+												A3(
+												$author$project$Centroid$view,
+												A2(
+													$elm$core$List$map,
+													function (_v3) {
+														var f = _v3.a;
+														var s = _v3.b;
+														return _Utils_Tuple2(f, s);
+													},
+													$elm$core$Dict$toList(model.poll_results)),
+												500,
+												500)
+											]));
+								} else {
+									return A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('poll-results-container')
+											]),
+										_List_Nil);
+								}
+							}()
+							]))
 					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$id('reactions-float-bottom')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('reactions-container')
-							]),
-						_List_Nil)
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$id('poll-results')
 					]),
 				_List_fromArray(
 					[

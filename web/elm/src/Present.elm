@@ -20,6 +20,7 @@ import Json.Decode exposing (errorToString)
 import UserMessageTypes exposing (encodeVoteType)
 import Process
 import Svg.Attributes exposing (mode)
+import Centroid
 
 
 
@@ -190,6 +191,7 @@ type alias Model =
     , state : State
     , emojis : List EmojiMessage
     , poll_results : Dict String Int
+    , poll_render : Maybe PollRender
     }
 
 
@@ -219,6 +221,7 @@ init _ =
       , state = Disconnected
       , emojis = []
       , poll_results = Dict.empty
+      , poll_render = Nothing
       }
     , Cmd.none
     )
@@ -334,7 +337,7 @@ update msg model =
             _ :: [] -> (model, Cmd.none)
             -- There are still more future slides
             shown_slide :: new_slide :: _ ->
-                let model_update = { model| slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }}
+                let model_update = { model | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }}
                     update_message = sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1)) in
                     case (new_slide.data.poll, new_slide.data.poll_render) of
                         -- If there is a pole, we need to do a few things:
@@ -342,7 +345,7 @@ update msg model =
                         -- 2. Update the server with the new poll to start collecting results
                         -- 3. Starting polling the backend with the requested interval to show the results in real time
                         (Just poll, Just poll_render) -> 
-                            ( model_update
+                            ( { model_update | poll_render = Just poll_render }
                             , Cmd.batch [
                                 -- Update the slide emojis
                                   update_message
@@ -353,9 +356,9 @@ update msg model =
                             ]
                             )
                         -- If there is no poll for this slide, we only need to send the message to update
-                        -- the slide emojis
+                        -- the slide emojis and remove the poll render
                         _ ->
-                            ( model_update, update_message)
+                            ( { model_update | poll_render = Nothing }, update_message)
 
         PreviousSlide ->
             case List.head model.slides.past_slides of
@@ -458,11 +461,14 @@ view model =
                 Just slide ->
                      img [ id "slide-img", src slide.image] []
                 Nothing -> div [] []
+            , div [ id "poll-results-container" ]
+            [ 
+                case model.poll_render of
+                    (Just render) -> div [ id "poll-results" ] [ Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 ]
+                    _ -> div [ id "poll-results-container" ] []
             ]
+        ]
         , div [ id "reactions-float-bottom" ]
-            [ div [ id "reactions-container" ] []
-            ]
-        , div [ id "poll-results" ]
             [ div [ id "reactions-container" ] []
             ]
         ]

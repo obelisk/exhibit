@@ -2,9 +2,27 @@ body {
     margin: 0;
     padding: 0;
 }
-/*
-#slides-container {}
-*/
+
+#slides-container {
+    width: 100%;
+    position: relative;
+}
+
+#poll-results-container {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    top: 0;
+    left: 0;
+}
+
+#slide-img {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 #reactions-float-bottom {
     position: absolute;
     bottom: 0;
@@ -15,10 +33,6 @@ body {
 #reactions-container {
     position: relative;
     font-size: 35px;
-}
-
-#slide-img {
-    width: 100%;
 }
 
 .moving-emoji {
