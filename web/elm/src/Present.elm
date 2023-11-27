@@ -21,6 +21,7 @@ import UserMessageTypes exposing (encodeVoteType)
 import Process
 import Svg.Attributes exposing (mode)
 import Centroid
+import Html.Attributes exposing (style)
 
 
 
@@ -106,19 +107,21 @@ type alias PollRender =
     , type_ : String
     , x : Int
     , y : Int
-    , width : Int
-    , height : Int
+    , scale : Int
+    , vbx : Int
+    , vby : Int
     }
 
 pollRenderDecoder : Decode.Decoder PollRender
 pollRenderDecoder = 
-    Decode.map6 PollRender
+    Decode.map7 PollRender
         (field "refresh_interval" Decode.int)
         (field "type_" Decode.string)
         (field "x" Decode.int)
         (field "y" Decode.int)
-        (field "width" Decode.int)
-        (field "height" Decode.int)
+        (field "scale" Decode.int)
+        (field "vbx" Decode.int)
+        (field "vby" Decode.int)
 
 type alias SlideData =
     { poll : Maybe Poll
@@ -464,7 +467,14 @@ view model =
             , div [ id "poll-results-container" ]
             [ 
                 case model.poll_render of
-                    (Just render) -> div [ id "poll-results" ] [ Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 ]
+                    (Just render) ->
+                        div [ 
+                            id "poll-results"
+                        ,   style "left" (String.fromInt render.x ++ "%")
+                        ,   style "top" (String.fromInt render.y ++ "%")
+                        ,   style "width" (String.fromInt render.scale ++ "%")
+                        ]
+                        [ Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 render.vbx render.vby ]
                     _ -> div [ id "poll-results-container" ] []
             ]
         ]

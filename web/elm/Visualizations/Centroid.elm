@@ -4,9 +4,9 @@ import Array exposing (Array)
 import Color exposing (Color)
 import Path
 import Shape exposing (Arc, defaultPieConfig)
-import TypedSvg exposing (circle, g, svg, text_)
+import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (fill, stroke, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (cx, cy, r)
+import TypedSvg.Attributes.InPx exposing (r)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Paint(..), Transform(..))
 import TypedSvg.Attributes exposing (height)
@@ -92,14 +92,14 @@ annular arcs labels rad =
                 ]
                 [ text label ]
     in
-    g [ transform [ Translate (3 * rad + 20) rad ] ]
+    g [ transform [ Translate (rad) (rad) ] ]
         [ g [] <| List.indexedMap makeSlice arcs
         , g [] <| List.map makeLabel (zip arcs labels)
         ]
 
 
-view : List (String, Float) -> Float -> Float -> Svg msg
-view data width height =
+view : List (String, Float) -> Float -> Float -> Int -> Int -> Svg msg
+view data width height vbx vby =
     let
         sort = Basics.compare
         rad = radius width height
@@ -108,7 +108,9 @@ view data width height =
         pieData =
             sorted_data |> Shape.pie { defaultPieConfig | outerRadius = rad, sortingFn = sort}
     in
-    svg [ viewBox 0 0 width height ]
+    svg [
+        viewBox 0 0 (Basics.toFloat vbx) (Basics.toFloat vby)
+    ]
         [
             annular pieData sorted_labels rad
         ]

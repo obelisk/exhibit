@@ -7032,20 +7032,21 @@ var $author$project$Exhibit$pollDecoder = A4(
 		'options',
 		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'vote_type', $author$project$Exhibit$voteTypeDecoder));
-var $author$project$Present$PollRender = F6(
-	function (refresh_interval, type_, x, y, width, height) {
-		return {height: height, refresh_interval: refresh_interval, type_: type_, width: width, x: x, y: y};
+var $author$project$Present$PollRender = F7(
+	function (refresh_interval, type_, x, y, scale, vbx, vby) {
+		return {refresh_interval: refresh_interval, scale: scale, type_: type_, vbx: vbx, vby: vby, x: x, y: y};
 	});
-var $elm$json$Json$Decode$map6 = _Json_map6;
-var $author$project$Present$pollRenderDecoder = A7(
-	$elm$json$Json$Decode$map6,
+var $elm$json$Json$Decode$map7 = _Json_map7;
+var $author$project$Present$pollRenderDecoder = A8(
+	$elm$json$Json$Decode$map7,
 	$author$project$Present$PollRender,
 	A2($elm$json$Json$Decode$field, 'refresh_interval', $elm$json$Json$Decode$int),
 	A2($elm$json$Json$Decode$field, 'type_', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'x', $elm$json$Json$Decode$int),
 	A2($elm$json$Json$Decode$field, 'y', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'width', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'height', $elm$json$Json$Decode$int));
+	A2($elm$json$Json$Decode$field, 'scale', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'vbx', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'vby', $elm$json$Json$Decode$int));
 var $author$project$Present$slideDataDecoderWithPoll = A6(
 	$elm$json$Json$Decode$map5,
 	$author$project$Present$SlideData,
@@ -7528,6 +7529,8 @@ var $elm$html$Html$Attributes$src = function (url) {
 		'src',
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
@@ -9664,7 +9667,7 @@ var $author$project$Centroid$annular = F3(
 					$elm_community$typed_svg$TypedSvg$Attributes$transform(
 					_List_fromArray(
 						[
-							A2($elm_community$typed_svg$TypedSvg$Types$Translate, (3 * rad) + 20, rad)
+							A2($elm_community$typed_svg$TypedSvg$Types$Translate, rad, rad)
 						]))
 				]),
 			_List_fromArray(
@@ -9800,8 +9803,8 @@ var $elm_community$typed_svg$TypedSvg$Attributes$viewBox = F4(
 					_List_fromArray(
 						[minX, minY, vWidth, vHeight]))));
 	});
-var $author$project$Centroid$view = F3(
-	function (data, width, height) {
+var $author$project$Centroid$view = F5(
+	function (data, width, height, vbx, vby) {
 		var sorted_labels = A2(
 			$elm$core$List$map,
 			$elm$core$Tuple$first,
@@ -9822,7 +9825,7 @@ var $author$project$Centroid$view = F3(
 			$elm_community$typed_svg$TypedSvg$svg,
 			_List_fromArray(
 				[
-					A4($elm_community$typed_svg$TypedSvg$Attributes$viewBox, 0, 0, width, height)
+					A4($elm_community$typed_svg$TypedSvg$Attributes$viewBox, 0, 0, vbx, vby)
 				]),
 			_List_fromArray(
 				[
@@ -9935,11 +9938,23 @@ var $author$project$Present$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('poll-results')
+												$elm$html$Html$Attributes$id('poll-results'),
+												A2(
+												$elm$html$Html$Attributes$style,
+												'left',
+												$elm$core$String$fromInt(render.x) + '%'),
+												A2(
+												$elm$html$Html$Attributes$style,
+												'top',
+												$elm$core$String$fromInt(render.y) + '%'),
+												A2(
+												$elm$html$Html$Attributes$style,
+												'width',
+												$elm$core$String$fromInt(render.scale) + '%')
 											]),
 										_List_fromArray(
 											[
-												A3(
+												A5(
 												$author$project$Centroid$view,
 												A2(
 													$elm$core$List$map,
@@ -9950,7 +9965,9 @@ var $author$project$Present$view = function (model) {
 													},
 													$elm$core$Dict$toList(model.poll_results)),
 												500,
-												500)
+												500,
+												render.vbx,
+												render.vby)
 											]));
 								} else {
 									return A2(

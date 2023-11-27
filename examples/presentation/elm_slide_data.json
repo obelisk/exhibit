@@ -104,10 +104,11 @@
         "poll_render": {
             "refresh_interval": 3,
             "type_": "centroid",
-            "x": 30,
-            "y": 30,
-            "width": 30,
-            "height": 30
+            "x": 68,
+            "y": 2,
+            "scale": 30,
+            "vbx": 230,
+            "vby": 230
         }
     },
     {
@@ -136,10 +137,11 @@
         "poll_render": {
             "refresh_interval": 3,
             "type_": "centroid",
-            "x": 30,
-            "y": 30,
-            "width": 30,
-            "height": 30
+            "x": 68,
+            "y": 2,
+            "scale": 30,
+            "vbx": 230,
+            "vby": 230
         }
     }
 ]
