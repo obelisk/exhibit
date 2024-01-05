@@ -6,51 +6,77 @@
   <script src="/static/join.js"></script>
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <link rel="stylesheet" href="/static/join.css">
-  <!--<script>
-	// Particles were taking way too much compute. Would melt everyone's phones
-	particlesJS.load('particles-js', '/static/particlesjs-config.json', function() {
-	  console.log('Time for particles, configuration loaded.');
-	});
-  </script> -->
 </head>
 
 <body>
-	<!--<div id="particles-js">
-		<div id="app"></div>
-	</div> -->
 	<div id="app"></div>
-  <script>
-  var app = Elm.Join.init({
-    node: document.getElementById('app')
-  });
+	<script>
+    	const urlParams = new URLSearchParams(window.location.search);
+		let registrationKeyQuery = urlParams.get('key');
+		
+		// If auth JWT in query params from initial session creation, 
+		// Clear history state, stash in cookie, and send to Elm init via flags
+		if(registrationKeyQuery){
+			history.replaceState(null, '', '/');
+			document.cookie = `key=${registrationKeyQuery}; max-age=10800; path=/`;	// 3 hours
+		} else {
+			// Attempt populating key via cookie
+			registrationKeyQuery = getCookieValue('key');
+		}
+		
+		// Initialize Elm Application
+		var app = Elm.Join.init({
+			node: document.getElementById('app'),
+			flags: registrationKeyQuery
+    	});
 
-    var socket = null;
+    	var socket = null;
 
-	app.ports.socketConnect.subscribe(function(message) {
-		let location = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
-		console.log("Opening socket to " + location)
-		socket = new WebSocket(location);
+		app.ports.socketConnect.subscribe((message) => {
+			let location = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
+			console.log("Opening socket to " + location)
+			socket = new WebSocket(location);
 
-		// When a command goes to the `sendMessage` port, we pass the message
-		// along to the WebSocket.
-		app.ports.sendMessage.subscribe(function(message) {
-			console.log("Sending message: " + message);
-			socket.send(message);
+			// When a command goes to the `sendMessage` port, we pass the message
+			// along to the WebSocket.
+			app.ports.sendMessage.subscribe((message) => {
+				console.log("Sending message: " + message);
+				socket.send(message);
+			});
+	
+			// When a message comes into our WebSocket, we pass the message along
+			// to the `messageReceiver` port.
+			socket.onmessage = (event) => {
+				console.log("Message received: " + event.data);
+				app.ports.messageReceived.send(event.data);
+			};
+	
+			socket.onclose = (event) => {
+				console.log("Socket closed");
+				app.ports.socketDisconnected.send("");
+			};
 		});
 
-		// When a message comes into our WebSocket, we pass the message along
-		// to the `messageReceiver` port.
-		socket.addEventListener("message", function(event) {
-			console.log("Message received: " + event.data);
-			app.ports.messageReceived.send(event.data);
-		});
+		app.ports.closeSocket.subscribe(() => {
+			if(!socket){
+				return
+			}
+			socket.onmessage = () => {}
+			socket.onclose = () => {}
+			socket.close(1000) // Normal closure
+			socket = null
+		})
 
-		socket.addEventListener("close", (event) => {
-			console.log("Socket closed");
-			app.ports.socketDisconnected.send("");
-		});
-	});
-
-  </script>
+		function getCookieValue(cookieName) {
+			const cookies = document.cookie.split('; ');
+			for (let i = 0; i < cookies.length; i++) {
+				const cookie = cookies[i].split('=');
+				if (cookie[0] === cookieName) {
+				return cookie[1];
+				}
+			}
+			return null;
+		}
+	</script>
 </body>
 </html>

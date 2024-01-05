@@ -3,7 +3,7 @@ body {
     font-size: 14px;
     line-height: 1.42857143;
     color: #333;
-    background: #000;
+    background: #fafafa;
     margin: 0;
     padding: 0;
 }
@@ -12,14 +12,12 @@ body {
     width: 80%;
     max-width: 1200px;
     margin: 20px auto;
-    padding: 20px;
-    background: #ffffffbb;
+    padding: 20px 20px 60px 20px;
+    background: #fff;
     box-shadow: 1px 13px 13px #eee;
-    position: absolute;
-    border-radius: 25px;
-    /* Center this in the x dimentation */
-    left: 10%;
-    right: 10%;
+    border-radius: 15px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .title-group {
@@ -33,9 +31,10 @@ body {
     font-weight: 800;
 }
 
-/*
-.title-group>p {}
-*/
+.close-presentation-button {
+    float: right;
+    cursor: pointer;
+}
 
 #slide-message {
     text-align: center;

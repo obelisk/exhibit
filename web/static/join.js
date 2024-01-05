@@ -5334,14 +5334,20 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Join$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
 var $author$project$Join$Disconnected = {$: 'Disconnected'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Join$init = function (_v0) {
+var $author$project$Join$init = function (registration_key) {
+	var initialMsg = (registration_key === '') ? $elm$core$Platform$Cmd$none : A2(
+		$elm$core$Task$perform,
+		$elm$core$Basics$identity,
+		$elm$core$Task$succeed($author$project$Join$AuthenticateToPresentation));
 	return _Utils_Tuple2(
-		{error: $elm$core$Maybe$Nothing, registration_key: '', response: $elm$core$Maybe$Nothing, state: $author$project$Join$Disconnected, title: 'Please Join A Presentation'},
-		$elm$core$Platform$Cmd$none);
+		{error: $elm$core$Maybe$Nothing, registration_key: registration_key, response: $elm$core$Maybe$Nothing, state: $author$project$Join$Disconnected, title: 'Please Join A Presentation'},
+		initialMsg);
 };
+var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Join$ReceivedWebsocketMessage = function (a) {
 	return {$: 'ReceivedWebsocketMessage', a: a};
 };
@@ -5349,7 +5355,6 @@ var $author$project$Join$SocketDisconnected = function (a) {
 	return {$: 'SocketDisconnected', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Join$messageReceived = _Platform_incomingPort('messageReceived', $elm$json$Json$Decode$string);
 var $author$project$Join$socketDisconnected = _Platform_incomingPort('socketDisconnected', $elm$json$Json$Decode$string);
 var $author$project$Join$subscriptions = function (_v0) {
@@ -5376,6 +5381,7 @@ var $author$project$Join$InputView = F2(
 var $author$project$Join$JoinPresentation = function (a) {
 	return {$: 'JoinPresentation', a: a};
 };
+var $author$project$Join$Joining = {$: 'Joining'};
 var $author$project$Exhibit$MultipleBinary = function (a) {
 	return {$: 'MultipleBinary', a: a};
 };
@@ -5388,6 +5394,12 @@ var $author$project$Exhibit$SingleBinary = function (a) {
 var $author$project$Join$Viewing = function (a) {
 	return {$: 'Viewing', a: a};
 };
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Join$closeSocket = _Platform_outgoingPort(
+	'closeSocket',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -6494,13 +6506,21 @@ var $author$project$Join$update = F2(
 						$elm$core$Platform$Cmd$none);
 				case 'AuthenticateToPresentation':
 					return _Utils_eq(model.state, $author$project$Join$Disconnected) ? _Utils_Tuple2(
-						model,
+						_Utils_update(
+							model,
+							{error: $elm$core$Maybe$Nothing, state: $author$project$Join$Joining}),
 						$elm$http$Http$post(
 							{
 								body: A2($elm$http$Http$stringBody, 'application/text', model.registration_key),
 								expect: A2($elm$http$Http$expectJson, $author$project$Join$GotWebsocketAddress, $author$project$Exhibit$joinPresentationResponseDecoder),
 								url: '/join'
 							})) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				case 'LeavePresentation':
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{error: $elm$core$Maybe$Nothing, registration_key: '', state: $author$project$Join$Disconnected, title: 'Please Join A Presentation'}),
+						$author$project$Join$closeSocket(_Utils_Tuple0));
 				case 'GotWebsocketAddress':
 					var response = msg.a;
 					if (response.$ === 'Ok') {
@@ -6509,13 +6529,21 @@ var $author$project$Join$update = F2(
 							$temp$model = _Utils_update(
 							model,
 							{
+								error: $elm$core$Maybe$Nothing,
 								state: $author$project$Join$Authenticated(joinPresentationResponse)
 							});
 						msg = $temp$msg;
 						model = $temp$model;
 						continue update;
 					} else {
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									error: $elm$core$Maybe$Just('Unable to connect to presentation'),
+									state: $author$project$Join$Disconnected
+								}),
+							$elm$core$Platform$Cmd$none);
 					}
 				case 'JoinPresentation':
 					var url = msg.a;
@@ -6531,7 +6559,11 @@ var $author$project$Join$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{state: $author$project$Join$Disconnected, title: 'Disconnected'}),
+							{
+								error: $elm$core$Maybe$Just('Socket closed, you can try refreshng the page'),
+								state: $author$project$Join$Disconnected,
+								title: 'Disconnected From Server'
+							}),
 						$elm$core$Platform$Cmd$none);
 				case 'ReceivedWebsocketMessage':
 					var message = msg.a;
@@ -6758,7 +6790,6 @@ var $author$project$Join$update = F2(
 			}
 		}
 	});
-var $author$project$Join$AuthenticateToPresentation = {$: 'AuthenticateToPresentation'};
 var $author$project$Join$ChangeMultipleBinaryPollAnswer = F2(
 	function (a, b) {
 		return {$: 'ChangeMultipleBinaryPollAnswer', a: a, b: b};
@@ -6769,6 +6800,7 @@ var $author$project$Join$ChangeRegistrationKey = function (a) {
 var $author$project$Join$ChangeSingleBinaryPollAnswer = function (a) {
 	return {$: 'ChangeSingleBinaryPollAnswer', a: a};
 };
+var $author$project$Join$LeavePresentation = {$: 'LeavePresentation'};
 var $author$project$Join$SendEmoji = F2(
 	function (a, b) {
 		return {$: 'SendEmoji', a: a, b: b};
@@ -6792,6 +6824,7 @@ var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6856,6 +6889,7 @@ var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
 };
+var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
@@ -6887,7 +6921,24 @@ var $author$project$Join$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(model.title)
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(model.title)
+									])),
+								(!_Utils_eq(model.state, $author$project$Join$Disconnected)) ? A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('close-presentation-button'),
+										$elm$html$Html$Events$onClick($author$project$Join$LeavePresentation)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('x')
+									])) : $elm$html$Html$text('')
 							])),
 						function () {
 						var _v0 = model.error;
@@ -6948,158 +6999,174 @@ var $author$project$Join$view = function (model) {
 						}
 					}()
 					])),
-				A2(
-				$elm$html$Html$input,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$type_('text'),
-						$elm$html$Html$Attributes$id('registration_key'),
-						$elm$html$Html$Attributes$value(model.registration_key),
-						$elm$html$Html$Events$onInput($author$project$Join$ChangeRegistrationKey),
-						$elm$html$Html$Attributes$placeholder('Enter Registration Key...')
-					]),
-				_List_Nil),
-				A2($elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Join$AuthenticateToPresentation)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Join Presentation')
-					])),
 				function () {
 				var _v2 = model.state;
-				if (_v2.$ === 'Viewing') {
-					var inputView = _v2.a;
-					var _v3 = inputView.poll;
-					if (_v3.$ === 'Just') {
-						var poll = _v3.a;
+				switch (_v2.$) {
+					case 'Disconnected':
 						return A2(
 							$elm$html$Html$div,
+							_List_Nil,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$id('poll-container')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$id('poll-message')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(poll.name)
-										])),
-									function () {
-									var _v4 = poll.vote_type;
-									if (_v4.$ === 'SingleBinary') {
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$id('pole-options')
-												]),
-											A2(
-												$elm$core$List$map,
-												function (option) {
-													return A2(
-														$elm$html$Html$div,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('poll-option')
-															]),
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$label,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('poll-option-label')
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(option)
-																	])),
-																A2(
-																$elm$html$Html$input,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$type_('radio'),
-																		$elm$html$Html$Attributes$name('poll-options'),
-																		$elm$html$Html$Events$onClick(
-																		$author$project$Join$ChangeSingleBinaryPollAnswer(option))
-																	]),
-																_List_Nil)
-															]));
-												},
-												poll.options));
-									} else {
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$id('pole-options')
-												]),
-											A2(
-												$elm$core$List$map,
-												function (option) {
-													return A2(
-														$elm$html$Html$div,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('poll-option')
-															]),
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$label,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('poll-option-label')
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(option)
-																	])),
-																A2(
-																$elm$html$Html$input,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$type_('checkbox'),
-																		$elm$html$Html$Attributes$name('poll-options'),
-																		$elm$html$Html$Events$onCheck(
-																		$author$project$Join$ChangeMultipleBinaryPollAnswer(option))
-																	]),
-																_List_Nil)
-															]));
-												},
-												poll.options));
-									}
-								}(),
 									A2(
 									$elm$html$Html$input,
 									_List_fromArray(
 										[
-											$elm$html$Html$Attributes$type_('button'),
-											$elm$html$Html$Attributes$name('poll-options-submit'),
-											$elm$html$Html$Events$onClick(
-											$author$project$Join$SendPollAnswer(poll))
+											$elm$html$Html$Attributes$type_('text'),
+											$elm$html$Html$Attributes$id('registration_key'),
+											$elm$html$Html$Attributes$value(model.registration_key),
+											$elm$html$Html$Events$onInput($author$project$Join$ChangeRegistrationKey),
+											$elm$html$Html$Attributes$placeholder('Enter Registration Key...')
+										]),
+									_List_Nil),
+									A2($elm$html$Html$br, _List_Nil, _List_Nil),
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick($author$project$Join$AuthenticateToPresentation)
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('Vote')
+											$elm$html$Html$text('Join Presentation')
 										]))
 								]));
-					} else {
+					case 'Joining':
+						return A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Connecting...')
+								]));
+					case 'Viewing':
+						var inputView = _v2.a;
+						var _v3 = inputView.poll;
+						if (_v3.$ === 'Just') {
+							var poll = _v3.a;
+							return A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$id('poll-container')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('poll-message')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(poll.name)
+											])),
+										function () {
+										var _v4 = poll.vote_type;
+										if (_v4.$ === 'SingleBinary') {
+											return A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('pole-options')
+													]),
+												A2(
+													$elm$core$List$map,
+													function (option) {
+														return A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('poll-option')
+																]),
+															_List_fromArray(
+																[
+																	A2(
+																	$elm$html$Html$label,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$Attributes$class('poll-option-label')
+																		]),
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$text(option)
+																		])),
+																	A2(
+																	$elm$html$Html$input,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$Attributes$type_('radio'),
+																			$elm$html$Html$Attributes$name('poll-options'),
+																			$elm$html$Html$Events$onClick(
+																			$author$project$Join$ChangeSingleBinaryPollAnswer(option))
+																		]),
+																	_List_Nil)
+																]));
+													},
+													poll.options));
+										} else {
+											return A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('pole-options')
+													]),
+												A2(
+													$elm$core$List$map,
+													function (option) {
+														return A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('poll-option')
+																]),
+															_List_fromArray(
+																[
+																	A2(
+																	$elm$html$Html$label,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$Attributes$class('poll-option-label')
+																		]),
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$text(option)
+																		])),
+																	A2(
+																	$elm$html$Html$input,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$Attributes$type_('checkbox'),
+																			$elm$html$Html$Attributes$name('poll-options'),
+																			$elm$html$Html$Events$onCheck(
+																			$author$project$Join$ChangeMultipleBinaryPollAnswer(option))
+																		]),
+																	_List_Nil)
+																]));
+													},
+													poll.options));
+										}
+									}(),
+										A2(
+										$elm$html$Html$input,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$type_('button'),
+												$elm$html$Html$Attributes$name('poll-options-submit'),
+												$elm$html$Html$Events$onClick(
+												$author$project$Join$SendPollAnswer(poll))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Vote')
+											]))
+									]));
+						} else {
+							return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+						}
+					default:
 						return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-					}
-				} else {
-					return A2($elm$html$Html$div, _List_Nil, _List_Nil);
 				}
 			}(),
 				function () {
@@ -7169,5 +7236,4 @@ var $author$project$Join$view = function (model) {
 };
 var $author$project$Join$main = $elm$browser$Browser$element(
 	{init: $author$project$Join$init, subscriptions: $author$project$Join$subscriptions, update: $author$project$Join$update, view: $author$project$Join$view});
-_Platform_export({'Join':{'init':$author$project$Join$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
+_Platform_export({'Join':{'init':$author$project$Join$main($elm$json$Json$Decode$string)(0)}});}(this));
