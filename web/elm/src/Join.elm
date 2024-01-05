@@ -1,7 +1,7 @@
 port module Join exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, input, label, text, ul, li)
+import Html exposing (..)
 import Html.Attributes exposing (class, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
@@ -15,11 +15,13 @@ import Html.Attributes exposing (name)
 import Html.Events exposing (onCheck)
 import Html exposing (br)
 import Html.Attributes exposing (placeholder)
+import Task
 
 
 
 -- Ports
 port socketConnect : String -> Cmd msg
+port closeSocket : () -> Cmd msg
 port sendMessage : String -> Cmd msg
 port messageReceived : (String -> msg) -> Sub msg
 port socketDisconnected : (String -> msg) -> Sub msg
@@ -52,9 +54,17 @@ type alias Model =
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { registration_key = "", title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, Cmd.none )
+init : String -> ( Model, Cmd Msg )
+init registration_key =
+    let
+        -- Receive parsed query params or cookie from JS port, attempt auto connect
+        initialMsg =
+            if registration_key == "" then 
+                Cmd.none
+            else 
+                Task.succeed AuthenticateToPresentation |> Task.perform identity
+    in
+    ( { registration_key = registration_key, title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, initialMsg )
 
 
 type Msg
@@ -62,6 +72,7 @@ type Msg
     -- house keeping
     = AuthenticateToPresentation
     | JoinPresentation String
+    | LeavePresentation
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | ReceivedWebsocketMessage String
@@ -88,7 +99,7 @@ update msg model =
         -- Authenticate to the presentation
         AuthenticateToPresentation ->
             if model.state == Disconnected then
-                ( model
+                ( { model | state = Joining, error = Nothing}
                 , Http.post
                     { url = "/join"
                     , body = Http.stringBody "application/text" model.registration_key
@@ -98,16 +109,19 @@ update msg model =
             else
                 ( model, Cmd.none )
 
+        LeavePresentation -> 
+            ( { model | state = Disconnected, title = "Please Join A Presentation", error = Nothing, registration_key = ""}, closeSocket ())
+
         -- Handle the authentication response from the server with the WebSocket address
         GotWebsocketAddress response ->
             case response of
                 -- We successfully authenticated to the presentation,
                 -- open the websocket via the port
                 Ok joinPresentationResponse ->
-                    update (JoinPresentation joinPresentationResponse.url) { model | state = Authenticated joinPresentationResponse }
+                    update (JoinPresentation joinPresentationResponse.url) { model | state = Authenticated joinPresentationResponse, error = Nothing }
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | state = Disconnected, error = Just "Unable to connect to presentation"}, Cmd.none )
 
         -- Handle the response from the REST API with our websocket address
         -- We need to send a message to the port even before the websocket is
@@ -118,7 +132,7 @@ update msg model =
         -- On the websocket being disconnected, we need to update the UI
         -- to tell the user this so they can decide what they want to do.
         SocketDisconnected _ ->
-            ( { model | state = Disconnected, title = "Disconnected" }, Cmd.none )
+            ( { model | state = Disconnected, title = "Disconnected From Server", error = Just "Socket closed, you can try refreshng the page" }, Cmd.none )
 
         -- Handle all message types from the websocket and route to the
         -- appropriate handler
@@ -208,7 +222,13 @@ view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ div [ class "title-group" ]
-            [ div [ class "title", id "title" ] [ text model.title ]
+            [ div [ class "title", id "title" ] 
+                [ span [] [text model.title ]
+                , if model.state /= Disconnected then
+                    span [class "close-presentation-button", onClick LeavePresentation] [text "x"]
+                else 
+                    text ""
+                ]
             , case model.error of
                 Just err -> div [] [ text err ]
                 Nothing -> div [] [] 
@@ -219,10 +239,14 @@ view model =
                     Just (Blocked response) -> div [class "warning"] [text ("Message was not sent: " ++ response)]
                     Nothing -> div [] []
             ]
-        , input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey, placeholder "Enter Registration Key..." ] []
-        , br [] []
-        , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
         , case model.state of
+            Disconnected -> 
+                div [] [ input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey, placeholder "Enter Registration Key..." ] []
+                , br [] []
+                , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
+                ]
+            Joining -> 
+                div [] [text "Connecting..."]
             Viewing inputView ->
                 case inputView.poll of
                     Just poll -> div [ id "poll-container" ]
