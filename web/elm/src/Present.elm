@@ -19,7 +19,6 @@ import ServerMessagePresenterTypes exposing (ReceivedMessage(..))
 import Json.Decode exposing (errorToString)
 import UserMessageTypes exposing (encodeVoteType)
 import Process
-import Svg.Attributes exposing (mode)
 import Centroid
 import Html.Attributes exposing (style)
 

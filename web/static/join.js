@@ -6301,6 +6301,9 @@ var $elm$http$Http$post = function (r) {
 var $author$project$ServerMessageTypes$DisconnectMessage = function (a) {
 	return {$: 'DisconnectMessage', a: a};
 };
+var $author$project$ServerMessageTypes$Error = function (a) {
+	return {$: 'Error', a: a};
+};
 var $author$project$ServerMessageTypes$InitialPresentationDataMessage = function (a) {
 	return {$: 'InitialPresentationDataMessage', a: a};
 };
@@ -6468,7 +6471,11 @@ var $author$project$ServerMessageTypes$receivedWebsocketMessageDecorder = $elm$j
 			$author$project$ServerMessageTypes$simpleMessageDecoder('Disconnect')),
 			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$RatelimiterResponseMessage, $author$project$ServerMessageTypes$ratelimiterResponseMessageDecoder),
 			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$NewPollMessage, $author$project$ServerMessageTypes$newPollMessageDecoder),
-			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$Success, $author$project$ServerMessageTypes$successMessageDecoder)
+			A2($elm$json$Json$Decode$map, $author$project$ServerMessageTypes$Success, $author$project$ServerMessageTypes$successMessageDecoder),
+			A2(
+			$elm$json$Json$Decode$map,
+			$author$project$ServerMessageTypes$Error,
+			$author$project$ServerMessageTypes$simpleMessageDecoder('Error'))
 		]));
 var $author$project$Join$sendMessage = _Platform_outgoingPort('sendMessage', $elm$json$Json$Encode$string);
 var $author$project$Join$socketConnect = _Platform_outgoingPort('socketConnect', $elm$json$Json$Encode$string);
@@ -6581,7 +6588,7 @@ var $author$project$Join$update = F2(
 								} else {
 									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 								}
-							default:
+							case 'Success':
 								var success_type = _v2.a.a;
 								var _v5 = model.state;
 								if (_v5.$ === 'Viewing') {
@@ -6599,6 +6606,15 @@ var $author$project$Join$update = F2(
 								} else {
 									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 								}
+							default:
+								var err = _v2.a.a;
+								return _Utils_Tuple2(
+									_Utils_update(
+										model,
+										{
+											error: $elm$core$Maybe$Just(err)
+										}),
+									$elm$core$Platform$Cmd$none);
 						}
 					} else {
 						var err = _v2.a;

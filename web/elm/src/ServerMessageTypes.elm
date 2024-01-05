@@ -21,6 +21,7 @@ type ReceivedMessage
     | RatelimiterResponseMessage RatelimiterResponse
     | NewPollMessage Poll
     | Success SuccessType
+    | Error String
 
 
 
@@ -57,6 +58,7 @@ receivedWebsocketMessageDecorder =
         , Json.Decode.map RatelimiterResponseMessage ratelimiterResponseMessageDecoder
         , Json.Decode.map NewPollMessage newPollMessageDecoder
         , Json.Decode.map Success successMessageDecoder
+        , Json.Decode.map Error (simpleMessageDecoder "Error")
         ]
 
 

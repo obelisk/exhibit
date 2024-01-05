@@ -146,7 +146,8 @@ update msg model =
                           -- Close the poll view
                           Viewing inputView -> ({model | state = (Viewing {inputView | poll = Nothing})}, Cmd.none)
                           _ -> (model, Cmd.none)
-
+                Ok(Error err) ->
+                    ({model | error = Just err}, Cmd.none)
                 Err err ->
                     ( { model | error = Just (Json.Decode.errorToString err) }, Cmd.none )
 
