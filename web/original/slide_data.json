@@ -68,7 +68,7 @@
     },
     {
         "_counter": 8,
-        "message": "To This",
+        "message": "To This (and single vote poll)!",
         "emojis": [
             "😎",
             "🤯",
@@ -80,11 +80,39 @@
             "📸",
             "📱",
             "👏"
-        ]
+        ],
+        "poll": {
+            "name": "What's Your Favorite Emoji?",
+            "options": [
+                "😎",
+                "🤯",
+                "🙏",
+                "🛠️",
+                "💩",
+                "🎉",
+                "📣",
+                "📸",
+                "📱",
+                "👏"
+            ],
+            "vote_type": {
+                "SingleBinary": {
+                    "choice": ""
+                }
+            }
+        },
+        "poll_render": {
+            "refresh_interval": 1,
+            "type": "pie",
+            "x": 30,
+            "y": 30,
+            "width": 30,
+            "height": 30
+        }
     },
     {
         "_counter": 9,
-        "message": "Polls!",
+        "message": "Multichoice Polls!",
         "emojis": [
             "📊",
             "📈",
@@ -92,7 +120,7 @@
             "💹"
         ],
         "poll": {
-            "name": "What's Your Favorite Emoji?",
+            "name": "Which Emojis's do you like?",
             "options": [
                 "📊",
                 "📈",
@@ -100,8 +128,8 @@
                 "💹"
             ],
             "vote_type": {
-                "SingleBinary": {
-                    "choice": ""
+                "MultipleBinary": {
+                    "choices": {}
                 }
             }
         },

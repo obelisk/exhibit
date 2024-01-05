@@ -82,7 +82,11 @@ impl Ratelimiter {
         self.limiters.remove(name);
     }
 
-    pub fn check_allowed(&self, client: Client<OutgoingUserMessage>, message: &IncomingUserMessage) -> RatelimiterResponse {
+    pub fn check_allowed(
+        &self,
+        client: Client<OutgoingUserMessage>,
+        message: &IncomingUserMessage,
+    ) -> RatelimiterResponse {
         // TODO @obelisk: I don't like this unwrap but I don't really know what to do about it
         // I feel like I just have to hope the system never fails to give me the time?
         // Perhaps it's better just to stop this limiter in that event
@@ -95,7 +99,7 @@ impl Ratelimiter {
 
         let last_message_time = self
             .global_data
-            .get(&format!("lmt-{}", client.identity))
+            .get_mut(&format!("lmt-{}", client.identity))
             .map(|x| x.to_owned())
             .unwrap_or(0);
 

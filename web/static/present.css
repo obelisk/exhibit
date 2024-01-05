@@ -1,0 +1,75 @@
+html {
+    width: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+}
+
+#slides-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#poll-results-container {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+#poll-results {
+    position: absolute;
+    width: 100%;
+}
+
+#slide-img {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#reactions-float-bottom {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+}
+
+#reactions-container {
+    position: relative;
+    font-size: 35px;
+}
+
+.moving-emoji {
+    position: absolute;
+    left: 1%;
+    animation: moveEmoji 8s ease-in-out forwards;
+}
+
+@keyframes moveEmoji {
+    0% {
+        left: 1%;
+    }
+
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        left: 80%;
+        opacity: 0;
+    }
+}

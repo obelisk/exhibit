@@ -1,9 +1,6 @@
 use dashmap::DashMap;
 use exhibit::authentication::join_presentation;
-use exhibit::{
-    authentication::new_presentation, config, handler,
-    Presentations,
-};
+use exhibit::{authentication::new_presentation, config, handler, Presentations};
 
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -58,15 +55,23 @@ async fn main() {
     let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
     let new_spa = warp::path("new").and(warp::fs::file("web/new.html"));
 
+    // JS and CSS
+    let statics = warp::path("static").and(warp::fs::dir("web/static"));
+
     let all_routes = health_route
         .or(new_presentation)
         .or(join_route)
         .or(client_ws_route)
         .or(join_spa)
         .or(presenter_spa)
-        .or(new_spa);
+        .or(new_spa)
+        .or(statics);
 
-    let service_address = SocketAddr::from_str(&format!("{}:{}",configuration.service_address, configuration.service_port)).unwrap();
+    let service_address = SocketAddr::from_str(&format!(
+        "{}:{}",
+        configuration.service_address, configuration.service_port
+    ))
+    .unwrap();
 
     warp::serve(all_routes).run(service_address).await
 }
