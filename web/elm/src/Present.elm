@@ -33,6 +33,9 @@ port socketConnect : String -> Cmd msg
 port sendMessage : String -> Cmd msg
 
 
+port addAnimatedEmoji : ( String, Int ) -> Cmd msg
+
+
 port messageReceived : (String -> msg) -> Sub msg
 
 
@@ -320,7 +323,8 @@ update msg model =
         ReceivedWebsocketMessage message ->
             let _ = Debug.log "Message" message in
             case Decode.decodeString receivedWebsocketMessageDecorder message of          
-                Ok (Emoji emoji_msg) -> (model, Cmd.none)
+                Ok (Emoji emoji_msg) -> 
+                    (model, addAnimatedEmoji (emoji_msg.emoji, emoji_msg.size))
                 Ok (PollResults poll_results) -> 
                     let _ = Debug.log "Poll Results" poll_results in
                     ( {model | poll_results = poll_results}, Cmd.none)
