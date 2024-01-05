@@ -6017,6 +6017,31 @@ var $author$project$Present$StartPresentation = function (a) {
 	return {$: 'StartPresentation', a: a};
 };
 var $author$project$Present$UpdatePollResults = {$: 'UpdatePollResults'};
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Present$addAnimatedEmoji = _Platform_outgoingPort(
+	'addAnimatedEmoji',
+	function ($) {
+		var a = $.a;
+		var b = $.b;
+		return A2(
+			$elm$json$Json$Encode$list,
+			$elm$core$Basics$identity,
+			_List_fromArray(
+				[
+					$elm$json$Json$Encode$string(a),
+					$elm$json$Json$Encode$int(b)
+				]));
+	});
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$core$Basics$always = F2(
 	function (a, _v0) {
@@ -6079,7 +6104,6 @@ var $author$project$Present$encodePresenterMessage = F2(
 				]));
 	});
 var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
 	if (vote_type.$ === 'SingleBinary') {
 		var choice = vote_type.a;
@@ -6123,15 +6147,6 @@ var $author$project$UserMessageTypes$encodeVoteType = function (vote_type) {
 				]));
 	}
 };
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
-	});
 var $author$project$Present$encodePollAsNewPollMessage = function (poll) {
 	return A2(
 		$elm$json$Json$Encode$encode,
@@ -6186,7 +6201,6 @@ var $author$project$Exhibit$encodePollAsRequestTotalsMessage = function (poll) {
 					$elm$json$Json$Encode$string(poll.name))
 				])));
 };
-var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Present$encodeSlideDataAsNewSlideMessage = F2(
 	function (sd, index) {
 		return A2(
@@ -7198,7 +7212,10 @@ var $author$project$Present$update = F2(
 						switch (_v6.a.$) {
 							case 'Emoji':
 								var emoji_msg = _v6.a.a;
-								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								return _Utils_Tuple2(
+									model,
+									$author$project$Present$addAnimatedEmoji(
+										_Utils_Tuple2(emoji_msg.emoji, emoji_msg.size)));
 							case 'PollResults':
 								var poll_results = _v6.a.a;
 								var _v7 = A2($elm$core$Debug$log, 'Poll Results', poll_results);

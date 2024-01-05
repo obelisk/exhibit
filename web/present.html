@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <title>Exhibit v0.2.4</title>
-  <script src="/static/Present.js"></script>
+  <script src="/static/present.js"></script>
   <link rel="stylesheet" href="/static/present.css">
 </head>
 
 <body>
   <div id="app"></div>
   <script>
-  var app = Elm.Present.init({
-    node: document.getElementById('app')
-  });
+    var app = Elm.Present.init({
+		node: document.getElementById('app')
+    });
 
     var socket = null;
 
-	app.ports.socketConnect.subscribe(function(message) {
+	app.ports.socketConnect.subscribe((message) => {
 		let location = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
 		console.log("Opening socket to " + location)
 		socket = new WebSocket(location);
@@ -40,6 +40,35 @@
 			app.ports.socketDisconnected.send("");
 		});
 	});
+
+	// Handle emoji element DOM creation and animation in vanilla JS as the Elm virtual DOM gets quite intricate 
+	// Preserve websocket -> Elm -> port round trip in case the Elm application wants to do additional work with
+	// receieved emojis
+	app.ports.addAnimatedEmoji.subscribe((message) => {
+		let emoji = message[0]
+		let size = message[1]
+
+		// Create a new DOM element to work with
+		var reaction = document.createElement('span');
+		reaction.innerText = emoji;
+		if (size == 2) {
+			reaction.style = "font-size: 75px";
+		} else if (size == 1) {
+			reaction.style = "font-size: 50px";
+		} else {
+			reaction.style = "font-size: 35px";
+		}
+
+		// Set class and initial transform style
+		reaction.className = "moving-emoji";
+		let yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
+		reaction.style.transform = `translateY(${yOffset}px)`
+		// Just delete the element from the DOM after 10 seconds
+		setTimeout(() => { reaction.remove() }, 10000)
+		
+		// Add element to DOM
+		document.getElementById('reactions-container').appendChild(reaction);
+	})
 
   </script>
 </body>

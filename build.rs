@@ -28,12 +28,13 @@ fn main() {
     file.write(result.as_bytes()).unwrap();
 
     for file in ELM_FILES {
+        let lowercase_file = file.to_lowercase();
         if let Err(e) = Command::new("elm")
             .current_dir(Path::new("web/elm"))
             .arg("make")
             .arg(format!("src/{file}.elm"))
             .arg("--output")
-            .arg(format!("../static/{file}.js"))
+            .arg(format!("../static/{lowercase_file}.js"))
             //.arg("--optimize")
             .output()
         {
