@@ -1,9 +1,8 @@
-module ServerMessageTypes exposing (..)
+module Exhibit.ServerMessageTypes exposing (..)
 
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder, andThen, fail, field, map2, string, succeed)
-import Exhibit exposing (nestWebsocketMessageDecoder)
-import Exhibit exposing (Poll, pollDecoder)
+import Exhibit.IO exposing (Poll, pollDecoder, nestWebsocketMessageDecoder)
 
 
 type SuccessType
@@ -49,8 +48,8 @@ type alias InitialPresentationData =
 -- WebSocket Decoders
 
 
-receivedWebsocketMessageDecorder : Decoder ReceivedMessage
-receivedWebsocketMessageDecorder =
+receivedWebsocketMessageDecoder : Decoder ReceivedMessage
+receivedWebsocketMessageDecoder =
     Json.Decode.oneOf
         [ Json.Decode.map NewSlideMessage newSlideMessageDecoder
         , Json.Decode.map InitialPresentationDataMessage initialPresentationDataMessageDecoder

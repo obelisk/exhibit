@@ -6,9 +6,9 @@ import Html.Attributes exposing (class, id, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 
-import Exhibit exposing (..)
-import UserMessageTypes exposing (..)
-import ServerMessageTypes exposing (..)
+import Exhibit.IO exposing (joinPresentationResponseDecoder, JoinPresentationResponse, Poll, VoteType(..))
+import Exhibit.UserMessageTypes exposing (encodeEmojiReaction, encodePollResponse)
+import Exhibit.ServerMessageTypes exposing (InitialPresentationData, SlideSettings, RatelimiterResponse, ReceivedMessage(..), receivedWebsocketMessageDecoder, SuccessType(..), RatelimiterResponse(..))
 import Json.Decode
 import Dict
 import Html.Attributes exposing (name)
@@ -137,7 +137,7 @@ update msg model =
         -- Handle all message types from the websocket and route to the
         -- appropriate handler
         ReceivedWebsocketMessage message ->
-            case Json.Decode.decodeString receivedWebsocketMessageDecorder message of
+            case Json.Decode.decodeString receivedWebsocketMessageDecoder message of
                 Ok (InitialPresentationDataMessage initialPresentationData) ->
                     update (InitialPresentationDataEvent initialPresentationData) model
 

@@ -13,6 +13,7 @@ Cargo.lock
 #Added by cargo
 
 /web/elm/elm-stuff
+/webroot
 /target
 #/app
 #/bin

@@ -51,12 +51,12 @@ async fn main() {
         .and_then(handler::join_handler);
 
     // SPAs
-    let join_spa = warp::path::end().and(warp::fs::file("web/join.html"));
-    let presenter_spa = warp::path("present").and(warp::fs::file("web/present.html"));
-    let new_spa = warp::path("new").and(warp::fs::file("web/new.html"));
+    let join_spa = warp::path::end().and(warp::fs::file("webroot/join.html"));
+    let presenter_spa = warp::path("present").and(warp::fs::file("webroot/present.html"));
+    let new_spa = warp::path("new").and(warp::fs::file("webroot/new.html"));
 
     // JS and CSS
-    let statics = warp::path("static").and(warp::fs::dir("web/static"));
+    let statics = warp::path("static").and(warp::fs::dir("webroot/static"));
 
     let all_routes = health_route
         .or(new_presentation)

@@ -5,10 +5,10 @@ name: Heroku
 on:
   # run when code is pushed on the `main` branch
   push:
-    branches: ["main"]
+    branches: ["*"]
   # run when a pull request to the `main` branch
   pull_request:
-    branches: ["main"]
+    branches: ["*"]
 
 # env variables
 env:
@@ -25,7 +25,18 @@ jobs:
       # this will get the code and set the git
       - uses: actions/checkout@v3
       # run the build
-      - name: Build
+
+      - name: Set up Elm
+        run: |
+          ELM_URL="https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz"
+          curl -L -o elm-rel $ELM_URL
+          tar xzf elm-rel
+          sudo mv elm /usr/local/bin/
+
+      - name: Build Frontend
+        run: cd ./web && build.sh
+
+      - name: Build Server
         # using cargo to build
         run: cargo build --release
 

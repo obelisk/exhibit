@@ -3,7 +3,7 @@ port module Present exposing (..)
 import Browser
 import Browser.Events
 import Dict exposing (Dict)
-import Exhibit exposing (..)
+import Exhibit.IO exposing (..)
 import File exposing (..)
 import Html exposing (Html, button, div, img, input, label, text)
 import Html.Attributes exposing (class, for, id, multiple, type_, value)
@@ -13,13 +13,11 @@ import Json.Decode as Decode exposing (field, string)
 import Task exposing (..)
 import Html.Attributes exposing (src)
 import Json.Encode
-import ServerMessagePresenterTypes exposing (receivedWebsocketMessageDecorder)
-import ServerMessagePresenterTypes exposing (EmojiMessage)
-import ServerMessagePresenterTypes exposing (ReceivedMessage(..))
+import Exhibit.ServerMessagePresenterTypes exposing (receivedWebsocketMessageDecoder, ReceivedMessage(..), EmojiMessage)
 import Json.Decode exposing (errorToString)
-import UserMessageTypes exposing (encodeVoteType)
+import Exhibit.UserMessageTypes exposing (encodeVoteType)
 import Process
-import Centroid
+import Exhibit.Visualizations.Centroid
 import Html.Attributes exposing (style)
 
 
@@ -322,7 +320,7 @@ update msg model =
 
         ReceivedWebsocketMessage message ->
             let _ = Debug.log "Message" message in
-            case Decode.decodeString receivedWebsocketMessageDecorder message of          
+            case Decode.decodeString receivedWebsocketMessageDecoder message of          
                 Ok (Emoji emoji_msg) -> 
                     (model, addAnimatedEmoji (emoji_msg.emoji, emoji_msg.size))
                 Ok (PollResults poll_results) -> 
@@ -477,7 +475,7 @@ view model =
                         ,   style "top" (String.fromInt render.y ++ "%")
                         ,   style "width" (String.fromInt render.scale ++ "%")
                         ]
-                        [ Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 render.vbx render.vby ]
+                        [ Exhibit.Visualizations.Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 render.vbx render.vby ]
                     _ -> div [ id "poll-results-container" ] []
             ]
         ]

@@ -1,4 +1,4 @@
-module Centroid exposing (..)
+module Exhibit.Visualizations.Centroid exposing (..)
 
 import Array exposing (Array)
 import Color exposing (Color)
