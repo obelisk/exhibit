@@ -2,7 +2,7 @@ port module Join exposing (..)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (class, id, type_, value)
+import Html.Attributes exposing (class, id, type_, value, src)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 
@@ -41,7 +41,6 @@ type alias InputView =
 type State
     = Disconnected
     | Joining
-    | Authenticated JoinPresentationResponse
     | Viewing InputView
 
 
@@ -119,7 +118,7 @@ update msg model =
                 -- We successfully authenticated to the presentation,
                 -- open the websocket via the port
                 Ok joinPresentationResponse ->
-                    update (JoinPresentation joinPresentationResponse.url) { model | state = Authenticated joinPresentationResponse, error = Nothing }
+                    update (JoinPresentation joinPresentationResponse.url) { model | state = Joining, error = Nothing }
 
                 Err _ ->
                     ( { model | state = Disconnected, error = Just "Unable to connect to presentation"}, Cmd.none )
@@ -140,7 +139,10 @@ update msg model =
         ReceivedWebsocketMessage message ->
             case Json.Decode.decodeString receivedWebsocketMessageDecoder message of
                 Ok (InitialPresentationDataMessage initialPresentationData) ->
-                    update (InitialPresentationDataEvent initialPresentationData) model
+                    let
+                        initialInputView = InputView (SlideSettings "" []) Nothing
+                    in
+                        update (InitialPresentationDataEvent initialPresentationData) {model | state = (Viewing initialInputView)}
 
                 Ok (NewSlideMessage slideSettings) ->
                     update (NewSlideEvent slideSettings) model
@@ -236,21 +238,21 @@ view model =
                     -- Disconnected means that the magic link connection string didn't work, show a nice error message
                     div [ class "container" ] [
                         div [ class "container-type-row"] [
-                            span [class "container-type-icon"] [text "x"] 
+                            span [class "container-type-icon"] [ img [src "/static/icons/disconnected.png"] [] ] 
                             , span [class "container-type-text"] [text "Error"]
                         ]
                         , div [ class "container-title-row"] [
                             span [class "container-title-text"] [text "Unable to connect to presentation"]
                         ]
                         , div [ class "container-paragraph-row"] [
-                            span [class "container-paragraph-text"] [text "Session is either invalid or expired. Please try requesting a new invitation link or clear your browser's cookies."]
+                            span [class "container-paragraph-text"] [text "Websocket closed unexpectedly or session is invalid or expired. Try refreshing the page or request a new invitation link."]
                         ]
                     ]
                 Joining -> 
                     -- Loading/connecting state
                     div [ class "container" ] [
                         div [ class "container-type-row"] [
-                            span [class "container-type-icon"] [text "..."] 
+                            span [class "container-type-icon"] [ img [src "/static/icons/connecting.png"] []] 
                             , span [class "container-type-text"] [text "Connecting"]
                         ]
                         , div [ class "container-title-row"] [
@@ -264,7 +266,7 @@ view model =
                             Just poll -> 
                                 div [ class "container" ] [
                                     div [ class "container-type-row"] [
-                                        span [class "container-type-icon"] [text "(poll icon)"] 
+                                        span [class "container-type-icon"] [ img [src "/static/icons/poll.png"] [] ] 
                                         , span [class "container-type-text"] [text "Poll"]
                                     ]
                                     , div [ class "container-title-row"] [
@@ -293,19 +295,26 @@ view model =
                         -- Always show emoji reaction container 
                         , div [ class "container" ] [
                             div [ class "container-type-row"] [
-                                span [class "container-type-icon"] [text "->"] 
+                                span [class "container-type-icon"] [img [src "/static/icons/podium.png"] []] 
                                 , span [class "container-type-text"] [text "Live Interaction"]
                             ]
                             , div [ class "container-title-row"] [
-                                span [class "container-title-text"] [text "Tap an emoji below to send a live reaction"]
+                                span [class "container-title-text"] [
+                                    if inputView.settings.message == "" then
+                                        text "Tap an emoji below to send a live reaction"
+                                    else   
+                                        text inputView.settings.message
+                                ]
                             ]
                             , div [ class "reaction-container" ]
-                                (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
+                                (
+                                    if List.isEmpty inputView.settings.emojis then
+                                        [div [class "no-emojis-for-slide"] [text "No emojis available for current slide"]]
+                                    else 
+                                        List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis
+                                )
                         ]
                     ]
-                    
-                _ -> 
-                    div [] []
             ]
     ]
 

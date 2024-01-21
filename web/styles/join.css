@@ -41,16 +41,6 @@ body {
 
 .body-container {width: 90%;margin: 20px auto;margin-left: auto;margin-right: auto;}
 
-.title {
-    font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 35px;
-    background: linear-gradient(to bottom right, #00bdff, #c700ff);
-    color: transparent;
-    -webkit-background-clip: text;
-    letter-spacing: 1px;
-    display: inline-block;
-}
-
 .title-group {
     margin-bottom: 20px;
     padding-bottom: 5px;
@@ -60,11 +50,16 @@ body {
 
 .title-group-divider{width: 100%;height: 3px;background: linear-gradient(to right, #1ca2ff, #a71fff);/* Change the color values as needed */}
 
-.title-group>.title {
-    font-size: 32px;
-    font-weight: 800;
-}
 
+.title {
+    font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 35px;
+    background: linear-gradient(to bottom right, #00bdff, #c700ff);
+    color: transparent;
+    -webkit-background-clip: text;
+    letter-spacing: 1px;
+    display: inline-block;
+}
 .container {
     animation: moveToLeft 0.3s ease-out;
     padding: 20px 20px 20px 20px;
@@ -72,15 +67,16 @@ body {
     border-left: 1px solid #ddd;
 }
 
-.container-type-row{margin-bottom: 25px;padding-bottom: 20px;border-bottom: 1px solid #ddd;font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 18px;}
+.container-type-row{display: flex;align-items: normal;margin-bottom: 25px;padding-bottom: 0px;border-bottom: 1px solid #ddd;font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;}
 
 .container-type-icon{margin-right: 10px;}
+.container-type-icon img {width: 42px;}
+
 
 .container-type-text{
-    
 }
 
-.container-title-row{margin-bottom: 10px;font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;color: #151d36;}
+.container-title-row{margin-bottom: 20px;font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;color: #151d36;}
 
 .container-title-text{
 
@@ -120,6 +116,46 @@ body {
     transform: translateY(-4px);
 }
 
-.reaction-button::before{ 
+.no-emojis-for-slide{font-size: 20px;color: #999;}
 
-}
+
+/*
+    Mobile CSS / large font for phones
+*/
+@media (max-width: 700px) {
+    body {
+      font-size: 14px;
+    }
+      
+    .title {
+        font-size: 55px;
+    }
+
+    .title-group {
+        margin-bottom: 30px;
+    }
+
+    .title-group>.title {
+        font-size: 32px;
+        font-weight: 800;
+    }
+
+    .container-type-row{
+        font-size: 60px;
+        margin-right: 50px !important;
+        align-items: center;
+        margin-bottom: 55px;
+    }
+
+    .container-type-icon img {width: 148px;}
+
+    .container-title-row{font-size: 78px;margin-bottom: 60px;}
+    .container-paragraph-row{
+        font-size: 50px;
+        max-width: 100%;
+        line-height: 1.75;
+    }
+    .reaction-button{width: 160px;height: 80px;font-size: 60px;}
+    .no-emojis-for-slide{font-size: 40px;}
+    .reaction-container{justify-content: center;}
+  }
