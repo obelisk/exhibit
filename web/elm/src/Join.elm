@@ -54,17 +54,18 @@ type alias Model =
     }
 
 
-init : String -> ( Model, Cmd Msg )
+init : Maybe String -> ( Model, Cmd Msg )
 init registration_key =
     let
         -- Receive parsed query params or cookie from JS port, attempt auto connect
-        initialMsg =
-            if registration_key == "" then 
-                Cmd.none
-            else 
-                Task.succeed AuthenticateToPresentation |> Task.perform identity
+        (key, initialMsg) =
+            case registration_key of
+                Just keyVal ->
+                 (keyVal, Task.succeed AuthenticateToPresentation |> Task.perform identity)
+                Nothing -> 
+                    ("", Cmd.none)
     in
-    ( { registration_key = registration_key, title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, initialMsg )
+    ( { registration_key = key, title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, initialMsg )
 
 
 type Msg

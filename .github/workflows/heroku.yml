@@ -46,7 +46,7 @@ jobs:
         run: mkdir app
       # put the app in it
       - name: copy
-        run: cp ./target/release/exhibit ./app/exhibit && cp -r ./web ./app/web
+        run: cp ./target/release/exhibit ./app/exhibit && cp -r ./webroot ./app/webroot
 
       # heroku deployment
       - uses: akhileshns/heroku-deploy@v3.12.12

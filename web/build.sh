@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 # Copy styles and static html
 mkdir -p ../webroot
@@ -20,10 +19,8 @@ cd ../../
 # Read version from cargo toml and replace built html titles
 if [ -f Cargo.toml ]; then
     version=$(grep -E '^version' Cargo.toml | awk -F '"' '{print $2}')
-    echo "Version: $version"
 fi
 # sed to edit the title tag for all webroot build .html files
-for file in "webroot/*.html"; do
-    # Use 
-    sed -i '' "s/<title>.*<\/title>/<title>Exhibit v$version aaa<\/title>/" "$file"
+for file in webroot/*.html; do
+    sed -i '' "s/<title>.*<\/title>/<title>Exhibit v$version<\/title>/" "$file"
 done

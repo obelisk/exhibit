@@ -56,7 +56,7 @@ async fn main() {
     let new_spa = warp::path("new").and(warp::fs::file("webroot/new.html"));
 
     // JS and CSS
-    let statics = warp::path("static").and(warp::fs::dir("webroot/static"));
+    let statics = warp::path("static").and(warp::fs::dir("webroot/"));
 
     let all_routes = health_route
         .or(new_presentation)
