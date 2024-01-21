@@ -36,9 +36,7 @@ jobs:
 
       - name: Build Frontend
         run: |
-          cd ./web
-          ls
-          sh ./build.sh
+          cd ./web && sh ./build.sh
 
       - name: Build Server
         # using cargo to build
