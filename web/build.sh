@@ -24,7 +24,7 @@ fi
 ls webroot
 
 # sed to edit the title tag for all webroot build .html files
-if [ "$(uname)" == "Darwin" ]; then
+if [ "$(uname)" = "Darwin" ]; then
     for file in webroot/*.html; do
         sed -i '' "s/<title>.*<\/title>/<title>Exhibit v$version<\/title>/" "$file"
     done
