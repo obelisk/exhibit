@@ -20,7 +20,11 @@ cd ../../
 if [ -f Cargo.toml ]; then
     version=$(grep -E '^version' Cargo.toml | awk -F '"' '{print $2}')
 fi
+
+ls webroot
+
 # sed to edit the title tag for all webroot build .html files
 for file in webroot/*.html; do
+    echo "$file"
     sed -i '' "s/<title>.*<\/title>/<title>Exhibit v$version<\/title>/" "$file"
 done
