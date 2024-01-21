@@ -29,8 +29,10 @@ jobs:
       - name: Set up Elm
         run: |
           ELM_URL="https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz"
-          curl -L -o elm-rel.gz $ELM_URL
-          gunzip elm-rel.gz && chmod +x elm
+          curl -L -o elm.gz $ELM_URL
+          gunzip elm.gz 
+          ls
+          chmod +x elm
           sudo mv elm /usr/local/bin/
 
       - name: Build Frontend
