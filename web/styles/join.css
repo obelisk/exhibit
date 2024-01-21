@@ -1,81 +1,125 @@
+@font-face {
+    font-family: 'Lato-Bold';
+    src: url('fonts/Lato-Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Regular';
+    src: url('fonts/Lato-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Light';
+    src: url('fonts/Lato-Light.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Thin';
+    src: url('fonts/Lato-Thin.ttf') format('truetype');
+}
+
 body {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 14px;
+    font-family: 'Lato-Light', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 22px;
     line-height: 1.42857143;
-    color: #333;
-    background: #fafafa;
+    color: #364161;
+    background: #f6f8fe;
     margin: 0;
     padding: 0;
 }
 
-.container {
-    width: 80%;
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px 20px 60px 20px;
-    background: #fff;
-    box-shadow: 1px 13px 13px #eee;
-    border-radius: 15px;
-    margin-left: auto;
-    margin-right: auto;
+@keyframes moveToLeft {
+    from {
+        transform: translateX(50px);
+        opacity: 0.8;
+    }
+    to {
+        transform: translateX(0px);
+        opacity: 1;
+    }
+}
+
+.body-container {width: 90%;margin: 20px auto;margin-left: auto;margin-right: auto;}
+
+.title {
+    font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 35px;
+    background: linear-gradient(to bottom right, #00bdff, #c700ff);
+    color: transparent;
+    -webkit-background-clip: text;
+    letter-spacing: 1px;
+    display: inline-block;
 }
 
 .title-group {
     margin-bottom: 20px;
     padding-bottom: 5px;
-    border-bottom: 1px solid #ddd;
 }
+
+.title-gradient-text-container {width: 90%;margin: 20px auto 10px auto;margin-left: auto;margin-right: auto;}
+
+.title-group-divider{width: 100%;height: 3px;background: linear-gradient(to right, #1ca2ff, #a71fff);/* Change the color values as needed */}
 
 .title-group>.title {
     font-size: 32px;
     font-weight: 800;
 }
 
-.close-presentation-button {
-    float: right;
-    cursor: pointer;
+.container {
+    animation: moveToLeft 0.3s ease-out;
+    padding: 20px 20px 20px 20px;
+    margin-bottom: 80px;
+    border-left: 1px solid #ddd;
 }
 
-#slide-message {
-    text-align: center;
-    font-size: 24px;
-    font-weight: 500;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #ddd;
+.container-type-row{margin-bottom: 25px;padding-bottom: 20px;border-bottom: 1px solid #ddd;font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 18px;}
+
+.container-type-icon{margin-right: 10px;}
+
+.container-type-text{
+    
 }
 
-.reaction-help {
-    text-align: center;
-    color: #999;
-    font-size: 13px;
+.container-title-row{margin-bottom: 10px;font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;color: #151d36;}
+
+.container-title-text{
+
 }
 
-#reaction-container {
-    display: flex;
+.container-paragraph-row{font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 20px;max-width: 530px;}
+
+.container-paragraph-text{
+
+}
+
+.reaction-container {display: flex;flex-wrap: wrap;}
+
+.reaction-button{
+    width: 70px;
+    height: 52px;
+    margin: 10px;
     padding: 20px;
-    flex-wrap: wrap;
+    font-size: 36px;
+    text-align: center;
+    background: #f6f8ff;
+    position: relative;
+    display: inline-flex;
     justify-content: center;
-}
-
-#reaction-container.disabled {
-    filter: brightness(0.90);
-    background: #fff;
-    pointer-events: none;
-}
-
-.reaction-button {
-    width: 20%;
-    height: 70px;
-    padding: 20px;
-    margin: 20px;
+    align-items: center;
     cursor: pointer;
-    background: #fafafa;
-    border-radius: 6px;
-    text-align: center;
-    font-size: 55px;
+    background: linear-gradient(#f6f8ff, #f6f8ff) padding-box,
+              linear-gradient(to bottom right, #2a95ff, #962eff) border-box;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
 }
 
-.display-none {
-    display: none
+.reaction-button:hover{
+    background: linear-gradient(to bottom right, #e0f0ff, #ddbcff) padding-box,
+              linear-gradient(to bottom right, #f6f8fe, #f6f8fe) border-box;
+    transform: translateY(-4px);
+}
+
+.reaction-button::before{ 
+
 }

@@ -3,7 +3,7 @@
 # Copy styles and static html
 mkdir -p ../webroot
 
-cp ./styles/* ../webroot
+cp -r ./styles/* ../webroot
 cp ./join.html ../webroot/join.html
 cp ./new.html ../webroot/new.html
 cp ./present.html ../webroot/present.html

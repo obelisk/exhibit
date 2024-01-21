@@ -221,79 +221,100 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ div [ class "title-group" ]
-            [ div [ class "title", id "title" ] 
-                [ span [] [text model.title ]
-                , if model.state /= Disconnected then
-                    span [class "close-presentation-button", onClick LeavePresentation] [text "x"]
-                else 
-                    text ""
+    div [] [
+        -- Top title bar
+        div [ class "title-group" ]
+            [ div [ class "title-gradient-text-container" ] [
+                div [ class "title" ] 
+                    [ span [] [text model.title ] ]
                 ]
-            , case model.error of
-                Just err -> div [] [ text err ]
-                Nothing -> div [] [] 
-            , case model.response of
-                    Just (Allowed responses) -> ul [ id "ratelimit-info" ] 
-                        (List.map (\response -> li [class "ratelimiter-response"] [text ((Tuple.first response) ++ ": " ++ (Tuple.second response))] ) (Dict.toList responses))
-                    
-                    Just (Blocked response) -> div [class "warning"] [text ("Message was not sent: " ++ response)]
-                    Nothing -> div [] []
+            , div [ class "title-group-divider" ] []
             ]
-        , case model.state of
-            Disconnected -> 
-                div [] [ input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey, placeholder "Enter Registration Key..." ] []
-                , br [] []
-                , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
-                ]
-            Joining -> 
-                div [] [text "Connecting..."]
-            Viewing inputView ->
-                case inputView.poll of
-                    Just poll -> div [ id "poll-container" ]
-                        [ div [ id "poll-message" ] [ text poll.name ]
-                        , case poll.vote_type of
-                            SingleBinary _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "radio", name "poll-options", onClick (ChangeSingleBinaryPollAnswer option)] []
-                                        ]) poll.options)
-                            MultipleBinary _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "checkbox", name "poll-options", onCheck (ChangeMultipleBinaryPollAnswer option) ] []
-                                        ]) poll.options)
-                            {-SingleValue _ _ ->
-                                div [ id "pole-options" ] 
-                                        (List.map (\option -> 
-                                            div [class "poll-option"] [
-                                                label [class "poll-option-label"] [ text option ]
-                                                , input [ type_ "slider", name "poll-options", selected False ] []
-                                            ]) poll.options)
-                            MultipleValue _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "slider", name "poll-options", selected False ] []
-                                        ]) poll.options) -}
-                        , input [type_ "button", name "poll-options-submit", onClick (SendPollAnswer poll) ] [text "Vote"]
+        , div [ class "body-container" ] [
+            case model.state of
+                Disconnected -> 
+                    -- Disconnected means that the magic link connection string didn't work, show a nice error message
+                    div [ class "container" ] [
+                        div [ class "container-type-row"] [
+                            span [class "container-type-icon"] [text "x"] 
+                            , span [class "container-type-text"] [text "Error"]
                         ]
-                    _ -> div [] []
-            _ -> div [] []
-        , case model.state of
-            Viewing inputView ->
-                div [ id "full-reactions-container" ]
-                    [ div [ id "slide-message" ] []
-                    , div [ id "reaction-help" ] [ text "Send a reaction below" ]
-                    , div [ id "reaction-container" ]
-                        (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
+                        , div [ class "container-title-row"] [
+                            span [class "container-title-text"] [text "Unable to connect to presentation"]
+                        ]
+                        , div [ class "container-paragraph-row"] [
+                            span [class "container-paragraph-text"] [text "Session is either invalid or expired. Please try requesting a new invitation link or clear your browser's cookies."]
+                        ]
                     ]
+                Joining -> 
+                    -- Loading/connecting state
+                    div [ class "container" ] [
+                        div [ class "container-type-row"] [
+                            span [class "container-type-icon"] [text "..."] 
+                            , span [class "container-type-text"] [text "Connecting"]
+                        ]
+                        , div [ class "container-title-row"] [
+                            span [class "container-title-text"] [text "Connecting to Presentation, please wait"]
+                        ]
+                    ]
+                Viewing inputView ->
+                    div [] [
+                        -- If there is an active poll, render the poll container at the top
+                        case inputView.poll of
+                            Just poll -> 
+                                div [ class "container" ] [
+                                    div [ class "container-type-row"] [
+                                        span [class "container-type-icon"] [text "(poll icon)"] 
+                                        , span [class "container-type-text"] [text "Poll"]
+                                    ]
+                                    , div [ class "container-title-row"] [
+                                        span [class "container-title-text"] [text poll.name]
+                                    ]
+                                    , div [ class "container-paragraph-row"] [
+                                        case poll.vote_type of
+                                            SingleBinary _ ->
+                                                div [] 
+                                                    (List.map (\option -> 
+                                                        div [class "poll-option"] [
+                                                            label [class "poll-option-label"] [ text option ]
+                                                            , input [ type_ "radio", name "poll-options", onClick (ChangeSingleBinaryPollAnswer option)] []
+                                                        ]) poll.options)
+                                            MultipleBinary _ ->
+                                                div [] 
+                                                    (List.map (\option -> 
+                                                        div [class "poll-option"] [
+                                                            label [class "poll-option-label"] [ text option ]
+                                                            , input [ type_ "checkbox", name "poll-options", onCheck (ChangeMultipleBinaryPollAnswer option) ] []
+                                                        ]) poll.options)
+                                            , input [type_ "button", name "poll-options-submit", onClick (SendPollAnswer poll) ] [text "Vote"]
+                                    ]
+                                ]
+                            _ -> div [] []
+                        -- Always show emoji reaction container 
+                        , div [ class "container" ] [
+                            div [ class "container-type-row"] [
+                                span [class "container-type-icon"] [text "->"] 
+                                , span [class "container-type-text"] [text "Live Interaction"]
+                            ]
+                            , div [ class "container-title-row"] [
+                                span [class "container-title-text"] [text "Tap an emoji below to send a live reaction"]
+                            ]
+                            , div [ class "reaction-container" ]
+                                (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
+                        ]
+                    ]
+                    
+                _ -> 
+                    div [] []
+            ]
+    ]
 
-            _ ->
-                div [ id "full-reactions-container" ] []
-        ]
+
+    -- case model.response of
+    --             Just (Allowed responses) -> 
+    --                 ul [ id "ratelimit-info" ] 
+    --                     (List.map (\response -> li [class "ratelimiter-response"] [text ((Tuple.first response) ++ ": " ++ (Tuple.second response))] ) (Dict.toList responses))
+    --             Just (Blocked response) -> 
+    --                 div [class "warning"] [text ("Message was not sent: " ++ response)]
+    --             Nothing -> 
+    --                 div [] []
