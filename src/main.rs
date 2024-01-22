@@ -55,8 +55,9 @@ async fn main() {
     let presenter_spa = warp::path("present").and(warp::fs::file("webroot/present.html"));
     let new_spa = warp::path("new").and(warp::fs::file("webroot/new.html"));
 
-    // JS and CSS
+    // Static JS, CSS, icons, favicon
     let statics = warp::path("static").and(warp::fs::dir("webroot/"));
+    let favicon = warp::path("favicon.ico").and(warp::fs::file("webroot/icons/favicon.ico"));
 
     let all_routes = health_route
         .or(new_presentation)
@@ -65,6 +66,7 @@ async fn main() {
         .or(join_spa)
         .or(presenter_spa)
         .or(new_spa)
+        .or(favicon)
         .or(statics);
 
     let service_address = SocketAddr::from_str(&format!(
