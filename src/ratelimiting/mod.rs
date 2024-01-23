@@ -2,12 +2,27 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{Client, IncomingUserMessage, OutgoingUserMessage, User};
 
 pub mod time;
 pub mod value;
+
+#[derive(Deserialize, Clone, Debug)]
+pub enum LimiterType {
+    Time(time::TimeLimiter),
+    Value(value::ValueLimiter),
+}
+
+impl Into<Arc<dyn Limiter>> for LimiterType {
+    fn into(self) -> Arc<dyn Limiter> {
+        match self {
+            LimiterType::Time(limiter) => Arc::new(limiter),
+            LimiterType::Value(limiter) => Arc::new(limiter),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub enum RatelimiterResponse {

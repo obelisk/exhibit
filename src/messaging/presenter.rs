@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use warp::filters::ws::Message;
 
-use crate::{EmojiMessage, NewSlideMessage, OutgoingMessage, NewPollMessage};
-
+use crate::{EmojiMessage, NewPollMessage, NewSlideMessage, OutgoingMessage};
 
 #[derive(Clone, Debug, Serialize)]
 pub enum OutgoingPresenterMessage {
@@ -38,12 +37,23 @@ pub struct GetPollTotalsMessage {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AddRatelimiterMessage {
+    pub name: String,
+    pub limiter: crate::ratelimiting::LimiterType,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RemoveRatelimiterMessage {
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub enum IncomingPresenterMessage {
     NewSlide(NewSlideMessage),
     NewPoll(NewPollMessage),
     GetPollTotals(GetPollTotalsMessage),
-    //AddRatelimiter
-    //RemoveRatelimiter
+    AddRatelimiter(AddRatelimiterMessage),
+    RemoveRatelimiter(RemoveRatelimiterMessage),
 }
 
 impl std::fmt::Display for IncomingPresenterMessage {
@@ -54,12 +64,12 @@ impl std::fmt::Display for IncomingPresenterMessage {
                 "New settings for slide {}: {}",
                 slide.slide, slide.slide_settings
             ),
-            Self::NewPoll(poll) => write!(
-                f,
-                "New poll: {} with options {:?}",
-                poll.name, poll.options
-            ),
+            Self::NewPoll(poll) => {
+                write!(f, "New poll: {} with options {:?}", poll.name, poll.options)
+            }
             Self::GetPollTotals(poll) => write!(f, "Get results for poll [{}]", poll.name),
+            Self::AddRatelimiter(limiter) => write!(f, "Add ratelimiter: {:?}", limiter),
+            Self::RemoveRatelimiter(limiter) => write!(f, "Remove ratelimiter: {:?}", limiter),
         }
     }
 }
