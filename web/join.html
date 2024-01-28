@@ -6,7 +6,7 @@
   <script src="/static/join.js"></script>
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <link rel="stylesheet" href="/static/join.css">
-  <meta name="viewport" content="width=700, initial-scale=1" />
+  <meta name="viewport" content="width=1100, initial-scale=1" />
 </head>
 
 <body>
@@ -33,8 +33,6 @@
 
     	var socket = null;
 		var socketURL = "";
-		var reconnectInterval;
-		var reconnectAttemptCounter = 0
 
 		// Initial connection created on Elm's side, authed websocket URL passed back, store and create connection
 		app.ports.socketConnect.subscribe((message) => {
@@ -57,7 +55,6 @@
 			socket = new WebSocket(socketURL);
 
 			socket.onopen = (event) => {
-				reconnectAttemptCounter = 0;
 				console.log("Created websocket object", socket);
 			}
 
@@ -70,34 +67,8 @@
 
 			socket.onclose = (event) => {
 				console.log("Socket closed");
-				socket = null;
-				startReconnecting()
+				window.location.reload();	// Just refresh for now 
 			};
-		}
-
-		function startReconnecting() {
-			// Attempt to create new socket with persisted URL every 3 seconds until no longer nil
-			if (socket || !socketURL) {
-				return
-			}
-			console.log("Connection lost, attempting reconnect in 3 seconds");
-			clearInterval(reconnectInterval);
-			reconnectInterval = setInterval(() => {
-				if (socket) {
-					return
-				}
-				console.log("Attempting create websocket");
-				connectWebsocket();
-				if(reconnectAttemptCounter > 1){
-					// Dont update UI unless reconnect is taking a long time
-					app.ports.socketDisconnected.send("");
-				}
-				if(reconnectAttemptCounter > 5){
-					// Refresh the page if we are not able to reconnect with this websocket string
-					window.location.reload();
-				}
-				reconnectAttemptCounter++
-			}, 2000); 
 		}
 		
 		function getCookieValue(cookieName) {
