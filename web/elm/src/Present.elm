@@ -64,6 +64,8 @@ type
     | SlideDataRead ( String, Dict String String )
     | SlideDataError String
     | AuthenticateToPresentation
+    | AddRateLimiter
+    | RemoveRateLimiter
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | StartPresentation String
     | ReceivedWebsocketMessage String
@@ -301,6 +303,12 @@ update msg model =
             else
                 ( model, Cmd.none )
 
+        AddRateLimiter ->
+            ( model, Cmd.none )
+
+        RemoveRateLimiter ->
+            ( model, Cmd.none )
+
         GotWebsocketAddress response ->
             case response of
                 -- We successfully authenticated to the presentation,
@@ -344,17 +352,17 @@ update msg model =
                 let model_update = { model | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }}
                     update_message = sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1)) in
                     case (new_slide.data.poll, new_slide.data.poll_render) of
-                        -- If there is a pole, we need to do a few things:
+                        -- If there is a poll, we need to do a few things:
                         -- 1. Update the slide emojis as usual
                         -- 2. Update the server with the new poll to start collecting results
                         -- 3. Starting polling the backend with the requested interval to show the results in real time
                         (Just poll, Just poll_render) -> 
                             ( { model_update | poll_render = Just poll_render }
                             , Cmd.batch [
-                                -- Update the slide emojis
-                                  update_message
                                 -- Update the server with the new poll to start collecting results
-                                , sendMessage (encodePollAsNewPollMessage poll)
+                                sendMessage (encodePollAsNewPollMessage poll)
+                                -- Update the slide emojis
+                                , update_message
                                 -- Kick off the routine to start collecting results
                                 , delay poll_render.refresh_interval UpdatePollResults
                             ]
@@ -459,6 +467,8 @@ view model =
             Nothing ->
                 div [] []
         , button [ onClick AuthenticateToPresentation ] [ text "Start Presentation" ]
+        , button [ onClick AddRateLimiter ] [ text "Add Rate Limiter" ]
+        , button [ onClick RemoveRateLimiter ] [ text "Remove Riate Limiter" ]
         , input [ type_ "file", multiple True, on "change" filesDecoderMsg ] []
         , div [ id "slides-container" ] [
             case List.head model.slides.future_slides of
