@@ -1,10 +1,11 @@
 use dashmap::DashMap;
+use serde::Deserialize;
 
 use crate::{IncomingUserMessage, User};
 
 use super::{Limiter, LimiterUpdate};
 
-#[derive(Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TimeLimiter {
     interval: u64,
 }

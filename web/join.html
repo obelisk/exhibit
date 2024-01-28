@@ -6,6 +6,7 @@
   <script src="/static/join.js"></script>
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <link rel="stylesheet" href="/static/join.css">
+  <meta name="viewport" content="width=700, initial-scale=1" />
 </head>
 
 <body>
@@ -31,48 +32,80 @@
     	});
 
     	var socket = null;
+		var socketURL = "";
+		var reconnectInterval;
+		var reconnectAttemptCounter = 0
 
+		// Initial connection created on Elm's side, authed websocket URL passed back, store and create connection
 		app.ports.socketConnect.subscribe((message) => {
-			let location = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
-			console.log("Opening socket to " + location)
-			socket = new WebSocket(location);
+			socketURL = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
+			console.log("Opening socket to " + socketURL)
+			connectWebsocket()
+		});
 
-			// When a command goes to the `sendMessage` port, we pass the message
-			// along to the WebSocket.
-			app.ports.sendMessage.subscribe((message) => {
-				console.log("Sending message: " + message);
-				socket.send(message);
-			});
-	
+		// When a command comes from the `sendMessage` port, we pass the message
+		// along to the WebSocket.
+		app.ports.sendMessage.subscribe((message) => {
+			console.log("Sending message: " + message);
+			if(!socket) {
+				return
+			}
+			socket.send(message);
+		});
+
+		function connectWebsocket() { 
+			socket = new WebSocket(socketURL);
+
+			socket.onopen = (event) => {
+				reconnectAttemptCounter = 0;
+				console.log("Created websocket object", socket);
+			}
+
 			// When a message comes into our WebSocket, we pass the message along
 			// to the `messageReceiver` port.
 			socket.onmessage = (event) => {
 				console.log("Message received: " + event.data);
 				app.ports.messageReceived.send(event.data);
 			};
-	
+
 			socket.onclose = (event) => {
 				console.log("Socket closed");
-				app.ports.socketDisconnected.send("");
+				socket = null;
+				startReconnecting()
 			};
-		});
+		}
 
-		app.ports.closeSocket.subscribe(() => {
-			if(!socket){
+		function startReconnecting() {
+			// Attempt to create new socket with persisted URL every 3 seconds until no longer nil
+			if (socket || !socketURL) {
 				return
 			}
-			socket.onmessage = () => {}
-			socket.onclose = () => {}
-			socket.close(1000) // Normal closure
-			socket = null
-		})
-
+			console.log("Connection lost, attempting reconnect in 3 seconds");
+			clearInterval(reconnectInterval);
+			reconnectInterval = setInterval(() => {
+				if (socket) {
+					return
+				}
+				console.log("Attempting create websocket");
+				connectWebsocket();
+				if(reconnectAttemptCounter > 1){
+					// Dont update UI unless reconnect is taking a long time
+					app.ports.socketDisconnected.send("");
+				}
+				if(reconnectAttemptCounter > 5){
+					// Refresh the page if we are not able to reconnect with this websocket string
+					window.location.reload();
+				}
+				reconnectAttemptCounter++
+			}, 2000); 
+		}
+		
 		function getCookieValue(cookieName) {
 			const cookies = document.cookie.split('; ');
 			for (let i = 0; i < cookies.length; i++) {
 				const cookie = cookies[i].split('=');
 				if (cookie[0] === cookieName) {
-				return cookie[1];
+					return cookie[1];
 				}
 			}
 			return null;

@@ -1,4 +1,4 @@
-module Exhibit exposing (..)
+module Exhibit.IO exposing (..)
 
 import Http
 import Json.Decode exposing (Decoder, field, map, string)

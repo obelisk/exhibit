@@ -3,7 +3,6 @@ name = "exhibit"
 version = "0.2.4"
 authors = ["Mitchell Grenier <mitchell@confurious.io>"]
 edition = "2021"
-build = "build.rs"
 
 [dependencies]
 base64 = "0.21"

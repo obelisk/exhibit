@@ -2,13 +2,13 @@ port module Join exposing (..)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (class, id, type_, value)
+import Html.Attributes exposing (class, id, type_, value, src)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 
-import Exhibit exposing (..)
-import UserMessageTypes exposing (..)
-import ServerMessageTypes exposing (..)
+import Exhibit.IO exposing (joinPresentationResponseDecoder, JoinPresentationResponse, Poll, VoteType(..))
+import Exhibit.UserMessageTypes exposing (encodeEmojiReaction, encodePollResponse)
+import Exhibit.ServerMessageTypes exposing (InitialPresentationData, SlideSettings, RatelimiterResponse, ReceivedMessage(..), receivedWebsocketMessageDecoder, SuccessType(..), RatelimiterResponse(..))
 import Json.Decode
 import Dict
 import Html.Attributes exposing (name)
@@ -16,12 +16,12 @@ import Html.Events exposing (onCheck)
 import Html exposing (br)
 import Html.Attributes exposing (placeholder)
 import Task
+import Html.Attributes exposing (for)
 
 
 
 -- Ports
 port socketConnect : String -> Cmd msg
-port closeSocket : () -> Cmd msg
 port sendMessage : String -> Cmd msg
 port messageReceived : (String -> msg) -> Sub msg
 port socketDisconnected : (String -> msg) -> Sub msg
@@ -35,36 +35,42 @@ main =
 type alias InputView =
     { settings : SlideSettings
     , poll : Maybe Poll
+    , pollState : PollState
     }
 
+type PollState
+    = VoteUnsubmitted
+    | VoteAttempted
+    | VoteConfirmed
+    | VoteErrored
 
 type State
     = Disconnected
+    | Reconnecting
     | Joining
-    | Authenticated JoinPresentationResponse
     | Viewing InputView
 
 
 type alias Model =
     { registration_key : String
     , title : String
-    , error : Maybe String
     , response : Maybe RatelimiterResponse
     , state : State
     }
 
 
-init : String -> ( Model, Cmd Msg )
+init : Maybe String -> ( Model, Cmd Msg )
 init registration_key =
     let
         -- Receive parsed query params or cookie from JS port, attempt auto connect
-        initialMsg =
-            if registration_key == "" then 
-                Cmd.none
-            else 
-                Task.succeed AuthenticateToPresentation |> Task.perform identity
+        (key, initialMsg) =
+            case registration_key of
+                Just keyVal ->
+                 (keyVal, Task.succeed AuthenticateToPresentation |> Task.perform identity)
+                Nothing -> 
+                    ("", Cmd.none)
     in
-    ( { registration_key = registration_key, title = "Please Join A Presentation", error = Nothing, response = Nothing, state = Disconnected }, initialMsg )
+    ( { registration_key = key, title = "Please Join A Presentation", response = Nothing, state = Disconnected }, initialMsg )
 
 
 type Msg
@@ -72,7 +78,6 @@ type Msg
     -- house keeping
     = AuthenticateToPresentation
     | JoinPresentation String
-    | LeavePresentation
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | ReceivedWebsocketMessage String
@@ -99,7 +104,7 @@ update msg model =
         -- Authenticate to the presentation
         AuthenticateToPresentation ->
             if model.state == Disconnected then
-                ( { model | state = Joining, error = Nothing}
+                ( { model | state = Joining}
                 , Http.post
                     { url = "/join"
                     , body = Http.stringBody "application/text" model.registration_key
@@ -109,19 +114,16 @@ update msg model =
             else
                 ( model, Cmd.none )
 
-        LeavePresentation -> 
-            ( { model | state = Disconnected, title = "Please Join A Presentation", error = Nothing, registration_key = ""}, closeSocket ())
-
         -- Handle the authentication response from the server with the WebSocket address
         GotWebsocketAddress response ->
             case response of
                 -- We successfully authenticated to the presentation,
                 -- open the websocket via the port
                 Ok joinPresentationResponse ->
-                    update (JoinPresentation joinPresentationResponse.url) { model | state = Authenticated joinPresentationResponse, error = Nothing }
+                    update (JoinPresentation joinPresentationResponse.url) { model | state = Joining }
 
                 Err _ ->
-                    ( { model | state = Disconnected, error = Just "Unable to connect to presentation"}, Cmd.none )
+                    ( { model | state = Disconnected}, Cmd.none )
 
         -- Handle the response from the REST API with our websocket address
         -- We need to send a message to the port even before the websocket is
@@ -132,14 +134,17 @@ update msg model =
         -- On the websocket being disconnected, we need to update the UI
         -- to tell the user this so they can decide what they want to do.
         SocketDisconnected _ ->
-            ( { model | state = Disconnected, title = "Disconnected From Server", error = Just "Socket closed, you can try refreshng the page" }, Cmd.none )
+            ( { model | state = Reconnecting, title = "Disconnected From Server" }, Cmd.none )
 
         -- Handle all message types from the websocket and route to the
         -- appropriate handler
         ReceivedWebsocketMessage message ->
-            case Json.Decode.decodeString receivedWebsocketMessageDecorder message of
+            case Json.Decode.decodeString receivedWebsocketMessageDecoder message of
                 Ok (InitialPresentationDataMessage initialPresentationData) ->
-                    update (InitialPresentationDataEvent initialPresentationData) model
+                    let
+                        initialInputView = InputView (SlideSettings "" []) Nothing VoteUnsubmitted
+                    in
+                        update (InitialPresentationDataEvent initialPresentationData) {model | state = (Viewing initialInputView)}
 
                 Ok (NewSlideMessage slideSettings) ->
                     update (NewSlideEvent slideSettings) model
@@ -152,18 +157,25 @@ update msg model =
                 
                 Ok(NewPollMessage m) ->
                     case model.state of
-                        Viewing inputView -> ({model | state = (Viewing {inputView | poll = Just m})}, Cmd.none)
+                        Viewing inputView -> ({model | state = (Viewing {inputView | poll = Just m, pollState = VoteUnsubmitted})}, Cmd.none)
                         _ -> (model, Cmd.none)
+
                 Ok(Success success_type) ->
                   case success_type of
                       VoteRecorded -> case model.state of
-                          -- Close the poll view
+                          -- Update poll state to vote confirmed
+                          Viewing inputView -> ({model | state = (Viewing {inputView | pollState = VoteConfirmed})}, Cmd.none)
+                          _ -> (model, Cmd.none)
+
+                Ok(Error err) ->
+                    case model.state of
+                          -- Remove poll on error, likely only case is already voted (slides went backwards)
                           Viewing inputView -> ({model | state = (Viewing {inputView | poll = Nothing})}, Cmd.none)
                           _ -> (model, Cmd.none)
-                Ok(Error err) ->
-                    ({model | error = Just err}, Cmd.none)
+
                 Err err ->
-                    ( { model | error = Just (Json.Decode.errorToString err) }, Cmd.none )
+                    let _ = Debug.log "ReceivedWebsocketMessage message (Err err)" (Json.Decode.errorToString err) in
+                    ( model, Cmd.none )
 
         InitialPresentationDataEvent initialPresentationData ->
             case ( initialPresentationData.settings, { model | title = initialPresentationData.title } ) of
@@ -176,14 +188,9 @@ update msg model =
         -- If we receive this message, the Websocket must be open and working
         -- so we switch to the viewing state
         NewSlideEvent slideSettings ->
-            case model.state of
-                -- If we're already in the viewing state, don't erase the other
-                -- state data like the poll
-                Viewing inputView ->
-                    ( { model | state = Viewing { inputView | settings = slideSettings } }, Cmd.none )
+            ( { model | state = Viewing (InputView slideSettings Nothing VoteUnsubmitted) }, Cmd.none )
 
-                _ ->
-                    ( { model | state = Viewing (InputView slideSettings Nothing) }, Cmd.none )
+
         -- Handlers for changing user state like changing poll answers
         ChangeSingleBinaryPollAnswer answer ->
             case model.state of
@@ -200,12 +207,21 @@ update msg model =
                         _ -> (model, Cmd.none)
                     Nothing -> (model, Cmd.none)
                 _ -> (model, Cmd.none)
+
         -- Handlers for user submission events like reactions and poll answers
         SendEmoji emoji size ->
             (model, sendMessage (encodeEmojiReaction emoji size))
         
         SendPollAnswer poll ->
-            (model, sendMessage (encodePollResponse poll))
+            let
+                updatedModelState =
+                    case model.state of
+                        Viewing inputView -> 
+                            {model | state = Viewing {inputView | pollState = VoteAttempted}}
+                        _ -> 
+                            model
+            in
+                (updatedModelState, sendMessage (encodePollResponse poll))
             
 
 
@@ -220,79 +236,173 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ div [ class "title-group" ]
-            [ div [ class "title", id "title" ] 
-                [ span [] [text model.title ]
-                , if model.state /= Disconnected then
-                    span [class "close-presentation-button", onClick LeavePresentation] [text "x"]
-                else 
-                    text ""
+    div [] [
+        -- Top title bar
+        div [ class "title-group" ]
+            [ div [ class "title-gradient-text-container" ] [
+                div [ class "title" ] 
+                    [ span [] [text model.title ] ]
                 ]
-            , case model.error of
-                Just err -> div [] [ text err ]
-                Nothing -> div [] [] 
-            , case model.response of
-                    Just (Allowed responses) -> ul [ id "ratelimit-info" ] 
-                        (List.map (\response -> li [class "ratelimiter-response"] [text ((Tuple.first response) ++ ": " ++ (Tuple.second response))] ) (Dict.toList responses))
-                    
-                    Just (Blocked response) -> div [class "warning"] [text ("Message was not sent: " ++ response)]
-                    Nothing -> div [] []
+            , div [ class "title-group-divider" ] []
             ]
-        , case model.state of
-            Disconnected -> 
-                div [] [ input [ type_ "text", id "registration_key", value model.registration_key, onInput ChangeRegistrationKey, placeholder "Enter Registration Key..." ] []
-                , br [] []
-                , button [ onClick AuthenticateToPresentation ] [ text "Join Presentation" ]
-                ]
-            Joining -> 
-                div [] [text "Connecting..."]
-            Viewing inputView ->
-                case inputView.poll of
-                    Just poll -> div [ id "poll-container" ]
-                        [ div [ id "poll-message" ] [ text poll.name ]
-                        , case poll.vote_type of
-                            SingleBinary _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "radio", name "poll-options", onClick (ChangeSingleBinaryPollAnswer option)] []
-                                        ]) poll.options)
-                            MultipleBinary _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "checkbox", name "poll-options", onCheck (ChangeMultipleBinaryPollAnswer option) ] []
-                                        ]) poll.options)
-                            {-SingleValue _ _ ->
-                                div [ id "pole-options" ] 
-                                        (List.map (\option -> 
-                                            div [class "poll-option"] [
-                                                label [class "poll-option-label"] [ text option ]
-                                                , input [ type_ "slider", name "poll-options", selected False ] []
-                                            ]) poll.options)
-                            MultipleValue _ ->
-                                div [ id "pole-options" ] 
-                                    (List.map (\option -> 
-                                        div [class "poll-option"] [
-                                            label [class "poll-option-label"] [ text option ]
-                                            , input [ type_ "slider", name "poll-options", selected False ] []
-                                        ]) poll.options) -}
-                        , input [type_ "button", name "poll-options-submit", onClick (SendPollAnswer poll) ] [text "Vote"]
-                        ]
-                    _ -> div [] []
-            _ -> div [] []
-        , case model.state of
-            Viewing inputView ->
-                div [ id "full-reactions-container" ]
-                    [ div [ id "slide-message" ] []
-                    , div [ id "reaction-help" ] [ text "Send a reaction below" ]
-                    , div [ id "reaction-container" ]
-                        (List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis)
+        , div [ class "body-container" ] [
+            case model.state of
+                Disconnected -> 
+                    -- Disconnected means that the magic link connection string didn't work, show a nice error message
+                    viewDisconnectedState model
+                    
+                Joining -> 
+                    -- Loading/connecting state
+                    viewJoiningState model
+                    
+                Reconnecting -> 
+                    -- On websocket disconnect, show reconnecting state 
+                    viewReconnectingState model
+                    
+                Viewing inputView ->
+                    div [] [
+                        -- Render optional poll for this slide
+                        viewPoll model inputView
+                        
+                        -- Render emoji reaction container 
+                        , viewEmojiControls model inputView 
                     ]
+            ]
+    ]
 
-            _ ->
-                div [ id "full-reactions-container" ] []
+
+viewDisconnectedState : Model -> Html Msg
+viewDisconnectedState _ =
+    div [ class "container" ] [
+        div [ class "container-type-row"] [
+            span [class "container-type-icon"] [ img [src "/static/icons/disconnected.png"] [] ] 
+            , span [class "container-type-text"] [text "No presentation"]
         ]
+        , div [ class "container-title-row"] [
+            span [class "container-title-text"] [text "Unable to connect to presentation"]
+        ]
+        , div [ class "container-paragraph-row"] [
+            span [class "container-paragraph-text"] [text "Presentation invite link is either invalid or expired. Please try requesting a new /exhibit link."]
+        ]
+    ]
+
+viewJoiningState : Model -> Html Msg
+viewJoiningState _ =
+    div [ class "container" ] [
+        div [ class "container-type-row"] [
+            span [class "container-type-icon"] [ img [src "/static/icons/connecting.png"] []] 
+            , span [class "container-type-text"] [text "Connecting"]
+        ]
+        , div [ class "container-title-row"] [
+            span [class "container-title-text"] [text "Connecting to Presentation, please wait"]
+        ]
+    ]
+
+viewReconnectingState : Model -> Html Msg
+viewReconnectingState _ =
+    div [ class "container" ] [
+        div [ class "container-type-row"] [
+            span [class "container-type-icon"] [ img [src "/static/icons/connecting.png"] []] 
+            , span [class "container-type-text"] [text "Websocket Connection"]
+        ]
+        , div [ class "container-title-row"] [
+            span [class "container-title-text"] [text "Attempting to Reconnect to Websocket"]
+        ]
+        , div [ class "container-paragraph-row"] [
+            span [class "container-paragraph-text"] [text "Please wait... If the issue persists please try refreshing to page or requesting a new /exhibit link."]
+        ]
+    ]
+
+viewPoll : Model -> InputView -> Html Msg
+viewPoll model inputView =
+    case inputView.poll of
+        Just poll -> 
+            if inputView.pollState == VoteConfirmed then 
+                -- Vote submitted, poll completed, show confirmation view
+                div [ class "container" ] [
+                    div [ class "container-type-row"] [
+                        span [class "container-type-icon"] [ img [src "/static/icons/voted.png"] [] ] 
+                        , span [class "container-type-text"] [text "Vote Received"]
+                    ]
+                    , div [ class "container-title-row"] [
+                        span [class "container-title-text"] [text "Thank you for voting!"]
+                    ]
+                ]
+            else 
+                -- Show poll form and options
+                div [ class "container" ] [
+                    div [ class "container-type-row"] [
+                        span [class "container-type-icon"] [ img [src "/static/icons/poll.png"] [] ] 
+                        , span [class "container-type-text"] [text "Poll"]
+                    ]
+                    , div [ class "container-title-row"] [
+                        span [class "container-title-text"] [text poll.name]
+                    ]
+                    , case poll.vote_type of
+                        SingleBinary _ ->
+                            div [] 
+                                [ div [ class "poll-type-text"] [text "Select a single option"]
+                                , div [class "poll-options-group"] 
+                                    (List.indexedMap (\index option -> 
+                                        label [for <| "poll-option-" ++ (String.fromInt index)] [
+                                            input [ type_ "radio", name "poll-options", id <| "poll-option-" ++ (String.fromInt index), onClick (ChangeSingleBinaryPollAnswer option)] []
+                                            , div [ class "poll-item"] [text option]
+                                        ]) poll.options)
+                            ]
+
+                        MultipleBinary _ ->
+                            div []
+                                [ div [ class "poll-type-text"] [text "Select all options that apply"]
+                                ,  div [class "poll-options-group"] 
+                                (List.indexedMap (\index option -> 
+                                    label [for <| "poll-option-" ++ (String.fromInt index)] [
+                                        input [ type_ "checkbox", name "poll-options", id <| "poll-option-" ++ (String.fromInt index), onCheck (ChangeMultipleBinaryPollAnswer option) ] []
+                                        , div [ class "poll-item"] [text option] 
+                                    ]) poll.options)
+                            ]
+                        , case inputView.pollState of 
+                            VoteUnsubmitted -> 
+                                div [class "poll-submit-button", onClick (SendPollAnswer poll) ] [text "Submit Vote"]
+                            VoteAttempted -> 
+                                div [class "poll-submit-button disabled" ] [text "Sending Vote..."]
+                            VoteErrored -> 
+                                div [class "poll-submit-button disabled" ] [text "Unable to vote"]
+                            _ -> text ""
+                            
+                ]
+        _ -> 
+            div [] []
+
+
+viewEmojiControls : Model -> InputView -> Html Msg
+viewEmojiControls model inputView =
+    div [ class "container" ] [
+        div [ class "container-type-row"] [
+            span [class "container-type-icon"] [img [src "/static/icons/podium.png"] []] 
+            , span [class "container-type-text"] [text "Send an Emoji"]
+        ]
+        , div [ class "container-title-row"] [
+            span [class "container-title-text"] [
+                if inputView.settings.message == "" then
+                    text "Tap an emoji below to send a live reaction"
+                else   
+                    text inputView.settings.message
+            ]
+        ]
+        , div [ class "reaction-container" ]
+            (
+                if List.isEmpty inputView.settings.emojis then
+                    [div [class "no-emojis-for-slide"] [text "No emojis available for current slide"]]
+                else 
+                    List.map (\emoji -> div [ class "reaction-button", onClick (SendEmoji emoji 1)] [ text emoji ]) inputView.settings.emojis
+            )
+        , div [class "rate-limiting-message"] [
+            case model.response of
+                Just (Blocked response) -> 
+                    div [] [text response]
+                Just (Allowed _) -> 
+                    div [] [text "Emoji Sent!"]
+                _ -> 
+                    text ""
+        ]
+    ]

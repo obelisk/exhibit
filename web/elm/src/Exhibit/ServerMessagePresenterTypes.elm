@@ -1,6 +1,7 @@
-module ServerMessagePresenterTypes exposing (..)
+module Exhibit.ServerMessagePresenterTypes exposing (..)
+
 import Json.Decode exposing (Decoder)
-import Exhibit exposing (nestWebsocketMessageDecoder)
+import Exhibit.IO exposing (nestWebsocketMessageDecoder)
 import Dict exposing (Dict)
 
 
@@ -22,8 +23,8 @@ emojiMessageDecoder =
         (Json.Decode.field "size" Json.Decode.int)
 
 
-receivedWebsocketMessageDecorder : Decoder ReceivedMessage
-receivedWebsocketMessageDecorder =
+receivedWebsocketMessageDecoder : Decoder ReceivedMessage
+receivedWebsocketMessageDecoder =
     Json.Decode.oneOf
         [ Json.Decode.map Emoji (nestWebsocketMessageDecoder "Emoji" emojiMessageDecoder)
         , Json.Decode.map PollResults (nestWebsocketMessageDecoder "PollResults" (Json.Decode.dict Json.Decode.int))

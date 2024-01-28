@@ -3,12 +3,12 @@ name: Heroku
 
 # run workflow when the condition is met
 on:
-# run when code is pushed on the `main` branch
+  # run when code is pushed on the `main` branch
   push:
-    branches: [ "main" ]
-# run when a pull request to the `main` branch
+    branches: ["*"]
+  # run when a pull request to the `main` branch
   pull_request:
-    branches: [ "main" ]
+    branches: ["*"]
 
 # env variables
 env:
@@ -16,42 +16,54 @@ env:
 
 # jobs
 jobs:
-# job name
+  # job name
   build:
-  # os to run the job on support macOS and windows also
+    # os to run the job on support macOS and windows also
     runs-on: ubuntu-latest
-# steps for job
+    # steps for job
     steps:
-    # this will get the code and set the git
-    - uses: actions/checkout@v3
-    # run the build
-    - name: Build
-    # using cargo to build
-      run: cargo build --release
+      # this will get the code and set the git
+      - uses: actions/checkout@v3
+      # run the build
 
-    # for deployment
-    - name: make dir
-    # create a directory
-      run: mkdir app
-    # put the app in it
-    - name: copy
-      run: cp ./target/release/exhibit ./app/exhibit && cp -r ./web ./app/web
+      - name: Set up Elm
+        run: |
+          ELM_URL="https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz"
+          curl -L -o elm.gz $ELM_URL
+          gunzip elm.gz 
+          chmod +x elm
+          sudo mv elm /usr/local/bin/
 
+      - name: Build Frontend
+        run: |
+          cd ./web && sh ./build.sh
 
-    # heroku deployment
-    - uses: akhileshns/heroku-deploy@v3.12.12
-      with:
-      # key from repository secrets
-        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        # name of the Heroku app
-        heroku_app_name: "exhibit"
-        # email from which the app is uploaded
-        heroku_email: "mitchell@confurious.io"
+      - name: Build Server
+        # using cargo to build
+        run: cargo build --release
 
-        # app directory
-        appdir: "./app"
+      # for deployment
+      - name: make dir
+        # create a directory
+        run: mkdir app
+      # put the app in it
+      - name: copy
+        run: cp ./target/release/exhibit ./app/exhibit && cp -r ./webroot ./app/webroot
 
-        # start command
-        procfile: "web: ./exhibit"
-        # buildpack is like environment used to run the app
-        buildpack: "https://github.com/ph3nx/heroku-binary-buildpack.git"
+      # heroku deployment
+      - uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          # key from repository secrets
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          # name of the Heroku app
+          heroku_app_name: "exhibit"
+          # email from which the app is uploaded
+          heroku_email: "mitchell@confurious.io"
+
+          # app directory
+          appdir: "./app"
+
+          # start command
+          procfile: "web: ./exhibit"
+          # buildpack is like environment used to run the app
+          buildpack: "https://github.com/ph3nx/heroku-binary-buildpack.git"

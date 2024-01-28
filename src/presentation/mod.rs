@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 
 pub use self::poll::*;
 use crate::{
-    ratelimiting::{time::TimeLimiter, value::ValueLimiter, Ratelimiter},
+    ratelimiting::{time::TimeLimiter, Ratelimiter},
     Presenters, SlideSettings, Users,
 };
 
@@ -52,13 +52,15 @@ impl Presentation {
         authentication_key: DecodingKey,
         title: String,
     ) -> Self {
-        // Create a default 15s ratelimiter
+        // Create a default 10s ratelimiter
         let ratelimiter = Arc::new(Ratelimiter::new());
-        ratelimiter.add_ratelimit("3s".to_string(), Arc::new(TimeLimiter::new(3)));
+        ratelimiter.add_ratelimit("10s".to_string(), Arc::new(TimeLimiter::new(10)));
+
+        /*
         ratelimiter.add_ratelimit(
             "value".to_string(),
             Arc::new(ValueLimiter::new(3, 3, 3, 6, 10)),
-        );
+        ); */
 
         Self {
             id: presentation_id,

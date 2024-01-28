@@ -1,11 +1,14 @@
+use std::sync::Arc;
+
 use warp::ws::Message;
 
 mod emoji;
 mod vote;
 
 use crate::{
-    ratelimiting::RatelimiterResponse, OutgoingPresenterMessage, Users,
-    Presentation, Presenters, OutgoingUserMessage, IncomingPresenterMessage, IncomingUserMessage, Presenter, User,
+    ratelimiting::{Limiter, RatelimiterResponse},
+    IncomingPresenterMessage, IncomingUserMessage, OutgoingPresenterMessage, OutgoingUserMessage,
+    Presentation, Presenter, Presenters, User, Users,
 };
 
 pub async fn broadcast_to_presenters(message: OutgoingPresenterMessage, presenters: Presenters) {
@@ -28,7 +31,11 @@ pub async fn broadcast_to_clients(message: OutgoingUserMessage, users: Users) {
     });
 }
 
-pub async fn handle_presenter_message_types(presenter_message: IncomingPresenterMessage, presenter: Presenter, presentation: Presentation) {
+pub async fn handle_presenter_message_types(
+    presenter_message: IncomingPresenterMessage,
+    presenter: Presenter,
+    presentation: Presentation,
+) {
     info!("Got presenter message: {presenter_message}");
     match presenter_message {
         IncomingPresenterMessage::NewSlide(msg) => {
@@ -43,10 +50,17 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
         }
         IncomingPresenterMessage::NewPoll(poll) => {
             if let Err(existing_poll) = presentation.get_polls().new_poll(poll.clone()) {
-                let warn = format!("Presenter tried to create poll that already exists: {:?}", &existing_poll);
+                let warn = format!(
+                    "Presenter tried to create poll that already exists: {:?}",
+                    &existing_poll
+                );
                 warn!("{warn}");
                 presenter.send_ignore_fail(OutgoingPresenterMessage::Error(warn));
-                broadcast_to_clients(OutgoingUserMessage::NewPoll(existing_poll), presentation.users).await;
+                broadcast_to_clients(
+                    OutgoingUserMessage::NewPoll(existing_poll),
+                    presentation.users,
+                )
+                .await;
             } else {
                 broadcast_to_clients(OutgoingUserMessage::NewPoll(poll), presentation.users).await;
             }
@@ -56,22 +70,38 @@ pub async fn handle_presenter_message_types(presenter_message: IncomingPresenter
             if let Some(results) = results {
                 presenter.send_ignore_fail(OutgoingPresenterMessage::PollResults(results));
             } else {
-                let warn = format!("Presenter requested poll results for a poll that does not exist: {}", poll.name);
+                let warn = format!(
+                    "Presenter requested poll results for a poll that does not exist: {}",
+                    poll.name
+                );
                 warn!("{warn}");
                 presenter.send_ignore_fail(OutgoingPresenterMessage::Error(warn));
             }
-        
-        },
+        }
+        IncomingPresenterMessage::AddRatelimiter(msg) => {
+            let limiter: Arc<dyn Limiter> = msg.limiter.into();
+            presentation.ratelimiter.add_ratelimit(msg.name, limiter);
+        }
+        IncomingPresenterMessage::RemoveRatelimiter(msg) => {
+            presentation.ratelimiter.remove_ratelimit(&msg.name);
+        }
     }
 }
 
-pub async fn handle_user_message_types(user_message: IncomingUserMessage, user: User, presentation: Presentation) {
+pub async fn handle_user_message_types(
+    user_message: IncomingUserMessage,
+    user: User,
+    presentation: Presentation,
+) {
     // Run the ratelimiter check
-    let ratelimiter_response = presentation.ratelimiter.check_allowed(user.clone(), &user_message);
+    let ratelimiter_response = presentation
+        .ratelimiter
+        .check_allowed(user.clone(), &user_message);
 
     // If the connection is still open (should be almost always), send the response
     if let Some(ref sender) = user.sender {
-        let response = OutgoingUserMessage::RatelimiterResponse(ratelimiter_response.clone()).json();
+        let response =
+            OutgoingUserMessage::RatelimiterResponse(ratelimiter_response.clone()).json();
         let _ = sender.send(Ok(Message::text(response)));
     } else {
         error!("{} sent a message from a guid that has no open connection. Dropping message: {user_message}", user.identity);
@@ -88,19 +118,23 @@ pub async fn handle_user_message_types(user_message: IncomingUserMessage, user: 
     }
 
     match user_message {
-        IncomingUserMessage::Emoji(msg) => 
+        IncomingUserMessage::Emoji(msg) => {
             emoji::handle_user_emoji(
                 &presentation,
                 user.clone(),
                 msg,
                 presentation.presenters.clone(),
             )
-            .await,
-        IncomingUserMessage::Vote(vote) => vote::handle_user_vote(
-            &presentation,
-            user.clone(),
-            vote,
-            presentation.presenters.clone(),
-        ).await,
+            .await
+        }
+        IncomingUserMessage::Vote(vote) => {
+            vote::handle_user_vote(
+                &presentation,
+                user.clone(),
+                vote,
+                presentation.presenters.clone(),
+            )
+            .await
+        }
     }
 }

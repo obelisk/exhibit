@@ -1,10 +1,11 @@
 use dashmap::DashMap;
+use serde::Deserialize;
 
 use crate::{ratelimiting::LimiterDataUpdate, EmojiMessage, IncomingUserMessage, User};
 
 use super::{Limiter, LimiterUpdate};
 
-#[derive(Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ValueLimiter {
     small_cost: u64,
     large_cost: u64,
