@@ -120,6 +120,15 @@
             "📉",
             "💹"
         ],
+        "removeRateLimiter": "10s",
+        "addRateLimiter": {
+            "name": "1s",
+            "limiter": {
+                "Time": { 
+                    "interval": 1
+                }
+            }
+        },
         "poll": {
             "name": "Which Emojis's do you like?",
             "options": [

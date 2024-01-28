@@ -64,8 +64,6 @@ type
     | SlideDataRead ( String, Dict String String )
     | SlideDataError String
     | AuthenticateToPresentation
-    | AddRateLimiter
-    | RemoveRateLimiter
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
     | StartPresentation String
     | ReceivedWebsocketMessage String
@@ -128,6 +126,8 @@ pollRenderDecoder =
 type alias SlideData =
     { poll : Maybe Poll
     , poll_render : Maybe PollRender 
+    , addRateLimiter : Maybe Decode.Value
+    , removeRateLimiter : Maybe String
     , slide : String
     , message : String
     , emojis : List String
@@ -150,31 +150,42 @@ encodeSlideDataAsNewSlideMessage sd index =
             ]
         )
 
+encodeAddRateLimiterAsNewRateLimiterMessage : Decode.Value -> String
+encodeAddRateLimiterAsNewRateLimiterMessage limiterRaw =
+    Json.Encode.encode 0
+        (encodePresenterMessage Json.Encode.object
+            [ ( "AddRatelimiter", limiterRaw )
+            ]
+        )
+
+encodeRemoveRateLimiterAsRemoveRateLimiterMessage : String -> String
+encodeRemoveRateLimiterAsRemoveRateLimiterMessage rateLimiterName =
+    Json.Encode.encode 0
+        (encodePresenterMessage Json.Encode.object
+            [ ( "RemoveRatelimiter", Json.Encode.object
+                [ ( "name", Json.Encode.string rateLimiterName )
+                ] 
+            )
+            ]
+        )
 
 slideDataDecoderNoPoll : Decode.Decoder SlideData
 slideDataDecoderNoPoll =
-    Decode.map3 (SlideData Nothing Nothing)
+    Decode.map3 (SlideData Nothing Nothing Nothing Nothing)
         (field "slide" string)
         (field "message" string)
         (field "emojis" (Decode.list string))
 
-slideDataDecoderWithPoll : Decode.Decoder SlideData
-slideDataDecoderWithPoll =
-    Decode.map5 SlideData
-        (field "poll" (Decode.maybe pollDecoder))
-        (field "poll_render" (Decode.maybe pollRenderDecoder))
+decodeSlideJSON : Decode.Decoder SlideData
+decodeSlideJSON =
+    Decode.map7 SlideData
+        (Decode.maybe (field "poll" pollDecoder))
+        (Decode.maybe (field "poll_render" pollRenderDecoder))
+        (Decode.maybe (field "addRateLimiter" Decode.value))
+        (Decode.maybe (field "removeRateLimiter" Decode.string))
         (field "slide" string)
         (field "message" string)
         (field "emojis" (Decode.list string))
-        
-
-slideDataDecoder: Decode.Decoder SlideData
-slideDataDecoder = 
-    Decode.oneOf [
-        slideDataDecoderWithPoll
-    ,   slideDataDecoderNoPoll
-    ]
-
 
 
 type alias Slide =
@@ -274,7 +285,7 @@ update msg model =
             ( model, read )
 
         SlideDataRead ( slide_data, slide_contents ) ->
-            case Decode.decodeString (Decode.list slideDataDecoder) slide_data of
+            case Decode.decodeString (Decode.list decodeSlideJSON) slide_data of
                 Ok sd -> case zipSlideDataAndImages sd slide_contents of
                     Just slides ->
                         ( { model
@@ -302,12 +313,6 @@ update msg model =
 
             else
                 ( model, Cmd.none )
-
-        AddRateLimiter ->
-            ( model, Cmd.none )
-
-        RemoveRateLimiter ->
-            ( model, Cmd.none )
 
         GotWebsocketAddress response ->
             case response of
@@ -349,28 +354,49 @@ update msg model =
             _ :: [] -> (model, Cmd.none)
             -- There are still more future slides
             shown_slide :: new_slide :: _ ->
-                let model_update = { model | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }}
-                    update_message = sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1)) in
-                    case (new_slide.data.poll, new_slide.data.poll_render) of
-                        -- If there is a poll, we need to do a few things:
-                        -- 1. Update the slide emojis as usual
-                        -- 2. Update the server with the new poll to start collecting results
-                        -- 3. Starting polling the backend with the requested interval to show the results in real time
-                        (Just poll, Just poll_render) -> 
-                            ( { model_update | poll_render = Just poll_render }
-                            , Cmd.batch [
-                                -- Update the server with the new poll to start collecting results
-                                sendMessage (encodePollAsNewPollMessage poll)
-                                -- Update the slide emojis
-                                , update_message
-                                -- Kick off the routine to start collecting results
-                                , delay poll_render.refresh_interval UpdatePollResults
-                            ]
-                            )
-                        -- If there is no poll for this slide, we only need to send the message to update
-                        -- the slide emojis and remove the poll render
-                        _ ->
-                            ( { model_update | poll_render = Nothing }, update_message)
+                let 
+                    updatedModel = 
+                        let
+                            updatedSlidesModel = 
+                                { model | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }}
+                        in
+                            case (new_slide.data.poll, new_slide.data.poll_render) of
+                                (Just _, Just poll_render) -> 
+                                    { updatedSlidesModel | poll_render = Just poll_render }
+                                _ -> 
+                                    updatedSlidesModel
+
+                    emojiUpdateCmd = 
+                        sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1)) 
+
+                    (pollUpdateCmd, pollIntervalCmd) = 
+                        case (new_slide.data.poll, new_slide.data.poll_render) of
+                            (Just poll, Just poll_render) -> 
+                                -- If there is a poll, we need to do a few things:
+                                -- 1. Update the slide emojis as usual
+                                -- 2. Update the server with the new poll to start collecting results
+                                -- 3. Starting polling the backend with the requested interval to show the results in real time
+                                (sendMessage (encodePollAsNewPollMessage poll), delay poll_render.refresh_interval UpdatePollResults)
+                            _ ->
+                                ( Cmd.none, Cmd.none)
+
+                    addRateLimiterCmd = 
+                        case new_slide.data.addRateLimiter of 
+                            Just limiter ->
+                                sendMessage (encodeAddRateLimiterAsNewRateLimiterMessage limiter)
+                            _ -> 
+                                Cmd.none
+
+                    removeRateLimiterCmd = 
+                        case new_slide.data.removeRateLimiter of 
+                            Just limiterName ->
+                                sendMessage (encodeRemoveRateLimiterAsRemoveRateLimiterMessage limiterName)
+                            _ -> 
+                                Cmd.none
+
+                in
+                    -- NOTE: It is imperative that pollUpdateCmd comes BEFORE emojiUpdateCmd as the join client purges poll data on new slide data recieved
+                    ( updatedModel, Cmd.batch [pollUpdateCmd, pollIntervalCmd, emojiUpdateCmd, addRateLimiterCmd, removeRateLimiterCmd]) 
 
         PreviousSlide ->
             case List.head model.slides.past_slides of
@@ -467,8 +493,6 @@ view model =
             Nothing ->
                 div [] []
         , button [ onClick AuthenticateToPresentation ] [ text "Start Presentation" ]
-        , button [ onClick AddRateLimiter ] [ text "Add Rate Limiter" ]
-        , button [ onClick RemoveRateLimiter ] [ text "Remove Riate Limiter" ]
         , input [ type_ "file", multiple True, on "change" filesDecoderMsg ] []
         , div [ id "slides-container" ] [
             case List.head model.slides.future_slides of
