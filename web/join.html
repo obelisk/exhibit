@@ -32,31 +32,30 @@
     	});
 
     	var socket = null;
-		var socketURL = "";
-
+		let pingInterval;
+		let reconnectInterval;
+		var attemptCounter = 0
+		
 		// Initial connection created on Elm's side, authed websocket URL passed back, store and create connection
 		app.ports.socketConnect.subscribe((message) => {
-			socketURL = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
+			attemptCounter = 0
+			clearInterval(pingInterval)
+			clearInterval(reconnectInterval)	
+
+			let socketURL = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
 			console.log("Opening socket to " + socketURL)
-			connectWebsocket()
-		});
-
-		// When a command comes from the `sendMessage` port, we pass the message
-		// along to the WebSocket.
-		app.ports.sendMessage.subscribe((message) => {
-			console.log("Sending message: " + message);
-			if(!socket) {
-				return
-			}
-			socket.send(message);
-		});
-
-		function connectWebsocket() { 
 			socket = new WebSocket(socketURL);
 
 			socket.onopen = (event) => {
 				console.log("Created websocket object", socket);
 			}
+
+			// Send a ping message every 15 seconds to keep socket alive
+			pingInterval = setInterval(() => {
+				if (socket.readyState === WebSocket.OPEN) {
+					socket.send('ping');
+				}
+			}, 15000);
 
 			// When a message comes into our WebSocket, we pass the message along
 			// to the `messageReceiver` port.
@@ -65,12 +64,47 @@
 				app.ports.messageReceived.send(event.data);
 			};
 
-			socket.onclose = (event) => {
+			socket.addEventListener("close", (event) => {
 				console.log("Socket closed");
-				window.location.reload();	// Just refresh for now 
-			};
+				socket = null
+				clearInterval(pingInterval)	// Stop pinging
+				startReconnectPolling()	// Start retrying			
+			});
+		});
+
+		// When a command comes from the `sendMessage` port, we pass the message
+		// along to the WebSocket.
+		app.ports.sendMessage.subscribe((message) => {
+			if(!socket) {
+				return
+			}
+			console.log("Sending message: " + message);
+			socket.send(message);
+		});
+
+		function startReconnectPolling(){
+			if (socket){
+				return
+			}
+			clearInterval(reconnectInterval)	
+			console.log("starting socket refresh tick")
+			app.ports.refreshSocket.send("");
+			reconnectInterval = setInterval(() => {
+				if (socket){
+					reconnectInterval()
+					return
+				}
+				console.log("attempting socket refresh")
+				app.ports.refreshSocket.send("");
+				
+				// After 10 seconds of attempting reconnect, update user state to instruct getting a new link or refreshing
+				attemptCounter++
+				if (attemptCounter == 10){
+					app.ports.socketDisconnected.send("");
+				}
+			}, 1000);
 		}
-		
+
 		function getCookieValue(cookieName) {
 			const cookies = document.cookie.split('; ');
 			for (let i = 0; i < cookies.length; i++) {

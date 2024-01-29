@@ -25,6 +25,7 @@ port socketConnect : String -> Cmd msg
 port sendMessage : String -> Cmd msg
 port messageReceived : (String -> msg) -> Sub msg
 port socketDisconnected : (String -> msg) -> Sub msg
+port refreshSocket : (String -> msg) -> Sub msg
 
 
 main =
@@ -80,8 +81,10 @@ type Msg
     | JoinPresentation String
     | ChangeRegistrationKey String
     | GotWebsocketAddress (Result Http.Error JoinPresentationResponse)
+    | GotWebsocketAddressSilentUpdate (Result Http.Error JoinPresentationResponse)
     | ReceivedWebsocketMessage String
     | SocketDisconnected String
+    | RefreshSocket String
       -- Handle updating the model when new messages are successfully
       -- parsed
     | InitialPresentationDataEvent InitialPresentationData
@@ -103,16 +106,14 @@ update msg model =
 
         -- Authenticate to the presentation
         AuthenticateToPresentation ->
-            if model.state == Disconnected then
-                ( { model | state = Joining}
-                , Http.post
-                    { url = "/join"
-                    , body = Http.stringBody "application/text" model.registration_key
-                    , expect = Http.expectJson GotWebsocketAddress joinPresentationResponseDecoder
-                    }
-                )
-            else
-                ( model, Cmd.none )
+            ( model
+            , Http.post
+                { url = "/join"
+                , body = Http.stringBody "application/text" model.registration_key
+                , expect = Http.expectJson GotWebsocketAddress joinPresentationResponseDecoder
+                }
+            )
+            
 
         -- Handle the authentication response from the server with the WebSocket address
         GotWebsocketAddress response ->
@@ -122,7 +123,8 @@ update msg model =
                 Ok joinPresentationResponse ->
                     update (JoinPresentation joinPresentationResponse.url) { model | state = Joining }
 
-                Err _ ->
+                Err err ->
+                    let de = Debug.log "GotWebsocketAddress Error" err in
                     ( { model | state = Disconnected}, Cmd.none )
 
         -- Handle the response from the REST API with our websocket address
@@ -135,6 +137,24 @@ update msg model =
         -- to tell the user this so they can decide what they want to do.
         SocketDisconnected _ ->
             ( { model | state = Reconnecting, title = "Disconnected From Server" }, Cmd.none )
+        
+        -- Refresh socket has some duplicated logic from the above AuthenticateToPresentation and GotResponse
+        -- These are split to achieve silent reconnect
+        RefreshSocket _ ->
+            let de = Debug.log "Attempting AuthenticateToPresentation" in
+            ( model
+            , Http.post
+                { url = "/join"
+                , body = Http.stringBody "application/text" model.registration_key
+                , expect = Http.expectJson GotWebsocketAddressSilentUpdate joinPresentationResponseDecoder
+                }
+            )
+        GotWebsocketAddressSilentUpdate response ->
+            case response of
+                Ok joinPresentationResponse ->
+                    ( {model | state = Joining}, Cmd.batch [ socketConnect joinPresentationResponse.url, sendMessage "Hello" ] )
+                Err err ->
+                    (model, Cmd.none)
 
         -- Handle all message types from the websocket and route to the
         -- appropriate handler
@@ -231,6 +251,7 @@ subscriptions _ =
     Sub.batch
         [ messageReceived ReceivedWebsocketMessage
         , socketDisconnected SocketDisconnected
+        , refreshSocket RefreshSocket
         ]
 
 
