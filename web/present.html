@@ -10,23 +10,38 @@
 <body>
   <div id="app"></div>
   <script>
-    var app = Elm.Present.init({
-		node: document.getElementById('app')
+    const urlParams = new URLSearchParams(window.location.search);
+	let registrationKeyQuery = urlParams.get('key');
+	
+	// If presenter auth JWT in query params 
+	// Clear history state, stash in cookie, and send to Elm init via flags
+	if(registrationKeyQuery){
+		history.replaceState(null, '', '/present');
+		document.cookie = `presenter-key=${registrationKeyQuery}; max-age=10800; path=/`;	// 3 hours
+	} else {
+		// Attempt populating key via cookie
+		registrationKeyQuery = getCookieValue('presenter-key');
+	}
+	
+	var app = Elm.Present.init({
+		node: document.getElementById('app'), 
+		flags: registrationKeyQuery
     });
 
     var socket = null;
+	let pingInterval;
+	let reconnectInterval;
 
 	app.ports.socketConnect.subscribe((message) => {
+		clearInterval(pingInterval)
+		clearInterval(reconnectInterval)	
+
 		let location = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + message;
 		console.log("Opening socket to " + location)
 		socket = new WebSocket(location);
 
-		// When a command goes to the `sendMessage` port, we pass the message
-		// along to the WebSocket.
-		app.ports.sendMessage.subscribe(function(message) {
-			console.log("Sending message: " + message);
-			socket.send(message);
-		});
+		// Presentation has started, enter fullscreen
+		document.body.requestFullscreen()
 
 		// When a message comes into our WebSocket, we pass the message along
 		// to the `messageReceiver` port.
@@ -34,11 +49,30 @@
 			console.log("Message received: " + event.data);
 			app.ports.messageReceived.send(event.data);
 		});
+		
+		// Send a ping message every 10 seconds to keep socket alive
+		pingInterval = setInterval(() => {
+			if (socket.readyState === WebSocket.OPEN) {
+				socket.send('ping');
+			}
+		}, 10000);
 
 		socket.addEventListener("close", (event) => {
 			console.log("Socket closed");
-			app.ports.socketDisconnected.send("");
+			socket = null
+			clearInterval(pingInterval)	// Stop pinging
+			startReconnectPolling()	// Start retrying			
 		});
+	});
+
+	// When a command goes to the `sendMessage` port, we pass the message
+	// along to the WebSocket.
+	app.ports.sendMessage.subscribe(function(message) {
+		if(!socket){
+			return
+		}
+		console.log("Sending message: " + message);
+		socket.send(message);
 	});
 
 	// Handle emoji element DOM creation and animation in vanilla JS as the Elm virtual DOM gets quite intricate 
@@ -61,15 +95,44 @@
 
 		// Set class and initial transform style
 		reaction.className = "moving-emoji";
-		let yOffset = Math.floor((Math.random() * 20)) - 10    // Add some vertical jitter
-		reaction.style.transform = `translateY(${yOffset}px)`
+		let yOffset = Math.floor((Math.random() * -70)) + 20    // Add some vertical jitter
+		reaction.style.top = `${yOffset}px`
 		// Just delete the element from the DOM after 10 seconds
 		setTimeout(() => { reaction.remove() }, 10000)
 		
 		// Add element to DOM
-		document.getElementById('reactions-container').appendChild(reaction);
+		let reactionsContainer = document.getElementById('reactions-container')
+		if (!reactionsContainer){
+			return
+		}
+		reactionsContainer.appendChild(reaction);
 	})
 
+	function startReconnectPolling(){
+		if (socket){
+			return
+		}
+		clearInterval(reconnectInterval)	
+		app.ports.socketDisconnected.send("");
+		reconnectInterval = setInterval(() => {
+			if (socket){
+				reconnectInterval()
+				return
+			}
+			app.ports.socketDisconnected.send("");
+		}, 1000);
+	}
+
+	function getCookieValue(cookieName) {
+		const cookies = document.cookie.split('; ');
+		for (let i = 0; i < cookies.length; i++) {
+			const cookie = cookies[i].split('=');
+			if (cookie[0] === cookieName) {
+				return cookie[1];
+			}
+		}
+		return null;
+	}
   </script>
 </body>
 </html>
