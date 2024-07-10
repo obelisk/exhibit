@@ -11,6 +11,7 @@ import os
 import re
 import json
 import argparse
+import sys
 from typing import List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont
 from pygments import highlight
@@ -23,12 +24,32 @@ SLIDE_BACKGROUND_IMAGE_PATH = "./assets/background_lightmode.png"
 CONTAINS_PATH_POLL = "CONTAINS_PATH_POLL"
 STATE_POLL = "STATE_POLL"
 
+# Frontend will break if poll names are not unique, detect and throw error
+seen_poll_names = set()
+
+
+class PollRenderConfig:
+    def __init__(self, x: int, y: int, scale: int, vbx: int, vby: int):
+        self.x = x
+        self.y = y
+        self.scale = scale
+        self.vbx = vbx
+        self.vby = vby
+
 
 class Poll:
-    def __init__(self, name: str, poll_type: str, options: List[Tuple[str, str]]): 
+    def __init__(self, name: str, poll_type: str, options: List[Tuple[str, str]], pollRenderConfig: PollRenderConfig = None): 
         self.name = name
         self.poll_type = poll_type
         self.options = options   # List (Choice text, Destination slide title)
+        self.pollRenderConfig = pollRenderConfig
+
+        if poll_type == STATE_POLL:
+            return
+        if name in seen_poll_names:
+            print(f"Unique poll name violation, {name} seen twice")
+            sys.exit(1)
+        seen_poll_names.add(name)
         
     def to_json(self, slides_map):
         # With slides_map, resolve slide titles to index
@@ -48,6 +69,7 @@ class Poll:
         }
         # Extend with poll render fields if not state branching poll
         if self.poll_type == CONTAINS_PATH_POLL:
+            pollRender = self.pollRenderConfig if self.pollRenderConfig is not None else PollRenderConfig(68, 2, 30, 230, 230)
             fields.update({
                 'poll': {
                     'name': self.name if self.name is not None else "NO NAME",
@@ -59,39 +81,43 @@ class Poll:
                     }
                 },
                 'poll_render': {
-                    'refresh_interval': 3,
+                    'refresh_interval': 1,
                     'type_': 'centroid',
-                    'x': 68,
-                    'y': 2,
-                    'scale': 30,
-                    'vbx': 230,
-                    'vby': 230
+                    'x': pollRender.x,
+                    'y': pollRender.y,
+                    'scale': pollRender.scale,
+                    'vbx': pollRender.vbx,
+                    'vby': pollRender.vby
                 }
             })
         return fields
 
+
 class SlideImage:
-    def __init__(self, path: str, scale: int):
+    def __init__(self, path: str, scale: float):
         self.path = path
         self.scale = scale
 
+
 class Slide:
-    def __init__(self, index: int, title: str, text_contents: Optional[str], image: Optional[SlideImage], poll: Poll, save_path: str, next_slide_name: str, emojis: List[str] = []):
+    def __init__(self, index: int, title: str, title_override: str, text_contents: Optional[str], image: Optional[SlideImage], poll: Poll, save_path: str, next_slide_name: str, emojis: List[str], fontScale: float):
         self.index = index
         self.title = title
+        self.title_override = title_override
         self.text_contents = text_contents
         self.image = image
         self.poll = poll
         self.save_path = save_path
         self.next_slide_name = next_slide_name
         self.emojis = emojis
+        self.fontScale = fontScale
     
     def export(self, slides_map):
         fields = {
             'index': self.index,
-            'message': self.title,
+            'message': self.title if self.title_override is not None else self.title_override,
             'slide': self.save_path,
-            "emojis": self.emojis,
+            "emojis": self.emojis if len(self.emojis) else ["🇨🇦", "😃"] ,
         }
         
         if self.poll is not None:
@@ -103,10 +129,8 @@ class Slide:
             next_slide = slides_map.get(self.next_slide_name)
             if self.next_slide_name is None or next_slide is None:
                 print(f"Error can not resolve next slide for current slide {self.title}, {self.next_slide_name}")
-                fields.update({
-                    'next_slide_index': 0
-                })
-                return fields
+                print(f"{slides_map}")
+                sys.exit(1)
             
             fields.update({
                 'next_slide_index': next_slide.index
@@ -151,13 +175,28 @@ def parse_contents_for_poll(text: str) -> Poll:
     
     if poll_type == None:
         return None
-    
         
     print(f"Parsed poll {title} {poll_type} {entries}")
     if title is None:
         print(f"Error Poll title can not be None!")
 
     return Poll(title, poll_type, entries)
+
+def parse_contents_for_poll_render_metadata(content: str) -> PollRenderConfig:
+    try:
+        match = re.search(r"^Poll Render X: (.*)$", content, re.MULTILINE)
+        x = int(match.group(1).strip()) 
+        match = re.search(r"^Poll Render Y: (.*)$", content, re.MULTILINE)
+        y = int(match.group(1).strip()) 
+        match = re.search(r"^Poll Render Scale: (.*)$", content, re.MULTILINE)
+        scale = int(match.group(1).strip()) 
+        match = re.search(r"^Poll Render VBX: (.*)$", content, re.MULTILINE)
+        vbx = int(match.group(1).strip()) 
+        match = re.search(r"^Poll Render VBY: (.*)$", content, re.MULTILINE)
+        vby = int(match.group(1).strip()) 
+        return PollRenderConfig(x, y, scale, vbx, vby)
+    except Exception as e:
+        return None
 
 def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
     """
@@ -174,12 +213,17 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
         content = file.read()
     
     # Parse out possible emojis
-    emojis_match = re.search(r'^Emojis:\s*(.*)$', content)
-    emojis = emojis_match.group(1).strip().split(",") if emojis_match else []
+    emojis_match = re.search(r'^Emojis:\s*(.*)$', content, re.MULTILINE)
+    emojis = emojis_match.group(1).split(",") if emojis_match else []
     emojis = [e.strip() for e in emojis]
 
     # Parse out possible poll
     maybe_poll = parse_contents_for_poll(content)
+    # Parse out possible poll render options
+    maybe_poll_render_options = parse_contents_for_poll_render_metadata(content)
+    if maybe_poll is not None:
+        print(f"applying parsed poll render options: {maybe_poll_render_options}")
+        maybe_poll.pollRenderConfig = maybe_poll_render_options
 
     # Parse which slide comes next (if direct)
     next_slide_name_match = re.search(r'Next Slide:\s*\[\[(.*?)\]\]', content)
@@ -190,31 +234,36 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
     message_slug = slugify(message)
 
     # Parse out possible image contents in format ![[image_path.png]]
-    slide_image_name_match = re.search(r'\!\[\[(.*?)\]\]', content)
-    slide_image_name = slide_image_name_match.group(1).strip() if slide_image_name_match else None
+    match = re.search(r'\!\[\[(.*?)\]\]', content)
+    slide_image_name = match.group(1).strip() if match else None
     slide_image = None
-    if slide_image_name_match:
+    if match:
         slide_image_scale_match = re.search(r'Scale:\s*(.*)', content)
         scale = slide_image_scale_match.group(1).strip() if slide_image_scale_match else 1
-        slide_image = SlideImage(os.path.join(md_dir, slide_image_name), int(scale))
+        slide_image = SlideImage(os.path.join(md_dir, slide_image_name), float(scale))
         print(f"Parsed out image: {slide_image.path} with scale {slide_image.scale}")
 
-
     # Parse out possible text contents tagged with text
-    slide_text_contents_match = re.search(r"^[Tt]ext: (.*)$", content, re.MULTILINE)
-    slide_text_contents = slide_text_contents_match.group(1).strip() if slide_text_contents_match else content
-    if slide_text_contents_match:
+    match = re.search(r"^[Tt]ext: (.*)$", content, re.MULTILINE)
+    slide_text_contents = match.group(1).strip() if match else content
+    if match:
         print(f"Parsed out text: {slide_text_contents}")
+    
+    # Parse out possible `Font Scale:` metadata tag
+    match = re.search(r"^Font Scale: (.*)$", content, re.MULTILINE)
+    text_contents_font_scale = float(match.group(1).strip()) if match else 1
+    
+    # Parse out possible `Title Override:` metadata tag
+    match = re.search(r"^Title Override: (.*)$", content, re.MULTILINE)
+    message_override = match.group(1).strip() if match else message
 
     # Parse out if the contents of the slide contain Rust code
-    slide_code_contents_match = re.search(r"```rust((.|\n)*)```", content, re.MULTILINE)
-    slide_code_contents = slide_code_contents_match.group(1).strip() if slide_code_contents_match else content
-    if slide_code_contents_match:
-        print(f"Parsed out code: {slide_code_contents}")
-            
+    match = re.search(r"```rust((.|\n)*)```", content, re.MULTILINE)
+    slide_code_contents = match.group(1).strip() if match else content
+    if match:
+        print(f"Parsed out code: {slide_code_contents}") 
         lexer = RustLexer()
         formatter = ImageFormatter(font_name='Andale Mono', line_numbers=False, style='monokai', font_size=42)
-        
         slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1)
         
         # Highlight the code and save it to an image
@@ -226,7 +275,7 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
     # Image path to save, referenced in slides.json as well
     save_path = f"{index:03d}.{message_slug}.png"
 
-    return Slide(index, message, slide_text_contents, slide_image, maybe_poll, save_path, next_slide_name, emojis)
+    return Slide(index, message, message_override, slide_text_contents, slide_image, maybe_poll, save_path, next_slide_name, emojis, text_contents_font_scale)
 
 def process_directory(md_dir: str, entry_slide_title: str) -> List[Slide]:
     """
@@ -277,7 +326,6 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
         if not os.path.exists(slide.image.path):
             print(f"Slide references image but image path could not be loaded! Slide {slide.title} image path {slide.image.path}")
         
-        
         slide_image = Image.open(slide.image.path).convert("RGBA")
 
         x_scale = slide_image.size[0] / base_img_x
@@ -290,7 +338,6 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
         else:
             slide_image = slide_image.resize((int(slide_image.size[0] * slide.image.scale), int(slide_image.size[1] * slide.image.scale)))
 
-
         slide_image_width, slide_image_height = slide_image.size
         img_x = (1920 - slide_image_width) // 2
         img_y = (1080 - slide_image_height) // 2
@@ -299,10 +346,16 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
     # Draw text if any
     elif slide.text_contents is not None:
         print(f"Drawing slide {slide.title} With Text - {slide.text_contents}")
-        font_size = 40
         text = slide.text_contents
 
-        font = ImageFont.truetype("./assets/fonts/Export/SFProDisplay/OpenType-TT/SF-Pro-Display-Medium.ttf", 160)
+        scale = slide.fontScale
+        if slide.fontScale == 1 and len(text) > 30:
+            scale = 0.3
+        font_size = int(160 * slide.fontScale)
+        if not text.isascii:
+            font_size = 160 # font size must be 160 if emojis and text in string
+
+        font = ImageFont.truetype("./assets/fonts/Export/SFProDisplay/OpenType-TT/SF-Pro-Display-Medium.ttf", font_size)
         emojiFont = ImageFont.truetype("/System/Library/Fonts/Apple Color Emoji.ttc", 160)
 
         draw = ImageDraw.Draw(base_img)

@@ -107,6 +107,10 @@
             reactionsContainer.appendChild(reaction);
         })
 
+        app.ports.toggleFullscreen.subscribe(function (message) {
+            document.body.requestFullscreen()
+        });
+
         function startReconnectPolling() {
             if (socket) {
                 return

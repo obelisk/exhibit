@@ -210,6 +210,7 @@ body {
 }
 
 .poll-options-group input[type="radio"]:checked + .poll-item {
+    color: #fff;
     background: linear-gradient(#2a95ff, #962eff) padding-box, linear-gradient(to bottom right, #f6f8ff, #f6f8ff) border-box;
 }
 
