@@ -120,12 +120,14 @@
             "📉",
             "💹"
         ],
-        "removeRateLimiter": "10s",
-        "addRateLimiter": {
-            "name": "1s",
-            "limiter": {
-                "Time": { 
-                    "interval": 1
+        "rateLimiterOptions": {
+            "removeRateLimiter": "10s",
+            "addRateLimiter": {
+                "name": "1s",
+                "limiter": {
+                    "Time": { 
+                        "interval": 1
+                    }
                 }
             }
         },

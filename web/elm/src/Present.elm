@@ -9,11 +9,11 @@ import Html exposing (Html, button, div, img, input, label, text, span)
 import Html.Attributes exposing (class, for, id, multiple, type_, value, classList)
 import Html.Events exposing (on, onClick, onInput)
 import Http
-import Json.Decode as Decode exposing (field, string)
+import Json.Decode as Decode exposing (field, string, int)
 import Task exposing (..)
 import Html.Attributes exposing (src)
 import Json.Encode
-import Exhibit.ServerMessagePresenterTypes exposing (receivedWebsocketMessageDecoder, ReceivedMessage(..), EmojiMessage)
+import Exhibit.ServerMessagePresenterTypes exposing (receivedWebsocketMessageDecoder, ReceivedMessage(..))
 import Json.Decode exposing (errorToString)
 import Exhibit.UserMessageTypes exposing (encodeVoteType)
 import Process
@@ -125,16 +125,6 @@ pollRenderDecoder =
         (field "vbx" Decode.int)
         (field "vby" Decode.int)
 
-type alias SlideData =
-    { poll : Maybe Poll
-    , poll_render : Maybe PollRender 
-    , addRateLimiter : Maybe Decode.Value
-    , removeRateLimiter : Maybe String
-    , slide : String
-    , message : String
-    , emojis : List String
-    }
-
 encodeSlideDataAsNewSlideMessage : SlideData -> Int -> String
 encodeSlideDataAsNewSlideMessage sd index =
     Json.Encode.encode 0
@@ -171,51 +161,73 @@ encodeRemoveRateLimiterAsRemoveRateLimiterMessage rateLimiterName =
             ]
         )
 
-slideDataDecoderNoPoll : Decode.Decoder SlideData
-slideDataDecoderNoPoll =
-    Decode.map3 (SlideData Nothing Nothing Nothing Nothing)
-        (field "slide" string)
-        (field "message" string)
-        (field "emojis" (Decode.list string))
+rateLimiterOptionsDecoder : Decode.Decoder RateLimiterOptions
+rateLimiterOptionsDecoder =
+    Decode.map2 RateLimiterOptions
+        (Decode.maybe (field "addRateLimiter" Decode.value))
+        (Decode.maybe (field "removeRateLimiter" Decode.string))
+
+proceedFromPollResultOptsDecoder : Decode.Decoder ProceedFromPollResultOpts
+proceedFromPollResultOptsDecoder =
+    Decode.map2 ProceedFromPollResultOpts
+        (field "poll_name" string)
+        (field "results_to_slide_number" (Decode.list int))
 
 decodeSlideJSON : Decode.Decoder SlideData
 decodeSlideJSON =
-    Decode.map7 SlideData
+    Decode.map8 SlideData
         (Decode.maybe (field "poll" pollDecoder))
         (Decode.maybe (field "poll_render" pollRenderDecoder))
-        (Decode.maybe (field "addRateLimiter" Decode.value))
-        (Decode.maybe (field "removeRateLimiter" Decode.string))
+        (Decode.maybe (field "rateLimiterOptions" rateLimiterOptionsDecoder))
         (field "slide" string)
         (field "message" string)
         (field "emojis" (Decode.list string))
+        (Decode.maybe (field "next_slide_index" int))
+        (Decode.maybe (field "slide_advancement_from_poll_results" proceedFromPollResultOptsDecoder))
 
+type alias SlideData =
+    { poll : Maybe Poll
+    , currentPollRender : Maybe PollRender 
+    , rateLimiterOptions : Maybe RateLimiterOptions
+    , slide : String
+    , message : String
+    , emojis : List String
+    , nextSlideIndex : Maybe Int
+    , nextSlideFromPollOptions : Maybe ProceedFromPollResultOpts
+    }
+
+type alias RateLimiterOptions = 
+    { addRateLimiter : Maybe Decode.Value
+    , removeRateLimiter : Maybe String
+    }
+
+type alias ProceedFromPollResultOpts = 
+    { pollName : String
+    , pollChoicesToSlideIndices : List Int
+    }
 
 type alias Slide =
     { data : SlideData
     , image : String 
     }
 
-
-type alias Slides =
-    { past_slides : List Slide
-    , future_slides : List Slide
-    }
-
-
 type alias Model =
     { registration_key : String
     , status : Maybe String
-    , slides : Slides
+    , allSlides : List Slide
+    , currentSlide : Maybe Slide
+    , resolvedSlideHistory: List Int
     , state : State
-    , emojis : List EmojiMessage
-    , poll_results : Dict String Int
-    , poll_render : Maybe PollRender
+    , currentPollResults : Dict String Int
+    , currentPollRender : Maybe PollRender
+    , allPollResults : Dict String Int -- Lookup of poll name to index of winning option
     , killswitch_count : Int
     , killed : Bool
     , stretchedMode : Bool
     }
 
 
+-- Keyboard controls decoder and message
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
     Decode.map toKey (Decode.field "key" Decode.string)
@@ -244,11 +256,13 @@ init : Maybe String -> ( Model, Cmd Msg )
 init registration_key =
     ( { registration_key = Maybe.withDefault "" registration_key
       , status = Nothing
-      , slides = { past_slides = [], future_slides = [] }
+      , allSlides = []
+      , currentSlide = Nothing
+      , resolvedSlideHistory = []
       , state = Disconnected
-      , emojis = []
-      , poll_results = Dict.empty
-      , poll_render = Nothing
+      , currentPollResults = Dict.empty
+      , currentPollRender = Nothing
+      , allPollResults = Dict.empty
       , killswitch_count = 0
       , killed = False
       , stretchedMode = True
@@ -281,17 +295,6 @@ main =
     Browser.element { init = init, update = update, subscriptions = subscriptions, view = view }
 
 
-getCurrentPoll: Model -> Maybe Poll
-getCurrentPoll model =
-    (List.head model.slides.future_slides)
-        |> Maybe.andThen (\slide -> slide.data.poll)
-
-getCurrentPollRender: Model -> Maybe PollRender
-getCurrentPollRender model =
-    (List.head model.slides.future_slides)
-        |> Maybe.andThen (\slide -> slide.data.poll_render)
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -304,7 +307,9 @@ update msg model =
                     Just slides ->
                         ( { model
                             | status = (Just ("Ready with " ++ (String.fromInt (List.length slides)) ++ " slides loaded"))
-                            , slides = { past_slides = [], future_slides = slides }
+                            , allSlides = slides
+                            , currentSlide = getAtIndex slides 0
+                            , resolvedSlideHistory = [0]
                         }, Cmd.none )
                     Nothing -> ( {model| status = Just "Could not sync up data file with images. This means slides are defined for which the images were not provided"}, Cmd.none )
 
@@ -349,9 +354,9 @@ update msg model =
                 case Decode.decodeString receivedWebsocketMessageDecoder message of          
                     Ok (Emoji emoji_msg) -> 
                         (model, addAnimatedEmoji (emoji_msg.emoji, emoji_msg.size))
-                    Ok (PollResults poll_results) -> 
-                        let _ = Debug.log "Poll Results" poll_results in
-                        ( {model | poll_results = poll_results}, Cmd.none)
+                    Ok (PollResults currentPollResults) -> 
+                        let _ = Debug.log "Poll Results" currentPollResults in
+                        ( {model | currentPollResults = currentPollResults}, Cmd.none)
                     Ok (Error e) -> ({model | status = Just e}, Cmd.none)
                     Err e -> ({model | status = Just (errorToString e)}, Cmd.none)
 
@@ -361,70 +366,26 @@ update msg model =
             -- update AuthenticateToPresentation { model | state = Disconnected, status = Just "Connection to presentation lost, attempting reconnect" }
             update AuthenticateToPresentation model -- Silent reconnect attempt
 
-        NextSlide -> case model.slides.future_slides of
-            -- This shouldn't be possible but if it is, we just want to keep the UI the same
-            [] -> ( model, Cmd.none )
-            -- If this is the last slide, also don't allow moving forward
-            _ :: [] -> (model, Cmd.none)
-            -- There are still more future slides
-            shown_slide :: new_slide :: _ ->
-                let 
-                    updatedModel = 
-                        let
-                            updatedSlidesModel = 
-                                { model
-                                 | slides = { past_slides = shown_slide :: model.slides.past_slides, future_slides = List.drop 1 model.slides.future_slides }
-                                 , poll_render = Nothing
-                                }
-                        in
-                            case (new_slide.data.poll, new_slide.data.poll_render) of
-                                (Just _, Just poll_render) -> 
-                                    { updatedSlidesModel | poll_render = Just poll_render }
-                                _ -> 
-                                    updatedSlidesModel
-
-                    emojiUpdateCmd = 
-                        sendMessage (encodeSlideDataAsNewSlideMessage new_slide.data ((List.length model.slides.past_slides) + 1)) 
-
-                    (pollUpdateCmd, pollIntervalCmd) = 
-                        case (new_slide.data.poll, new_slide.data.poll_render) of
-                            (Just poll, Just poll_render) -> 
-                                -- If there is a poll, we need to do a few things:
-                                -- 1. Update the slide emojis as usual
-                                -- 2. Update the server with the new poll to start collecting results
-                                -- 3. Starting polling the backend with the requested interval to show the results in real time
-                                (sendMessage (encodePollAsNewPollMessage poll), delay poll_render.refresh_interval UpdatePollResults)
-                            _ ->
-                                ( Cmd.none, Cmd.none)
-
-                    addRateLimiterCmd = 
-                        case new_slide.data.addRateLimiter of 
-                            Just limiter ->
-                                sendMessage (encodeAddRateLimiterAsNewRateLimiterMessage limiter)
-                            _ -> 
-                                Cmd.none
-
-                    removeRateLimiterCmd = 
-                        case new_slide.data.removeRateLimiter of 
-                            Just limiterName ->
-                                sendMessage (encodeRemoveRateLimiterAsRemoveRateLimiterMessage limiterName)
-                            _ -> 
-                                Cmd.none
-
-                in
-                    -- NOTE: It is imperative that pollUpdateCmd comes BEFORE emojiUpdateCmd as the join client purges poll data on new slide data recieved
-                    ( updatedModel, Cmd.batch [pollUpdateCmd, pollIntervalCmd, emojiUpdateCmd, addRateLimiterCmd, removeRateLimiterCmd]) 
+        NextSlide -> 
+            case model.currentSlide of 
+                Just currentSlide ->
+                    computeNextSlide model currentSlide
+                Nothing ->
+                    ( model, Cmd.none)
+            
 
         PreviousSlide ->
-            case List.head model.slides.past_slides of
-                Just slide ->
-                    ( { model
-                        | slides = { past_slides = List.drop 1 model.slides.past_slides, future_slides = slide :: model.slides.future_slides }
-                    }
-                    , sendMessage (encodeSlideDataAsNewSlideMessage slide.data ((List.length model.slides.past_slides) - 1))
-                    )
-                Nothing ->
-                    ( model, Cmd.none )
+            -- TODO just pop resolvedSlideHistory list
+            ( model, Cmd.none )
+            -- case List.head model.slides.past_slides of
+            --     Just slide ->
+            --         ( { model
+            --             | slides = { past_slides = List.drop 1 model.slides.past_slides, future_slides = slide :: model.slides.future_slides }
+            --         }
+            --         , sendMessage (encodeSlideDataAsNewSlideMessage slide.data ((List.length model.slides.past_slides) - 1))
+            --         )
+            --     Nothing ->
+            --         ( model, Cmd.none )
 
         KillSwitch ->
             case model.killswitch_count of
@@ -447,14 +408,184 @@ update msg model =
 
         UpdatePollResults ->
             let _ = Debug.log "Timer Elapsed" () in
-            case (getCurrentPoll model, getCurrentPollRender model) of
-                (Just poll, Just poll_render) ->
-                    ( model, Cmd.batch [
-                        delay poll_render.refresh_interval UpdatePollResults
-                        , sendMessage (encodePollAsRequestTotalsMessage poll)
-                        ])
-                _ ->
+            case model.currentSlide of 
+                Just currentSlide ->
+                    case (currentSlide.data.poll, currentSlide.data.currentPollRender) of
+                        (Just poll, Just currentPollRender) ->
+                            ( model, Cmd.batch [
+                                delay currentPollRender.refresh_interval UpdatePollResults
+                                , sendMessage (encodePollAsRequestTotalsMessage poll)
+                                ])
+                        _ ->
+                            ( model, Cmd.none )
+                Nothing ->
                     ( model, Cmd.none )
+
+computeNextSlide : Model -> Slide -> (Model, Cmd Msg)
+computeNextSlide model currentSlide = 
+    let
+        -- From the server we get a list of (pollLabel, count) as model.currentPollResults
+        --
+        -- We know the current slide's poll options as list
+        -- ex.  Current poll:               [ "A", "B", "C" ]
+        --      Votes from server:          [ ("B", 3), ("C", 9), ("A", 5) ]
+        --      Poll Advancement config:    [ 33, 50, 90]
+        --                                             ^
+        --
+        -- Since "C" is the winning pollOption with 9 votes, allPollResults[currentSlidePollName] should
+        -- be set to 2, representing the winning index ("C")
+        -- This function returns a tuple of (winningPollOptionLabel, winningOptionIndex) 
+        -- where winningOptionIndex is later used to look up which slide to advance to via the Poll Advancement config list (indices match)
+        highestVotedOptionIndexOfCurrentSlidePoll : (Int, String)
+        highestVotedOptionIndexOfCurrentSlidePoll = 
+            let
+                maxTupleValue (k1, v1) (k2, v2) =
+                    if v1 > v2 then
+                        (k1, v1)
+                    else
+                        (k2, v2)
+
+                -- Give a Poll and the winning tuple, return the index of the winning option
+                findWinningPollOptionIndex : Poll -> Dict String Int -> Maybe (Int, String)
+                findWinningPollOptionIndex currentPoll currentPollResults = 
+                    Dict.toList currentPollResults
+                        |> List.foldl maxTupleValue ( Maybe.withDefault "" (getAtIndex currentPoll.options 0), 0)
+                        |> (\(winningOptionLabel, _) -> 
+                            let
+                                indexedPollOptionsTuple = 
+                                    List.indexedMap Tuple.pair currentPoll.options
+                            in
+                                indexedPollOptionsTuple
+                                    |> List.filter (\(_, label) -> label == winningOptionLabel) 
+                        ) 
+                        |> List.head
+            in
+                currentSlide.data.poll
+                    |> Maybe.andThen (\currentPoll -> findWinningPollOptionIndex currentPoll model.currentPollResults) 
+                    |> Maybe.withDefault (0, "")
+
+        _ = Debug.log "highestVotedOptionIndexOfCurrentSlidePoll is " highestVotedOptionIndexOfCurrentSlidePoll
+        
+        -- Set up possible new state to top level seen polls, this will be used to set new 
+        -- top level poll state in model, but also allows current slide to reference 
+        -- the current slide's poll results the same way
+        newAllPollResults : Dict String Int
+        newAllPollResults = 
+            case currentSlide.data.poll of 
+                Just poll -> 
+                    Dict.insert poll.name (Tuple.first highestVotedOptionIndexOfCurrentSlidePoll) model.allPollResults
+                Nothing -> 
+                    model.allPollResults
+
+        _ = Debug.log "newAllPollResults is " newAllPollResults
+        
+        currentSlideIndex =
+            Maybe.withDefault 0 (getAtIndex model.resolvedSlideHistory ((List.length model.resolvedSlideHistory ) - 1))
+
+        -- Begin logic to apply the following rules to determine what the next slide is
+        (nextSlide, nextSlideIndex) = 
+            case (currentSlide.data.nextSlideIndex, currentSlide.data.nextSlideFromPollOptions) of 
+                -- linear, this slide links directly to next by index (nextSlideIndex populated)
+                (Just newSlideIndex, Nothing) -> 
+                    let _ = Debug.log "linear - next slide is" newSlideIndex in
+                    (getAtIndex model.allSlides newSlideIndex, newSlideIndex)
+
+                -- branching, next slide depends on current slide or previously seen poll results
+                -- at this point we have already computed current slide Maybe poll added to 
+                -- top level allPollResults in local variable newAllPollResults
+                (Nothing, Just nextSlideFromPollOptions) -> 
+                    case Dict.get nextSlideFromPollOptions.pollName newAllPollResults of 
+                        Just previousPollWinningChoiceIndex -> 
+                            case (getAtIndex nextSlideFromPollOptions.pollChoicesToSlideIndices previousPollWinningChoiceIndex) of
+                                Just winningOptionResolvedNextSlideIndex ->                           
+                                    (getAtIndex model.allSlides winningOptionResolvedNextSlideIndex, winningOptionResolvedNextSlideIndex)
+                                Nothing -> 
+                                    ( Just currentSlide, currentSlideIndex )
+
+                        -- No poll with this name found
+                        Nothing -> 
+                            let _ = Debug.log "No poll with name found in previous poll or current slides poll" nextSlideFromPollOptions.pollName in
+                            ( Just currentSlide, currentSlideIndex )
+                _ -> 
+                    ( Just currentSlide, currentSlideIndex )
+
+        _ = 
+            case nextSlide of 
+                Just s -> 
+                    let _ = Debug.log "nextSlide data is "s.data in
+                    Nothing
+                Nothing -> 
+                    let _ = Debug.log "next slide is none!! " in
+                    Nothing
+
+        maybeNewSlidePollRender : Maybe PollRender
+        maybeNewSlidePollRender =
+            nextSlide
+                |> Maybe.map (\slide -> slide.data)
+                |> Maybe.andThen (\data -> data.currentPollRender)
+
+        _ = Debug.log "maybeNewSlidePollRender is " maybeNewSlidePollRender
+
+        -- Create model updates 
+        updatedModel = 
+            { model
+                | currentSlide = nextSlide 
+                , currentPollRender = maybeNewSlidePollRender
+                , allPollResults = newAllPollResults
+            }
+        
+    in
+        case nextSlide of 
+            -- Create possible CMD updates, skip if last slide
+            Just newSlide ->
+                let
+                    emojiUpdateCmd = 
+                        sendMessage (encodeSlideDataAsNewSlideMessage newSlide.data nextSlideIndex) 
+
+                    (pollUpdateCmd, pollIntervalCmd) = 
+                        case (newSlide.data.poll, newSlide.data.currentPollRender) of
+                            (Just poll, Just currentPollRender) -> 
+                                -- If there is a poll, we need to do a few things:
+                                -- 1. Update the slide emojis as usual
+                                -- 2. Update the server with the new poll to start collecting results
+                                -- 3. Starting polling the backend with the requested interval to show the results in real time
+                                (sendMessage (encodePollAsNewPollMessage poll), delay currentPollRender.refresh_interval UpdatePollResults)
+                            _ ->
+                                ( Cmd.none, Cmd.none)
+
+                    addRateLimiterCmd = 
+                        case newSlide.data.rateLimiterOptions of 
+                            Just options -> 
+                                case options.addRateLimiter of 
+                                    Just limiter ->
+                                        sendMessage (encodeAddRateLimiterAsNewRateLimiterMessage limiter)
+                                    _ -> 
+                                        Cmd.none
+                            _ -> 
+                                Cmd.none
+
+                    removeRateLimiterCmd = 
+                        case newSlide.data.rateLimiterOptions of 
+                            Just options -> 
+                                case options.removeRateLimiter of 
+                                    Just limiterName ->
+                                        sendMessage (encodeRemoveRateLimiterAsRemoveRateLimiterMessage limiterName)
+                                    _ -> 
+                                        Cmd.none
+                            _ -> 
+                                Cmd.none
+
+                in
+                    -- NOTE: It is imperative that pollUpdateCmd comes BEFORE emojiUpdateCmd as the join client purges poll data on new slide data recieved
+                    ( updatedModel, Cmd.batch [pollUpdateCmd, pollIntervalCmd, emojiUpdateCmd, addRateLimiterCmd, removeRateLimiterCmd]) 
+            Nothing -> 
+                ( updatedModel, Cmd.none)
+
+getAtIndex : List a -> Int -> Maybe a
+getAtIndex list index =
+    list
+        |> List.drop index
+        |> List.head
 
 filesDecoderMsg : Decode.Decoder Msg
 filesDecoderMsg =
@@ -551,7 +682,7 @@ view model =
                     ]
                 -- Slides preview, and start button when populated
                 , div [ class "slides-container-preview" ] [
-                    case List.head model.slides.future_slides of
+                    case model.currentSlide of
                         Just slide ->
                             div [] [
                                 img [ class "slide-img", src slide.image] []
@@ -566,13 +697,13 @@ view model =
         -- Render presentation view, slides img container and polls
 
         div [ class "slides-container", classList [("stretched", model.stretchedMode == True)] ] [
-            case List.head model.slides.future_slides of
+            case model.currentSlide of
                 Just slide ->
                     img [ class "slide-img", src slide.image] []
                 Nothing -> div [] []
             , div [ id "poll-results-container" ]
             [ 
-                case model.poll_render of
+                case model.currentPollRender of
                     (Just render) ->
                         div [ 
                             id "poll-results"
@@ -580,7 +711,7 @@ view model =
                         ,   style "top" (String.fromInt render.y ++ "%")
                         ,   style "width" (String.fromInt render.scale ++ "%")
                         ]
-                        [ Exhibit.Visualizations.Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.poll_results)) 500 500 render.vbx render.vby ]
+                        [ Exhibit.Visualizations.Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.currentPollResults)) 500 500 render.vbx render.vby ]
                     _ -> div [ id "poll-results-container" ] []
             ]
             , div [ id "reactions-float-bottom" ]
