@@ -4,6 +4,7 @@ import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Exhibit.IO exposing (..)
+import Exhibit.Utils exposing (getAtIndex, popLast)
 import File exposing (..)
 import Html exposing (Html, button, div, img, input, label, text, span)
 import Html.Attributes exposing (class, for, id, multiple, type_, value, classList)
@@ -217,6 +218,7 @@ type alias Model =
     , allSlides : List Slide
     , currentSlide : Maybe Slide
     , resolvedSlideHistory: List Int
+    , currentSlideIndex : Int
     , state : State
     , currentPollResults : Dict String Int
     , currentPollRender : Maybe PollRender
@@ -263,6 +265,7 @@ init registration_key =
       , currentPollResults = Dict.empty
       , currentPollRender = Nothing
       , allPollResults = Dict.empty
+      , currentSlideIndex = 0
       , killswitch_count = 0
       , killed = False
       , stretchedMode = True
@@ -309,7 +312,7 @@ update msg model =
                             | status = (Just ("Ready with " ++ (String.fromInt (List.length slides)) ++ " slides loaded"))
                             , allSlides = slides
                             , currentSlide = getAtIndex slides 0
-                            , resolvedSlideHistory = [0]
+                            , resolvedSlideHistory = []
                         }, Cmd.none )
                     Nothing -> ( {model| status = Just "Could not sync up data file with images. This means slides are defined for which the images were not provided"}, Cmd.none )
 
@@ -350,12 +353,12 @@ update msg model =
             if model.killed then
                 (model, Cmd.none)
             else
-                let _ = Debug.log "Message" message in
+                -- let _ = Debug.log "Message" message in
                 case Decode.decodeString receivedWebsocketMessageDecoder message of          
                     Ok (Emoji emoji_msg) -> 
                         (model, addAnimatedEmoji (emoji_msg.emoji, emoji_msg.size))
                     Ok (PollResults currentPollResults) -> 
-                        let _ = Debug.log "Poll Results" currentPollResults in
+                        -- let _ = Debug.log "Poll Results" currentPollResults in
                         ( {model | currentPollResults = currentPollResults}, Cmd.none)
                     Ok (Error e) -> ({model | status = Just e}, Cmd.none)
                     Err e -> ({model | status = Just (errorToString e)}, Cmd.none)
@@ -375,17 +378,41 @@ update msg model =
             
 
         PreviousSlide ->
-            -- TODO just pop resolvedSlideHistory list
-            ( model, Cmd.none )
-            -- case List.head model.slides.past_slides of
-            --     Just slide ->
-            --         ( { model
-            --             | slides = { past_slides = List.drop 1 model.slides.past_slides, future_slides = slide :: model.slides.future_slides }
-            --         }
-            --         , sendMessage (encodeSlideDataAsNewSlideMessage slide.data ((List.length model.slides.past_slides) - 1))
-            --         )
-            --     Nothing ->
-            --         ( model, Cmd.none )
+            -- We keep a running history of the resolved slide indices
+            -- So just pop the list and go to that slide
+            let
+                (poppedHistoryIndex, poppedHistoryList) = 
+                    popLast model.resolvedSlideHistory
+                        |> Maybe.withDefault (0, [])
+
+                newSlide = 
+                    getAtIndex model.allSlides poppedHistoryIndex
+                
+                updatedModel = 
+                    { model
+                        | currentSlide = newSlide 
+                        , currentPollRender = Nothing
+                        , resolvedSlideHistory = poppedHistoryList
+                    }
+
+                _ = Debug.log "poppedHistoryIndex is " poppedHistoryIndex              
+                _ = Debug.log "poppedHistoryList is " poppedHistoryList    
+
+                _ = 
+                    case newSlide of 
+                        Just s -> 
+                            let _ = Debug.log "popped newSlide data is "s.data in
+                            Nothing
+                        Nothing -> 
+                            let _ = Debug.log "next slide is none!! " in
+                            Nothing          
+            in
+                case newSlide of
+                    Just s -> 
+                        ( updatedModel
+                        , sendMessage (encodeSlideDataAsNewSlideMessage s.data poppedHistoryIndex) )
+                    Nothing ->
+                        ( model, Cmd.none )
 
         KillSwitch ->
             case model.killswitch_count of
@@ -464,7 +491,7 @@ computeNextSlide model currentSlide =
                     |> Maybe.andThen (\currentPoll -> findWinningPollOptionIndex currentPoll model.currentPollResults) 
                     |> Maybe.withDefault (0, "")
 
-        _ = Debug.log "highestVotedOptionIndexOfCurrentSlidePoll is " highestVotedOptionIndexOfCurrentSlidePoll
+        -- _ = Debug.log "highestVotedOptionIndexOfCurrentSlidePoll is " highestVotedOptionIndexOfCurrentSlidePoll
         
         -- Set up possible new state to top level seen polls, this will be used to set new 
         -- top level poll state in model, but also allows current slide to reference 
@@ -479,9 +506,6 @@ computeNextSlide model currentSlide =
 
         _ = Debug.log "newAllPollResults is " newAllPollResults
         
-        currentSlideIndex =
-            Maybe.withDefault 0 (getAtIndex model.resolvedSlideHistory ((List.length model.resolvedSlideHistory ) - 1))
-
         -- Begin logic to apply the following rules to determine what the next slide is
         (nextSlide, nextSlideIndex) = 
             case (currentSlide.data.nextSlideIndex, currentSlide.data.nextSlideFromPollOptions) of 
@@ -500,14 +524,14 @@ computeNextSlide model currentSlide =
                                 Just winningOptionResolvedNextSlideIndex ->                           
                                     (getAtIndex model.allSlides winningOptionResolvedNextSlideIndex, winningOptionResolvedNextSlideIndex)
                                 Nothing -> 
-                                    ( Just currentSlide, currentSlideIndex )
+                                    ( Just currentSlide, model.currentSlideIndex )
 
                         -- No poll with this name found
                         Nothing -> 
                             let _ = Debug.log "No poll with name found in previous poll or current slides poll" nextSlideFromPollOptions.pollName in
-                            ( Just currentSlide, currentSlideIndex )
+                            ( Just currentSlide, model.currentSlideIndex )
                 _ -> 
-                    ( Just currentSlide, currentSlideIndex )
+                    ( Just currentSlide, model.currentSlideIndex )
 
         _ = 
             case nextSlide of 
@@ -524,7 +548,13 @@ computeNextSlide model currentSlide =
                 |> Maybe.map (\slide -> slide.data)
                 |> Maybe.andThen (\data -> data.currentPollRender)
 
-        _ = Debug.log "maybeNewSlidePollRender is " maybeNewSlidePollRender
+        -- _ = Debug.log "maybeNewSlidePollRender is " maybeNewSlidePollRender
+
+        (updatedSlideHistoryIndices, _) = 
+            if nextSlide /= Nothing then
+                (List.append model.resolvedSlideHistory [model.currentSlideIndex], -100) -- TODO
+            else 
+                (model.resolvedSlideHistory, -100)
 
         -- Create model updates 
         updatedModel = 
@@ -532,7 +562,11 @@ computeNextSlide model currentSlide =
                 | currentSlide = nextSlide 
                 , currentPollRender = maybeNewSlidePollRender
                 , allPollResults = newAllPollResults
+                , resolvedSlideHistory = updatedSlideHistoryIndices
+                , currentSlideIndex = nextSlideIndex
             }
+
+        _ = Debug.log "updatedSlideHistoryIndices is " updatedSlideHistoryIndices              
         
     in
         case nextSlide of 
@@ -581,11 +615,7 @@ computeNextSlide model currentSlide =
             Nothing -> 
                 ( updatedModel, Cmd.none)
 
-getAtIndex : List a -> Int -> Maybe a
-getAtIndex list index =
-    list
-        |> List.drop index
-        |> List.head
+
 
 filesDecoderMsg : Decode.Decoder Msg
 filesDecoderMsg =
@@ -648,7 +678,6 @@ buildFileReadingTask data image_files =
 
 view : Model -> Html Msg
 view model =
-    -- TODO if presentation not started, show input view
     if model.state == Disconnected then 
         -- Render input view for initial key + slides images and settings file select
         div [] 

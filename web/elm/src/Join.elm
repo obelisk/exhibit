@@ -365,7 +365,7 @@ viewPoll model inputView =
                                 [ div [ class "poll-type-text"] [text "Select a single option"]
                                 , div [class "poll-options-group"] 
                                     (List.indexedMap (\index option -> 
-                                        label [for <| "poll-option-" ++ (String.fromInt index)] [
+                                        label [for <| "poll-option-" ++ (String.fromInt index), class "poll-option-label"] [
                                             input [ type_ "radio", name "poll-options", id <| "poll-option-" ++ (String.fromInt index), onClick (ChangeSingleBinaryPollAnswer option)] []
                                             , div [ class "poll-item"] [text option]
                                         ]) poll.options)

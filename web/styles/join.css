@@ -140,6 +140,11 @@ body {
 
 .poll-options-group { 
     display: flex;
+    flex-wrap: wrap;
+}
+
+.poll-option-label {
+    width: 100%;
 }
 
 .poll-submit-button {
@@ -176,11 +181,11 @@ body {
 
 .poll-item {
     user-select: none;
-    width: 70px;
-    height: 52px;
+    width: 100%;
+    min-height: 42px;
     margin: 10px;
-    padding: 20px;
-    font-size: 36px;
+    padding: 10px;
+    font-size: 28px;
     text-align: center;
     background: #f6f8ff;
     position: relative;
