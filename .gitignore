@@ -17,3 +17,8 @@ Cargo.lock
 /target
 #/app
 #/bin
+
+tools/output/
+tools/output_code_images/
+tools/md-slides/
+tools/venv/
