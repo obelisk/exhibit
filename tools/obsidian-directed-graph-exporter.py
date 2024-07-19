@@ -18,6 +18,7 @@ from pygments import highlight
 from pygments.lexers import RustLexer
 from pygments.formatters import ImageFormatter
 
+
 FONT_PATH = "./assets/fonts/Open_Sans/OpenSans-Italic-VariableFont_wdth,wght.ttf"
 # FONT_PATH = "./assets/fonts/AppleColorEmoji.ttf"
 SLIDE_BACKGROUND_IMAGE_PATH = "./assets/background_lightmode.png"
@@ -29,12 +30,10 @@ seen_poll_names = set()
 
 
 class PollRenderConfig:
-    def __init__(self, x: int, y: int, scale: int, vbx: int, vby: int):
+    def __init__(self, x: int, y: int, scale: float):
         self.x = x
         self.y = y
         self.scale = scale
-        self.vbx = vbx
-        self.vby = vby
 
 
 class Poll:
@@ -69,7 +68,7 @@ class Poll:
         }
         # Extend with poll render fields if not state branching poll
         if self.poll_type == CONTAINS_PATH_POLL:
-            pollRender = self.pollRenderConfig if self.pollRenderConfig is not None else PollRenderConfig(68, 2, 30, 230, 230)
+            pollRender = self.pollRenderConfig if self.pollRenderConfig is not None else PollRenderConfig(50, 40, 1)
             fields.update({
                 'poll': {
                     'name': self.name if self.name is not None else "NO NAME",
@@ -81,13 +80,10 @@ class Poll:
                     }
                 },
                 'poll_render': {
-                    'refresh_interval': 1,
-                    'type_': 'centroid',
+                    'refreshInterval': 1,
                     'x': pollRender.x,
                     'y': pollRender.y,
                     'scale': pollRender.scale,
-                    'vbx': pollRender.vbx,
-                    'vby': pollRender.vby
                 }
             })
         return fields
@@ -189,12 +185,8 @@ def parse_contents_for_poll_render_metadata(content: str) -> PollRenderConfig:
         match = re.search(r"^Poll Render Y: (.*)$", content, re.MULTILINE)
         y = int(match.group(1).strip()) 
         match = re.search(r"^Poll Render Scale: (.*)$", content, re.MULTILINE)
-        scale = int(match.group(1).strip()) 
-        match = re.search(r"^Poll Render VBX: (.*)$", content, re.MULTILINE)
-        vbx = int(match.group(1).strip()) 
-        match = re.search(r"^Poll Render VBY: (.*)$", content, re.MULTILINE)
-        vby = int(match.group(1).strip()) 
-        return PollRenderConfig(x, y, scale, vbx, vby)
+        scale = float(match.group(1).strip()) 
+        return PollRenderConfig(x, y, scale)
     except Exception as e:
         return None
 

@@ -7,7 +7,7 @@ import Exhibit.IO exposing (..)
 import Exhibit.Utils exposing (getAtIndex, popLast)
 import File exposing (..)
 import Html exposing (Html, button, div, img, input, label, text, span)
-import Html.Attributes exposing (class, for, id, multiple, type_, value, classList)
+import Html.Attributes exposing (class, for, id, multiple, type_, value, classList, style)
 import Html.Events exposing (on, onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (field, string, int)
@@ -18,9 +18,6 @@ import Exhibit.ServerMessagePresenterTypes exposing (receivedWebsocketMessageDec
 import Json.Decode exposing (errorToString)
 import Exhibit.UserMessageTypes exposing (encodeVoteType)
 import Process
-import Exhibit.Visualizations.Centroid
-import Html.Attributes exposing (style)
-import Svg.Attributes exposing (mode)
 
 
 
@@ -109,25 +106,19 @@ encodePollAsNewPollMessage poll =
         )
 
 type alias PollRender =
-    { refresh_interval : Int
-    , type_ : String
+    { refreshInterval : Int
     , x : Int
     , y : Int
-    , scale : Int
-    , vbx : Int
-    , vby : Int
+    , scale : Float
     }
 
 pollRenderDecoder : Decode.Decoder PollRender
 pollRenderDecoder = 
-    Decode.map7 PollRender
-        (field "refresh_interval" Decode.int)
-        (field "type_" Decode.string)
+    Decode.map4 PollRender
+        (field "refreshInterval" Decode.int)
         (field "x" Decode.int)
         (field "y" Decode.int)
-        (field "scale" Decode.int)
-        (field "vbx" Decode.int)
-        (field "vby" Decode.int)
+        (field "scale" Decode.float)
 
 encodeSlideDataAsNewSlideMessage : SlideData -> Int -> String
 encodeSlideDataAsNewSlideMessage sd index =
@@ -449,7 +440,7 @@ update msg model =
                     case (currentSlide.data.poll, currentSlide.data.currentPollRender) of
                         (Just poll, Just currentPollRender) ->
                             ( model, Cmd.batch [
-                                delay currentPollRender.refresh_interval UpdatePollResults
+                                delay currentPollRender.refreshInterval UpdatePollResults
                                 , sendMessage (encodePollAsRequestTotalsMessage poll)
                                 ])
                         _ ->
@@ -569,6 +560,7 @@ computeNextSlide model currentSlide =
         updatedModel = 
             { model
                 | currentSlide = nextSlide 
+                , currentPollResults = Dict.empty
                 , currentPollRender = maybeNewSlidePollRender
                 , allPollResults = newAllPollResults
                 , resolvedSlideHistory = updatedSlideHistoryIndices
@@ -592,7 +584,7 @@ computeNextSlide model currentSlide =
                                 -- 1. Update the slide emojis as usual
                                 -- 2. Update the server with the new poll to start collecting results
                                 -- 3. Starting polling the backend with the requested interval to show the results in real time
-                                (sendMessage (encodePollAsNewPollMessage poll), delay currentPollRender.refresh_interval UpdatePollResults)
+                                (sendMessage (encodePollAsNewPollMessage poll), delay currentPollRender.refreshInterval UpdatePollResults)
                             _ ->
                                 ( Cmd.none, Cmd.none)
 
@@ -623,7 +615,6 @@ computeNextSlide model currentSlide =
                     ( updatedModel, Cmd.batch [pollUpdateCmd, pollIntervalCmd, emojiUpdateCmd, addRateLimiterCmd, removeRateLimiterCmd]) 
             Nothing -> 
                 ( updatedModel, Cmd.none)
-
 
 
 filesDecoderMsg : Decode.Decoder Msg
@@ -690,7 +681,11 @@ view model =
     if model.state == Disconnected then 
         -- Render input view for initial key + slides images and settings file select
         div [] 
-            [ div [ class "title-group" ]
+            [ case model.currentPollRender of
+                    (Just render) ->
+                        renderBarGraph model.currentPollResults render
+                    _ -> div [ class "poll-results-container" ] []
+            , div [ class "title-group" ]
                 [ div [ class "title-gradient-text-container" ] [
                     div [ class "title" ] 
                         [ span [] [text "Presenter View - Start Presentation" ] ]
@@ -739,20 +734,77 @@ view model =
                 Just slide ->
                     img [ class "slide-img", src slide.image] []
                 Nothing -> div [] []
-            , div [ id "poll-results-container" ]
-            [ 
-                case model.currentPollRender of
-                    (Just render) ->
-                        div [ 
-                            id "poll-results"
-                        ,   style "left" (String.fromInt render.x ++ "%")
-                        ,   style "top" (String.fromInt render.y ++ "%")
-                        ,   style "width" (String.fromInt render.scale ++ "%")
-                        ]
-                        [ Exhibit.Visualizations.Centroid.view (List.map (\(f, s) -> (f, Basics.toFloat s)) (Dict.toList model.currentPollResults)) 500 500 render.vbx render.vby ]
-                    _ -> div [ id "poll-results-container" ] []
-            ]
+            , div [ class "poll-results-container" ]
+                [ case model.currentPollRender of
+                        (Just render) ->
+                            renderBarGraph model.currentPollResults render
+                        _ -> div [ class "poll-results-container" ] []
+                ]
             , div [ id "reactions-float-bottom" ]
                 [ div [ id "reactions-container" ] []
                 ]
         ]
+
+
+
+renderBarGraph : Dict String Int -> PollRender -> Html Msg
+renderBarGraph currentPollResults render = 
+    -- Top level absoulute positioning container
+    div [ class "poll-results-container" 
+        , style "left" (String.fromInt render.x ++ "%")
+        , style "top" (String.fromInt render.y ++ "%") ] 
+        [ div [ class "poll-vote-now"] [text "- VOTE NOW -"]
+        , div [ class "poll-results-text"] [text "Poll results"]
+        -- Poll contents sizing and scale container
+        , div [ class "poll-results"
+            , style "transform" ("scale(" ++ String.fromFloat render.scale ++ " )" )  ]
+            [ 
+                let
+                    sortedOptions : List (Int, String, Int)
+                    sortedOptions = 
+                        currentPollResults
+                            |> Dict.toList
+                            |> List.indexedMap (\index (key, val) -> (index, key, val) )
+                            |> List.sortBy (\(_, _, val) -> val) 
+                            |> List.reverse
+
+                    (_, _, topOptionCount) = 
+                        let
+                            max (indexA, labelA, countA) (indexB, labelB, countB) = 
+                                if countA > countB then 
+                                    (indexA, labelA, countA)
+                                else 
+                                    (indexB, labelB, countB)
+                            
+                            empty =
+                                (0, "", 1)
+                        in
+                            List.foldl max empty sortedOptions
+
+                    renderPollResultRow : (Int, String, Int) -> Html Msg
+                    renderPollResultRow (optionIndex, label, count) = 
+                        let
+                            leadingVotesCount = topOptionCount
+
+                            countPercentageOfTotal = 
+                                (toFloat count) / (toFloat leadingVotesCount)
+                                    |> (*) 100
+                        in
+                            div [ class "poll-result-row" ] 
+                                [ div [ class "poll-result-label-container" ] 
+                                    [ div [ class "poll-result-label" ] 
+                                        [ text label ]
+                                    , div [ class "poll-result-label-count" ] 
+                                        [ text <| "(" ++ String.fromInt count ++ ")" ]
+                                    ]
+                                , div [ class <| "poll-result-bar-container poll-result-colouring-" ++ String.fromInt optionIndex ] 
+                                    [ div [ class "poll-result-bar", style "width" <| "" ++ String.fromFloat countPercentageOfTotal ++ "%"] 
+                                        [] 
+                                    ]
+                                ]
+                in
+                    -- Container of result item for label, vote count, and visual coloured bar
+                    div [] (List.map renderPollResultRow sortedOptions)
+            ]
+        ]
+    

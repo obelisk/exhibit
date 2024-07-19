@@ -222,3 +222,35 @@ body {
     background: linear-gradient(#2a95ff, #962eff) padding-box, linear-gradient(to bottom right, #f6f8ff, #f6f8ff) border-box;
 }
 
+@media only screen and (max-width: 600px) {
+    .title {
+        font-size: 25px;
+    }
+    .container-type-row {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    .container-title-row{
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+    .container-paragraph-row{
+        font-size: 18px;
+    }
+    .body-container{
+        margin: 10px auto;
+        width: 95%;
+    }
+    .container{
+        padding: 0px 10px 10px 10px;
+    }
+    .reaction-button{
+        width: 50px;
+        height: 30px;
+        font-size: 28px;
+        padding: 15px;
+    }
+    .rate-limiting-message{
+        margin-top: 20px;
+    }
+}
