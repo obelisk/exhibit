@@ -25,6 +25,11 @@ SLIDE_BACKGROUND_IMAGE_PATH = "./assets/background_lightmode.png"
 CONTAINS_PATH_POLL = "CONTAINS_PATH_POLL"
 STATE_POLL = "STATE_POLL"
 
+# Regexes
+NEXT_SLIDE_REGEX = r'Next Slide:\s*\[\[(.*?)\]\]'
+FONT_SCALE_REGEX = r'^Font Scale: (.*)$'
+
+
 # Frontend will break if poll names are not unique, detect and throw error
 seen_poll_names = set()
 
@@ -46,7 +51,7 @@ class Poll:
         if poll_type == STATE_POLL:
             return
         if name in seen_poll_names:
-            print(f"Unique poll name violation, {name} seen twice")
+            print(f"ERROR: Unique poll name violation, {name} seen twice")
             sys.exit(1)
         seen_poll_names.add(name)
         
@@ -56,7 +61,7 @@ class Poll:
         for opt in self.options:
             found_slide = slides_map.get(opt[1])
             if found_slide is None:
-                print(f"Error can not resolve next slide for current poll {self.name}")
+                print(f"ERROR: can not resolve next slide for current poll {self.name}")
                 return
             resolved_slide_indices.append(found_slide.index)
 
@@ -88,11 +93,11 @@ class Poll:
             })
         return fields
 
-
 class SlideImage:
-    def __init__(self, path: str, scale: float):
+    def __init__(self, path: str, scale: float, columnar: bool = False):
         self.path = path
         self.scale = scale
+        self.columnar = columnar
 
 
 class Slide:
@@ -123,14 +128,17 @@ class Slide:
         else:
             # Base slide, no polls, resolve next_slide_name it's index in exported slide list
             next_slide = slides_map.get(self.next_slide_name)
-            if self.next_slide_name is None or next_slide is None:
-                print(f"Error can not resolve next slide for current slide {self.title}, {self.next_slide_name}")
-                print(f"{slides_map}")
+            if not self.title.startswith("Ending") and (self.next_slide_name is None or next_slide is None):
+                print(f"ERROR: cannot resolve next slide for current slide {self.title}, {self.next_slide_name}")
                 sys.exit(1)
             
-            fields.update({
-                'next_slide_index': next_slide.index
-            })
+            elif self.title.startswith("Ending"):
+                pass
+            else:
+                fields.update({
+                    'next_slide_index': next_slide.index
+                })
+                
 
         return fields
 
@@ -172,9 +180,9 @@ def parse_contents_for_poll(text: str) -> Poll:
     if poll_type == None:
         return None
         
-    print(f"Parsed poll {title} {poll_type} {entries}")
+    #print(f"Parsed poll {title} {poll_type} {entries}")
     if title is None:
-        print(f"Error Poll title can not be None!")
+        print(f"ERROR: Poll title can not be None!")
 
     return Poll(title, poll_type, entries)
 
@@ -214,55 +222,76 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
     # Parse out possible poll render options
     maybe_poll_render_options = parse_contents_for_poll_render_metadata(content)
     if maybe_poll is not None:
-        print(f"applying parsed poll render options: {maybe_poll_render_options}")
+        #print(f"INFO: Applying parsed poll render options: {maybe_poll_render_options}")
         maybe_poll.pollRenderConfig = maybe_poll_render_options
 
     # Parse which slide comes next (if direct)
-    next_slide_name_match = re.search(r'Next Slide:\s*\[\[(.*?)\]\]', content)
+    next_slide_name_match = re.search(NEXT_SLIDE_REGEX, content)
     next_slide_name = next_slide_name_match.group(1).strip() if next_slide_name_match else None
+
+    # Remove Next Slide tag now that it's parsed
+    content = re.sub(NEXT_SLIDE_REGEX, '', content, flags=re.MULTILINE)
+
+    # Parse out possible `Font Scale:` metadata tag
+    match = re.search(FONT_SCALE_REGEX, content, re.MULTILINE)
+    text_contents_font_scale = float(match.group(1).strip()) if match else 1
+
+    # Remove Font Scale tag now that it's parsed
+    content = re.sub(FONT_SCALE_REGEX, '', content, flags=re.MULTILINE)
+
+    # Remove empty lines to make the text cleaner
+    content = "\n".join([line for line in content.splitlines() if line.strip() != ""])
 
     # Parse filename to be set as slide message
     message = os.path.basename(file_path).split(".md")[0]
     message_slug = slugify(message)
 
     # Parse out possible image contents in format ![[image_path.png]]
-    match = re.search(r'\!\[\[(.*?)\]\]', content)
-    slide_image_name = match.group(1).strip() if match else None
+    image_match = re.search(r'\!\[\[(.*?)\]\]', content)
+    slide_image_name = image_match.group(1).strip() if image_match else None
     slide_image = None
-    if match:
+    if image_match:
         slide_image_scale_match = re.search(r'Scale:\s*(.*)', content)
         scale = slide_image_scale_match.group(1).strip() if slide_image_scale_match else 1
-        slide_image = SlideImage(os.path.join(md_dir, slide_image_name), float(scale))
-        print(f"Parsed out image: {slide_image.path} with scale {slide_image.scale}")
+        if scale == "Columnar":
+            print(f"INFO: Columnar image slide: {message}")
+            slide_image = SlideImage(os.path.join(md_dir, slide_image_name), 1, True)
+        else:
+            slide_image = SlideImage(os.path.join(md_dir, slide_image_name), float(scale), False)
+        #print(f"Parsed out image: {slide_image.path} with scale {slide_image.scale}")
 
     # Parse out possible text contents tagged with text
-    match = re.search(r"^[Tt]ext: (.*)$", content, re.MULTILINE)
-    slide_text_contents = match.group(1).strip() if match else content
-    if match:
-        print(f"Parsed out text: {slide_text_contents}")
-    
-    # Parse out possible `Font Scale:` metadata tag
-    match = re.search(r"^Font Scale: (.*)$", content, re.MULTILINE)
-    text_contents_font_scale = float(match.group(1).strip()) if match else 1
+    text_match = re.search(r"^[Tt]ext: (.*)$", content, re.MULTILINE)
+    slide_text_contents = text_match.group(1).strip() if text_match else content
     
     # Parse out possible `Title Override:` metadata tag
     match = re.search(r"^Title Override: (.*)$", content, re.MULTILINE)
     message_override = match.group(1).strip() if match else message
 
     # Parse out if the contents of the slide contain Rust code
-    match = re.search(r"```rust((.|\n)*)```", content, re.MULTILINE)
-    slide_code_contents = match.group(1).strip() if match else content
-    if match:
-        print(f"Parsed out code: {slide_code_contents}") 
+    code_match = re.search(r"```rust((.|\n)*)```", content, re.MULTILINE)
+    slide_code_contents = code_match.group(1).strip() if code_match else content
+    if code_match:
         lexer = RustLexer()
         formatter = ImageFormatter(font_name='Andale Mono', line_numbers=False, style='monokai', font_size=42)
-        slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1)
+
+        slide_image_scale_match = re.search(r'Scale:\s*(.*)', content)
+        scale = slide_image_scale_match.group(1).strip() if slide_image_scale_match else 1
+        if scale == "Columnar":
+            print(f"INFO: Columnar image slide: {message}")
+            slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1, True)
+        else:
+            slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1, False)
         
         # Highlight the code and save it to an image
         with open(slide_image.path, "wb") as f:
             highlight(slide_code_contents, lexer, formatter, outfile=f)
         
-        print(f"Wrote out code image: {slide_image.path}")
+        print(f"INFO: Rendered code for slide: {message}") 
+        #print(f"Wrote out code image: {slide_image.path}")
+
+    if not text_match and not image_match and not code_match:
+        print(f"WARN: Using raw text for slide {message}: {slide_text_contents}")
     
     # Image path to save, referenced in slides.json as well
     save_path = f"{index:03d}.{message_slug}.png"
@@ -314,11 +343,15 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
 
     # Draw slide image if any
     if slide.image is not None:
-        print(f"Drawing slide {slide.title} With Image - {slide.image.path}")
+        print(f"Drawing image slide: {slide.title}")
+        #print(f"Drawing image slide {slide.title} With - {slide.image.path}")
         if not os.path.exists(slide.image.path):
-            print(f"Slide references image but image path could not be loaded! Slide {slide.title} image path {slide.image.path}")
+            print(f"ERROR: Slide references image but image path could not be loaded! Slide {slide.title} image path {slide.image.path}")
         
         slide_image = Image.open(slide.image.path).convert("RGBA")
+
+        if slide.image.columnar:
+            base_img_x = base_img.size[0] * 0.75
 
         x_scale = slide_image.size[0] / base_img_x
         y_scale = slide_image.size[1] / base_img_y
@@ -331,20 +364,23 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
             slide_image = slide_image.resize((int(slide_image.size[0] * slide.image.scale), int(slide_image.size[1] * slide.image.scale)))
 
         slide_image_width, slide_image_height = slide_image.size
-        img_x = (1920 - slide_image_width) // 2
-        img_y = (1080 - slide_image_height) // 2
+        if slide.image.columnar:
+            img_x = 0
+            img_y = (1080 - slide_image_height) // 2
+        else:
+            img_x = (1920 - slide_image_width) // 2
+            img_y = (1080 - slide_image_height) // 2
         base_img.paste(slide_image, (img_x, img_y), slide_image)
 
     # Draw text if any
     elif slide.text_contents is not None:
-        print(f"Drawing slide {slide.title} With Text - {slide.text_contents}")
+        print(f"Drawing text slide: {slide.title}")
+        #print(f"Drawing slide {slide.title} With Text - {slide.text_contents}")
         text = slide.text_contents
 
-        scale = slide.fontScale
-        if slide.fontScale == 1 and len(text) > 30:
-            scale = 0.3
         font_size = int(160 * slide.fontScale)
         if not text.isascii:
+            print(f"WARN: Cannot apply font scale to text on slide {slide.title}")
             font_size = 160 # font size must be 160 if emojis and text in string
 
         font = ImageFont.truetype("./assets/fonts/Export/SFProDisplay/OpenType-TT/SF-Pro-Display-Medium.ttf", font_size)
@@ -496,9 +532,12 @@ def main():
         slide_map[slide.title] = slide
         
     slides_json = []
+    count = 0
     if args.gen_images:
-        print(f"Generation {len(slides_json)} images...")
-    for slide in slides: 
+        print(f"Generation {len(slides)} images...")
+    for slide in slides:
+        print(f"{int(count/len(slides)*100)}% ", end="")
+        count += 1
         # Export slide image
         if args.gen_images:
             generate_slide_image(slide, md_dir, output_dir)
