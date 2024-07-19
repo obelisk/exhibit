@@ -728,18 +728,15 @@ view model =
         ]
     else 
         -- Render presentation view, slides img container and polls
-
         div [ class "slides-container", classList [("stretched", model.stretchedMode == True)] ] [
             case model.currentSlide of
                 Just slide ->
                     img [ class "slide-img", src slide.image] []
                 Nothing -> div [] []
-            , div [ class "poll-results-container" ]
-                [ case model.currentPollRender of
-                        (Just render) ->
-                            renderBarGraph model.currentPollResults render
-                        _ -> div [ class "poll-results-container" ] []
-                ]
+            , case model.currentPollRender of
+                (Just render) ->
+                    renderBarGraph model.currentPollResults render
+                _ -> div [ class "poll-results-container" ] []
             , div [ id "reactions-float-bottom" ]
                 [ div [ id "reactions-container" ] []
                 ]
@@ -749,62 +746,62 @@ view model =
 
 renderBarGraph : Dict String Int -> PollRender -> Html Msg
 renderBarGraph currentPollResults render = 
-    -- Top level absoulute positioning container
-    div [ class "poll-results-container" 
-        , style "left" (String.fromInt render.x ++ "%")
-        , style "top" (String.fromInt render.y ++ "%") ] 
-        [ div [ class "poll-vote-now"] [text "- VOTE NOW -"]
-        , div [ class "poll-results-text"] [text "Poll results"]
-        -- Poll contents sizing and scale container
-        , div [ class "poll-results"
-            , style "transform" ("scale(" ++ String.fromFloat render.scale ++ " )" )  ]
-            [ 
-                let
-                    sortedOptions : List (Int, String, Int)
-                    sortedOptions = 
-                        currentPollResults
-                            |> Dict.toList
-                            |> List.indexedMap (\index (key, val) -> (index, key, val) )
-                            |> List.sortBy (\(_, _, val) -> val) 
-                            |> List.reverse
+    let
+        sortedOptions : List (Int, String, Int)
+        sortedOptions = 
+            currentPollResults
+                |> Dict.toList
+                |> List.indexedMap (\index (key, val) -> (index, key, val) )
+                |> List.sortBy (\(_, _, val) -> val) 
+                |> List.reverse
 
-                    (_, _, topOptionCount) = 
-                        let
-                            max (indexA, labelA, countA) (indexB, labelB, countB) = 
-                                if countA > countB then 
-                                    (indexA, labelA, countA)
-                                else 
-                                    (indexB, labelB, countB)
-                            
-                            empty =
-                                (0, "", 1)
-                        in
-                            List.foldl max empty sortedOptions
+        (_, _, topOptionCount) = 
+            let
+                max (indexA, labelA, countA) (indexB, labelB, countB) = 
+                    if countA > countB then 
+                        (indexA, labelA, countA)
+                    else 
+                        (indexB, labelB, countB)
+                
+                empty =
+                    (0, "", 1)
+            in
+                List.foldl max empty sortedOptions
 
-                    renderPollResultRow : (Int, String, Int) -> Html Msg
-                    renderPollResultRow (optionIndex, label, count) = 
-                        let
-                            leadingVotesCount = topOptionCount
+        renderPollResultRow : (Int, String, Int) -> Html Msg
+        renderPollResultRow (optionIndex, label, count) = 
+            let
+                leadingVotesCount = topOptionCount
 
-                            countPercentageOfTotal = 
-                                (toFloat count) / (toFloat leadingVotesCount)
-                                    |> (*) 100
-                        in
-                            div [ class "poll-result-row" ] 
-                                [ div [ class "poll-result-label-container" ] 
-                                    [ div [ class "poll-result-label" ] 
-                                        [ text label ]
-                                    , div [ class "poll-result-label-count" ] 
-                                        [ text <| "(" ++ String.fromInt count ++ ")" ]
-                                    ]
-                                , div [ class <| "poll-result-bar-container poll-result-colouring-" ++ String.fromInt optionIndex ] 
-                                    [ div [ class "poll-result-bar", style "width" <| "" ++ String.fromFloat countPercentageOfTotal ++ "%"] 
-                                        [] 
-                                    ]
-                                ]
-                in
-                    -- Container of result item for label, vote count, and visual coloured bar
-                    div [] (List.map renderPollResultRow sortedOptions)
+                countPercentageOfTotal = 
+                    (toFloat count) / (toFloat leadingVotesCount)
+                        |> (*) 100
+            in
+                div [ class "poll-result-row", id <| "poll-item-" ++ String.fromInt optionIndex] 
+                    [ div [ class "poll-result-label-container" ] 
+                        [ div [ class "poll-result-label" ] 
+                            [ text label ]
+                        , div [ class "poll-result-label-count" ] 
+                            [ text <| "(" ++ String.fromInt count ++ ")" ]
+                        ]
+                    , div [ class <| "poll-result-bar-container poll-result-colouring-" ++ String.fromInt optionIndex ] 
+                        [ div [ class "poll-result-bar", style "width" <| "" ++ String.fromFloat countPercentageOfTotal ++ "%"] 
+                            [] 
+                        ]
+                    ]
+    in
+        -- Top level absoulute positioning container
+        div [ class "poll-results-container" 
+            , style "left" (String.fromInt render.x ++ "%")
+            , style "top" (String.fromInt render.y ++ "%") ] 
+            [ div [ class "poll-results-scale", style "transform" ("scale(" ++ String.fromFloat render.scale ++ " )" ) ] 
+            [ div [ class "poll-vote-now"] [text "- VOTE NOW -"]
+            , div [ class "poll-results-text"] [text "Poll results"]
+            -- Poll contents sizing and scale container
+            , div [ class "poll-results", classList [ ("shrink-height", (List.length sortedOptions) > 4)] ]
+                    [  
+                        -- Container of result item for label, vote count, and visual coloured bar
+                        div [] (List.map renderPollResultRow sortedOptions)
+                    ]
+                ]
             ]
-        ]
-    
