@@ -52,9 +52,9 @@ impl Presentation {
         authentication_key: DecodingKey,
         title: String,
     ) -> Self {
-        // Create a default 10s ratelimiter
+        // Create a default 5s ratelimiter
         let ratelimiter = Arc::new(Ratelimiter::new());
-        ratelimiter.add_ratelimit("10s".to_string(), Arc::new(TimeLimiter::new(10)));
+        ratelimiter.add_ratelimit("5s".to_string(), Arc::new(TimeLimiter::new(5)));
 
         /*
         ratelimiter.add_ratelimit(
