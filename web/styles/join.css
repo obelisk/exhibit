@@ -138,13 +138,15 @@ body {
     Poll styles
 */
 
-.poll-options-group { 
+.poll-options-group {
     display: flex;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .poll-option-label {
     width: 100%;
+    display: flex;
 }
 
 .poll-submit-button {
@@ -185,7 +187,7 @@ body {
     min-height: 42px;
     margin: 10px;
     padding: 10px;
-    font-size: 28px;
+    font-size: 22px;
     text-align: center;
     background: #f6f8ff;
     position: relative;
