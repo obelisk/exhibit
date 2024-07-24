@@ -26,6 +26,7 @@ CONTAINS_PATH_POLL = "CONTAINS_PATH_POLL"
 STATE_POLL = "STATE_POLL"
 
 # Regexes
+EMOJIS_REGEX = r'^Emojis:\s*(.*)$'
 NEXT_SLIDE_REGEX = r'Next Slide:\s*\[\[(.*?)\]\]'
 FONT_SCALE_REGEX = r'^Font Scale: (.*)$'
 
@@ -213,9 +214,11 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
         content = file.read()
     
     # Parse out possible emojis
-    emojis_match = re.search(r'^Emojis:\s*(.*)$', content, re.MULTILINE)
+    emojis_match = re.search(EMOJIS_REGEX, content, re.MULTILINE)
     emojis = emojis_match.group(1).split(",") if emojis_match else []
     emojis = [e.strip() for e in emojis]
+    # Remove Emojis tag now that it's parsed
+    content = re.sub(EMOJIS_REGEX, '', content, flags=re.MULTILINE)
 
     # Parse out possible poll
     maybe_poll = parse_contents_for_poll(content)
@@ -536,11 +539,15 @@ def main():
     if args.gen_images:
         print(f"Generation {len(slides)} images...")
     for slide in slides:
-        print(f"{int(count/len(slides)*100)}% ", end="")
+        print(f"{int(count/len(slides)*100)}% {count} ", end="")
         count += 1
         # Export slide image
         if args.gen_images:
-            generate_slide_image(slide, md_dir, output_dir)
+            try:
+                generate_slide_image(slide, md_dir, output_dir)
+            except Exception as e:
+                print(f"Error rendering slide {slide.title}")
+                exit(1)
         # Serialize and resolve all polls and linked slides by name to index with slide_map
         slides_json.append(slide.export(slide_map))
 
