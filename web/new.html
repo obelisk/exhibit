@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Exhibit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #333;
+            background: #fdfdfd;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 1px 13px 13px #eee;
+        }
+
+        .title-group {
+            margin-bottom: 20px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .title-group>.title {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+       /*
+        .title-group>p {}
+        */
+
+        #slide-message {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 500;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .reaction-help {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        #reaction-container {
+            display: flex;
+            padding: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #reaction-container.disabled {
+            filter: brightness(0.90);
+            background: #fff;
+            pointer-events: none;
+        }
+
+        .reaction-button {
+            width: 20%;
+            height: 70px;
+            padding: 20px;
+            margin: 20px;
+            cursor: pointer;
+            background: #fafafa;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 55px;
+        }
+
+        .display-none {
+            display: none
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="title-group">
+            <div class="title">New Presentation</div>
+        </div>
+        <form action="/new" method="post">
+            <label for="registration_key">Registration Key:</label>
+            <input type="text" id="registration_key" name="registration_key" required><br><br>
+
+            <label for="title">Presentation Title:</label>
+            <input type="text" id="title" name="title" required><br><br>
+
+            <label for="presenter_identity">Presenter:</label>
+            <input type="text" id="presenter_identity" name="presenter_identity" required><br><br>
+
+            <label for="encrypted">Encrypted:</label>
+            <input type="checkbox" id="encrypted" name="encrypted"><br><br>
+
+            <label for="authorization_public_key">Authroization Public Key (PEM):</label>
+            <textarea id="authorization_public_key" name="authorization_public_key" rows="4" cols="50"
+                required></textarea><br><br>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+</body>
+
+</html>

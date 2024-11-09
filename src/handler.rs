@@ -1,143 +1,115 @@
-use std::collections::HashMap;
+use crate::{
+    ws, ClientJoinPresentationData,
+    Presentation, Presentations, Presenter, User,
+};
+use serde::Serialize;
+use warp::{http::StatusCode, reply::json, Reply, reject::Rejection};
 
-use crate::{ws, Client, Clients, ConfigurationMessage, EmojiMessage, Presenters, Result};
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, UnboundedSender};
-use uuid::Uuid;
-use warp::{http::StatusCode, reply::json, ws::Message, Reply};
+
+type Result<T> = std::result::Result<T, Rejection>;
 
 #[derive(Serialize, Debug)]
 pub struct RegisterResponse {
     url: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Event {
-    message: String,
-    slide: u64,
-    emojis: Vec<String>,
-}
-
-pub async fn update_handler(
-    update: ConfigurationMessage,
-    clients: Clients,
-    configuration_sender: UnboundedSender<ConfigurationMessage>,
+pub async fn join_handler(
+    user_auth_data: ClientJoinPresentationData,
+    presentations: Presentations,
 ) -> Result<impl Reply> {
-    let _ = configuration_sender.send(update.clone());
+    debug!("Got joining call");
 
-    match update {
-        // A new slide is bring displayed
-        ConfigurationMessage::NewSlide {
-            slide,
-            slide_settings,
-        } => {
-            let event = Event {
-                message: slide_settings.message,
-                slide,
-                emojis: slide_settings.emojis,
-            };
-            let event = serde_json::to_string(&event).unwrap();
-            clients.read().await.iter().for_each(|(_, connected_user)| {
-                for (_, client) in connected_user {
-                    if let Some(sender) = &client.sender {
-                        let _ = sender.send(Ok(Message::text(&event)));
-                    }
-                }
-            });
-        }
-    }
+    let presentation = presentations
+        .get(&user_auth_data.presentation)
+        .ok_or(warp::reject::not_found())?;
 
-    Ok(StatusCode::OK)
-}
+    let presentation = presentation.value();
+    let presentation_id = &presentation.id;
+    let identity = user_auth_data.claims.sub.as_str();
 
-pub async fn register_handler(
-    headers: warp::http::HeaderMap,
-    clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
-) -> Result<impl Reply> {
-    info!("Got registration call!");
-    let identity = headers
-        .get("X-SSO-EMAIL")
-        .ok_or(warp::reject::not_found())?
-        .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
+    let guid = if presentation.presenter_identity == identity {
+        debug!("Registering presenter for [{presentation_id}]");
+        let new_presenter = Presenter::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_presenter.guid.clone();
+        presentation.presenters.insert(guid.clone(), new_presenter);
 
-    debug!("Registering client for {}", identity);
+        guid
+    } else {
+        debug!(
+            "Registering user [{}] for presentation [{}]",
+            user_auth_data.claims.sub, user_auth_data.presentation
+        );
 
-    let guid = Uuid::new_v4().as_simple().to_string();
+        let new_user = User::new(identity.to_owned(), presentation_id.to_owned());
+        let guid = new_user.guid.clone();
+        presentation.users.insert(new_user);
 
-    register_client(guid.clone(), identity, clients, emoji_sender).await;
+        guid
+    };
+
+    info!("{identity} is preparing to upgrade connection in [{presentation_id}] with guid [{guid}]");
+
     Ok(json(&RegisterResponse {
-        url: format!("/ws/{}", guid),
+        url: format!("/ws/{presentation_id}/{guid}"),
     }))
 }
 
-async fn register_client(
+pub async fn ws_handler(
+    presentation_id: String,
     guid: String,
-    identity: String,
-    clients: Clients,
-    emoji_sender: mpsc::UnboundedSender<EmojiMessage>,
-) {
-    let mut clients = clients.write().await;
+    ws: warp::ws::Ws,
+    presentations: Presentations,
+) -> Result<impl Reply> {
+    trace!("Got websocket call for presentation: {presentation_id}!");
+    let presentation = presentations
+        .get(&presentation_id)
+        .ok_or(warp::reject::not_found())?;
 
-    if let Some(user_clients) = clients.get_mut(&identity) {
-        user_clients.insert(
-            guid,
-            Client {
-                sender: None,
-                emoji_sender,
-            },
-        );
-    } else {
-        let mut user_clients = HashMap::new();
-        user_clients.insert(
-            guid,
-            Client {
-                sender: None,
-                emoji_sender,
-            },
-        );
-        clients.insert(identity, user_clients);
+    let presentation = presentation.value().to_owned();
+
+    // Is there a registered user for this guid
+    let is_user = presentation.users.contains_guid(&guid);
+    // Is there a registered presenter for this guid
+    let is_presenter = presentation
+        .presenters
+        .contains_key(&guid);
+
+    // If there is neither
+    if !is_user && !is_presenter {
+        warn!("Got websocket upgrade for [{presentation_id}] with guid [{guid}] but no client or presenter is registered");
+        return Err(warp::reject::not_found());
     }
-}
 
-pub async fn client_ws_handler(
-    headers: warp::http::HeaderMap,
-    ws: warp::ws::Ws,
-    guid: String,
-    clients: Clients,
-) -> Result<impl Reply> {
-    info!("Got websocket call!");
-
-    let identity = headers
-        .get("X-SSO-EMAIL")
-        .ok_or(warp::reject::not_found())?
-        .as_bytes();
-    let identity = String::from_utf8(identity.to_vec()).map_err(|_| warp::reject::not_found())?;
-    info!("Websocket upgrade for {identity}!");
-
-    let client = clients
-        .read()
-        .await
-        .get(&identity)
-        .ok_or(warp::reject::not_found())?
-        .get(&guid)
-        .ok_or(warp::reject::not_found())?
-        .clone();
-
-    Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, identity, guid, clients, client)))
-}
-
-pub async fn presenter_ws_handler(
-    ws: warp::ws::Ws,
-    guid: String,
-    presenters: Presenters,
-) -> Result<impl Reply> {
-    info!("New websocket for emoji stream");
-
-    Ok(ws.on_upgrade(move |socket| ws::presenter_connection(socket, guid, presenters)))
+    Ok(ws
+        .max_message_size(1024 * 4) // Set max message size to 4KiB
+        .on_upgrade(move |socket| {
+            ws::new_connection(
+                socket,
+                presentation,
+                guid,
+            )
+        }))
 }
 
 pub async fn health_handler() -> Result<impl Reply> {
+    Ok(StatusCode::OK)
+}
+
+pub async fn new_presentation_hander(
+    presentation: Presentation,
+    presentations: Presentations,
+) -> Result<impl Reply> {
+    debug!("Registering presentation {}", presentation.id);
+
+    if presentations.get(&presentation.id).is_some() {
+        error!(
+            "Refusing to register a new version of presentation: {}",
+            presentation.id
+        );
+        return Err(warp::reject::reject());
+    }
+
+    presentations.insert(presentation.id.clone(), presentation);
+
     Ok(StatusCode::OK)
 }

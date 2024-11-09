@@ -1,16 +1,28 @@
 [package]
 name = "exhibit"
-version = "0.1.1"
+version = "0.3.0"
 authors = ["Mitchell Grenier <mitchell@confurious.io>"]
 edition = "2021"
 
 [dependencies]
+base64 = "0.21"
+dashmap = "5.5"
 env_logger = "0.10"
+jsonwebtoken = "8"
 log = "0.4"
 tokio = { version = "1.19.2", features = ["macros", "sync", "rt-multi-thread"] }
 tokio-stream = "0.1"
+toml = "0.7"
 warp = "0.3"
-serde = {version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 futures = { version = "0.3", default-features = false }
 uuid = { version = "1", features = ["serde", "v4"] }
+zeroize = "1"
+
+[build-dependencies]
+regex = "1" 
+
+[[bin]]
+name = "exhibit"
+path = "src/main.rs"

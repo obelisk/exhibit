@@ -1,0 +1,258 @@
+@font-face {
+    font-family: 'Lato-Bold';
+    src: url('fonts/Lato-Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Regular';
+    src: url('fonts/Lato-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Light';
+    src: url('fonts/Lato-Light.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato-Thin';
+    src: url('fonts/Lato-Thin.ttf') format('truetype');
+}
+
+body {
+    font-family: 'Lato-Light', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 22px;
+    line-height: 1.42857143;
+    color: #364161;
+    background: #f6f8fe;
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes moveToLeft {
+    from {
+        transform: translateX(50px);
+        opacity: 0.8;
+    }
+    to {
+        transform: translateX(0px);
+        opacity: 1;
+    }
+}
+
+.body-container {width: 90%;margin: 20px auto;margin-left: auto;margin-right: auto;}
+
+/*
+
+    Top Bar Title Styles
+
+*/
+
+.title-group {
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+}
+
+.title-gradient-text-container {width: 90%;margin: 20px auto 10px auto;margin-left: auto;margin-right: auto;}
+
+.title-group-divider{width: 100%;height: 3px;background: linear-gradient(to right, #1ca2ff, #a71fff);/* Change the color values as needed */}
+
+.title {
+    font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 35px;
+    background: linear-gradient(to bottom right, #00bdff, #c700ff);
+    color: transparent;
+    -webkit-background-clip: text;
+    letter-spacing: 1px;
+    display: inline-block;
+}
+
+/*
+
+    Main body content container styles and text title sizing
+
+*/
+
+.container {
+    animation: moveToLeft 0.3s ease-out;
+    padding: 20px 20px 20px 20px;
+    margin-bottom: 50px;
+    border-left: 1px solid #ddd;
+}
+
+.container-type-row{display: flex;align-items: normal;margin-bottom: 25px;padding-bottom: 0px;border-bottom: 1px solid #ddd;font-family: 'Lato-Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;}
+
+.container-type-icon{margin-right: 10px;}
+.container-type-icon img {width: 42px;}
+
+
+.container-type-text{}
+
+.container-title-row{margin-bottom: 20px;font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 28px;color: #151d36;}
+
+.container-title-text{}
+
+.container-paragraph-row{font-family: 'Lato-Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: 20px;max-width: 530px;}
+
+.container-paragraph-text{}
+
+/*
+    Send Emoji Reaction styles
+*/
+
+.reaction-container {display: flex;flex-wrap: wrap;}
+
+.reaction-button{
+    user-select: none;
+    width: 70px;
+    height: 52px;
+    margin: 10px;
+    padding: 20px;
+    font-size: 36px;
+    text-align: center;
+    background: #f6f8ff;
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background: linear-gradient(#f6f8ff, #f6f8ff) padding-box,
+              linear-gradient(to bottom right, #2a95ff, #962eff) border-box;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
+}
+
+.reaction-button:hover{
+    background: linear-gradient(to bottom right, #e0f0ff, #ddbcff) padding-box,
+              linear-gradient(to bottom right, #f6f8fe, #f6f8fe) border-box;
+    transform: translateY(-4px);
+}
+
+.no-emojis-for-slide{font-size: 20px;color: #999;}
+
+.rate-limiting-message{
+    margin-top: 10px;
+}
+
+/* 
+    Poll styles
+*/
+
+.poll-options-group {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.poll-option-label {
+    width: 100%;
+    display: flex;
+}
+
+.poll-submit-button {
+    cursor: pointer;
+    user-select: none;
+    margin-top: 20px;
+    width: 165px;
+    letter-spacing: 1px;
+    text-align: center;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+    font-family: 'Lato-Bold';
+    color: #3491ff;
+    border: 2px solid;
+    transition: all 0.2s ease;
+}
+
+.poll-submit-button:hover {
+    cursor: pointer;
+    user-select: none;
+    background: #0084d9;
+    color: #fff;
+}
+
+.poll-submit-button.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.poll-type-text {
+    margin-bottom: 10px;
+}
+
+.poll-item {
+    user-select: none;
+    width: 100%;
+    min-height: 42px;
+    margin: 10px;
+    padding: 10px;
+    font-size: 22px;
+    text-align: center;
+    background: #f6f8ff;
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background: linear-gradient(#f6f8ff, #f6f8ff) padding-box, linear-gradient(to bottom right, #2a95ff, #962eff) border-box;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
+}
+
+.poll-item:hover {
+    background: linear-gradient(to bottom right, #e0f0ff, #ddbcff) padding-box,
+              linear-gradient(to bottom right, #f6f8fe, #f6f8fe) border-box;
+    transform: translateY(-4px);
+}
+
+.poll-options-group input[type="radio"] {
+    display: none;
+}
+
+.poll-options-group input[type="radio"]:checked + .poll-item {
+    color: #fff;
+    background: linear-gradient(#2a95ff, #962eff) padding-box, linear-gradient(to bottom right, #f6f8ff, #f6f8ff) border-box;
+}
+
+.poll-options-group input[type="checkbox"] {
+    display: none;
+}
+
+.poll-options-group input[type="checkbox"]:checked + .poll-item {
+    background: linear-gradient(#2a95ff, #962eff) padding-box, linear-gradient(to bottom right, #f6f8ff, #f6f8ff) border-box;
+}
+
+@media only screen and (max-width: 600px) {
+    .title {
+        font-size: 25px;
+    }
+    .container-type-row {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    .container-title-row{
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+    .container-paragraph-row{
+        font-size: 18px;
+    }
+    .body-container{
+        margin: 10px auto;
+        width: 95%;
+    }
+    .container{
+        padding: 0px 10px 10px 10px;
+    }
+    .reaction-button{
+        width: 50px;
+        height: 30px;
+        font-size: 28px;
+        padding: 15px;
+    }
+    .rate-limiting-message{
+        margin-top: 20px;
+    }
+}
