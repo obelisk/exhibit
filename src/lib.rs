@@ -160,7 +160,7 @@ impl std::fmt::Display for SlideSettings {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtClaims {
     pub sub: String, // Contains the user's identifying information
     pub pid: String, // Presentation ID, should always match the kid in header to be valid

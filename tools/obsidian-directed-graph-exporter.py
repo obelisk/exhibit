@@ -14,8 +14,12 @@ import argparse
 import sys
 from typing import List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont
+# This seems like it's not used but is needed for pillow to
+# read AVIF images
+import pillow_avif
 from pygments import highlight
 from pygments.lexers import RustLexer
+from pygments.lexers import JavascriptLexer
 from pygments.formatters import ImageFormatter
 
 
@@ -26,9 +30,9 @@ CONTAINS_PATH_POLL = "CONTAINS_PATH_POLL"
 STATE_POLL = "STATE_POLL"
 
 # Regexes
-EMOJIS_REGEX = r'^Emojis:\s*(.*)$'
-NEXT_SLIDE_REGEX = r'Next Slide:\s*\[\[(.*?)\]\]'
-FONT_SCALE_REGEX = r'^Font Scale: (.*)$'
+EMOJIS_REGEX = r'^Emojis: *(.*)$'
+NEXT_SLIDE_REGEX = r'Next Slide: *\[\[(.*?)\]\]'
+FONT_SCALE_REGEX = r'^Font Scale: *(.*)$'
 
 
 # Frontend will break if poll names are not unique, detect and throw error
@@ -214,9 +218,13 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
         content = file.read()
     
     # Parse out possible emojis
-    emojis_match = re.search(EMOJIS_REGEX, content, re.MULTILINE)
+    emojis_match = re.search(EMOJIS_REGEX, content, flags=re.MULTILINE)
     emojis = emojis_match.group(1).split(",") if emojis_match else []
     emojis = [e.strip() for e in emojis]
+    if emojis == [""]:
+        emojis = []
+    if emojis == []:
+        print(f"WARN: No emojis found in slide {file_path}, using default emojis")
     # Remove Emojis tag now that it's parsed
     content = re.sub(EMOJIS_REGEX, '', content, flags=re.MULTILINE)
 
@@ -271,11 +279,15 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
     match = re.search(r"^Title Override: (.*)$", content, re.MULTILINE)
     message_override = match.group(1).strip() if match else message
 
-    # Parse out if the contents of the slide contain Rust code
-    code_match = re.search(r"```rust((.|\n)*)```", content, re.MULTILINE)
-    slide_code_contents = code_match.group(1).strip() if code_match else content
+    # Parse out if the contents of the slide contain code
+    code_match = re.search(r"```([a-zA-Z]+)((.|\n)*)```", content, re.MULTILINE)
+    slide_code_contents = code_match.group(2).strip() if code_match else content
     if code_match:
-        lexer = RustLexer()
+        lexer = JavascriptLexer()
+        # If the code is Rust, use Rust lexer, otherwise use Javascript lexer
+        if "rust" in code_match.group(1).lower():
+            lexer = RustLexer()
+            
         formatter = ImageFormatter(font_name='Andale Mono', line_numbers=False, style='monokai', font_size=42)
 
         slide_image_scale_match = re.search(r'Scale:\s*(.*)', content)
@@ -284,7 +296,7 @@ def parse_md_file(md_dir: str, file_path: str, index: int) -> Slide:
             print(f"INFO: Columnar image slide: {message}")
             slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1, True)
         else:
-            slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", 1, False)
+            slide_image = SlideImage(f"output_code_images/{index:03d}.{message_slug}_code.png", float(scale), False)
         
         # Highlight the code and save it to an image
         with open(slide_image.path, "wb") as f:
@@ -390,7 +402,7 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
         emojiFont = ImageFont.truetype("/System/Library/Fonts/Apple Color Emoji.ttc", 160)
 
         draw = ImageDraw.Draw(base_img)
-        text_width, text_height = draw.textsize(text, font=font)
+        text_width, text_height = textsize(text, font=font)
         text_x = (1920 - text_width) // 2
         text_y = (1080 - text_height) // 2
         
@@ -401,6 +413,11 @@ def generate_slide_image(slide: Slide, md_dir: str, output_dir: str):
     output_path = os.path.join(output_dir, slide.save_path)
     base_img.save(output_path)
 
+def textsize(text, font):
+    im = Image.new(mode="P", size=(0, 0))
+    draw = ImageDraw.Draw(im)
+    _, _, width, height = draw.textbbox((0, 0), text=text, font=font)
+    return width, height
 
 def getEmojiMask(font: ImageFont, emoji: str, size: tuple[int, int]) -> Image:
     """ Makes an image with an emoji using AppleColorEmoji.ttf, this can then be pasted onto the image to show emojis
@@ -436,33 +453,6 @@ def getDimensions(draw: ImageDraw, text: str, font: ImageFont) -> tuple[int, int
     """
     left, top, right, bottom = draw.multiline_textbbox((0, 0), text, font=font)
     return (right-left), (bottom-top)
-
-def addEmojis():
-    # Now add any emojis that weren't embedded correctly
-    modifiedResponseL = modifiedResponse.split("\n")
-    for i, line in enumerate(modifiedResponseL):
-        for j, char in enumerate(line):
-            if (not char.isascii()):
-                
-                # Get the height of the text ABOVE the emoji in modifiedResponse
-                aboveText = "\n".join(modifiedResponseL[:i])
-                _, aboveTextHeight = getDimensions(draw, aboveText, poppinsFont)
-
-                # The height that we paste at is aboveTextHeight + (marginHeight+PADDING) + (Some error)
-                # (marginHeight+PADDING) is where we pasted the entire paragraph
-                y = aboveTextHeight + (marginHeight+PADDING) + 5
-
-                # Get the length of the text on the line up to the emoji
-                beforeLength, _ = getDimensions(draw, line[:j], poppinsFont)
-
-                # The x position is beforeLength + 75; 75px is where we pasted the entire paragraph
-                x = (75) + beforeLength
-
-                # Create the mask
-                emojiMask = getEmojiMask(emojiFont, char, (165, 165))
-
-                # Paste the mask onto the image
-                img.paste(emojiMask, (int(x), int(y)), emojiMask)
 
 def addEmojis(img: Image, text: str, box: tuple[int, int], font: ImageFont, emojiFont: ImageFont, size: int) -> None:
     """ Adds emojis to the text
@@ -537,7 +527,7 @@ def main():
     slides_json = []
     count = 0
     if args.gen_images:
-        print(f"Generation {len(slides)} images...")
+        print(f"Generating {len(slides)} images...")
     for slide in slides:
         print(f"{int(count/len(slides)*100)}% {count} ", end="")
         count += 1
@@ -546,7 +536,7 @@ def main():
             try:
                 generate_slide_image(slide, md_dir, output_dir)
             except Exception as e:
-                print(f"Error rendering slide {slide.title}")
+                print(f"Error rendering slide {slide.title}: {e}")
                 exit(1)
         # Serialize and resolve all polls and linked slides by name to index with slide_map
         slides_json.append(slide.export(slide_map))

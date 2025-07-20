@@ -26,3 +26,7 @@ regex = "1"
 [[bin]]
 name = "exhibit"
 path = "src/main.rs"
+
+[[example]]
+name = "new_presentation"
+path = "examples/new_presentation.rs"
